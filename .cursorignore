@@ -1,0 +1,38 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+# Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+
+# Generated and potentially large local artifacts
+artifacts/
+*.db
+*.sqlite
+*.sqlite3
+
+# Notebook-generated transient files
+.ipynb_checkpoints/
+
+# Build and packaging output
+build/
+dist/
+*.egg-info/
+
+# Local IDE and operating-system noise
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Git internals
+.git/
