@@ -1,0 +1,12 @@
+[project]
+name = "rag-based-on-obsidian"
+environment = "development"
+
+[corpus]
+allowed_directories = ["DLS1", "DLS2"]
+
+[paths]
+artifacts = "artifacts"
+docs = "docs"
+evals = "evals"
+notebooks = "notebooks"
