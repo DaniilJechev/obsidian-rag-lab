@@ -113,7 +113,12 @@ AI-ассистент не должен молча писать весь про�
 - [x] Создана базовая структура каталогов.
 - [x] Roadmap скопирован в `docs/RAG_obsidian_plan_snapshot.md`.
 - [x] Создан README.
-- [ ] Настроены Python environment и конфигурация.
-- [ ] Инициализирован Git и добавлен `.gitignore`.
-- [ ] Добавлены базовые тесты и lint.
-- [ ] Запущены PostgreSQL и Qdrant через Docker Compose.
+- [x] Настроены Python environment (`uv`, Python 3.12.12) и конфигурация.
+- [x] Инициализирован Git, добавлен `.gitignore` и настроен удалённый GitHub-репозиторий.
+- [x] Добавлены базовые тесты, Ruff и GitHub Actions CI.
+- [x] Созданы Docker Compose и производный Qdrant image с healthcheck.
+- [x] PostgreSQL 16 и Qdrant v1.19.0 запущены локально через Docker Compose.
+- [x] Настроены persistent volumes для PostgreSQL и Qdrant.
+- [x] PostgreSQL и Qdrant проходят healthcheck.
+- [ ] Согласован шаблон Agile-спринта.
+- [ ] Проведена финальная проверка Definition of Done Фазы 0.
