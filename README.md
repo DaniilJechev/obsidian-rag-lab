@@ -120,5 +120,14 @@ AI-ассистент не должен молча писать весь про�
 - [x] PostgreSQL 16 и Qdrant v1.19.0 запущены локально через Docker Compose.
 - [x] Настроены persistent volumes для PostgreSQL и Qdrant.
 - [x] PostgreSQL и Qdrant проходят healthcheck.
-- [ ] Согласован шаблон Agile-спринта.
-- [ ] Проведена финальная проверка Definition of Done Фазы 0.
+- [x] Согласован шаблон Agile-спринта и правила sprint workflow.
+- [x] Создан и проверен проектный набор skills для sprint planning и Git workflow.
+- [x] Проведена финальная проверка Definition of Done Фазы 0:
+  - локальные Ruff и pytest проходят;
+  - PostgreSQL и Qdrant проходят Docker healthcheck;
+  - последний GitHub Actions CI завершился успешно;
+  - `.env` не отслеживается Git;
+  - roadmap snapshot совпадает с read-only источником.
+
+Фаза 0 формально завершена. Следующий этап — планирование Sprint 1 для Фазы 1
+(Safe Corpus Discovery).

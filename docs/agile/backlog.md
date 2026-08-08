@@ -51,11 +51,11 @@ Backlog не является жёстким расписанием. Приор�
 | BOOT-002 | P0 | done | 0 | Настроить `uv`, Python 3.12 и конфигурацию | `.venv`, `pyproject.toml`, `uv.lock`, `.env.example` созданы и проверены |
 | BOOT-003 | P0 | done | 0 | Настроить Git, GitHub, `.gitignore`, tests, Ruff и CI | Commit и push выполнены, локальные checks и GitHub Actions проходят |
 | BOOT-004 | P0 | done | 0 | Запустить PostgreSQL и Qdrant через Docker Compose | Оба сервиса работают, volumes подключены, healthchecks проходят |
-| BOOT-005 | P0 | ready | 0 | Завершить формальную проверку Definition of Done Фазы 0 | Все обязательные пункты проверены, отложенные пункты явно отмечены |
-| AGILE-001 | P0 | ready | 0 | Создать и согласовать sprint workflow | Шаблон sprint создан, правила начала/работы/завершения зафиксированы |
-| AGILE-002 | P0 | ready | 0 | Создать Cursor skill для commit-процесса | Skill описывает pre-commit checks, secrets safety и post-commit verification |
-| AGILE-003 | P1 | ready | 0 | Создать Cursor skill для планирования нового sprint | Skill помогает сформулировать goal, scope, DoD и ветку |
-| AGILE-004 | P1 | ready | 0 | Создать Cursor skill для новой Git-ветки | Skill безопасно создаёт sprint branch от актуальной `main` |
+| BOOT-005 | P0 | done | 0 | Завершить формальную проверку Definition of Done Фазы 0 | Локальные checks, Docker healthchecks, CI, Git safety и roadmap snapshot проверены |
+| AGILE-001 | P0 | done | 0 | Создать и согласовать sprint workflow | Шаблон sprint создан, правила начала/работы/завершения зафиксированы |
+| AGILE-002 | P0 | done | 0 | Создать Cursor skill для commit-процесса | Skill описывает pre-commit checks, secrets safety и post-commit verification |
+| AGILE-003 | P1 | done | 0 | Создать Cursor skill для планирования нового sprint | Skill помогает сформулировать goal, scope, DoD, Issues и Milestone |
+| AGILE-004 | P1 | done | 0 | Создать Cursor skill для новой Git-ветки | Skill безопасно создаёт sprint branch от актуальной `main` |
 | CORPUS-001 | P0 | ready | 1 | Безопасно обнаружить Markdown-файлы только в DLS1/DLS2 | Allowlist работает, запрещённые пути отклоняются, vault не изменяется |
 | CORPUS-002 | P1 | ready | 1 | Распарсить Markdown-структуру | Извлекаются текст, headings, frontmatter и wikilinks |
 | CORPUS-003 | P1 | ready | 1 | Подготовить corpus inventory и EDA | Реальные числа файлов, размеров, слов, токенов и дублей сохранены |
@@ -92,10 +92,11 @@ Backlog не является жёстким расписанием. Приор�
 
 ## Текущий фокус
 
-Следующие задачи не означают автоматически созданный sprint. Перед началом Sprint 1 пользователь самостоятельно выберет и зафиксирует scope:
+Фаза 0 формально завершена. Следующая работа относится к Фазе 1, но ещё не
+является автоматически созданным sprint:
 
-1. Завершить формальную проверку DoD Фазы 0.
-2. Создать Cursor skill для commit-процесса.
-3. Создать Cursor skill для планирования sprint.
-4. Создать Cursor skill для создания новой Git-ветки.
-5. Сформулировать Sprint 1 для safe corpus discovery.
+1. Применить `sprint-planning`.
+2. Проверить зависимости и размер scope для `CORPUS-001`, `CORPUS-002`,
+   `CORPUS-003`.
+3. Согласовать Sprint 1, GitHub Milestone и Issues.
+4. Создать sprint branch только после подтверждения scope.
