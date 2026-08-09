@@ -65,45 +65,58 @@ Discovery — первая граница безопасности ingestion pip
 
 | Дата | Действие / решение | Результат |
 |---|---|---|
-| — | Sprint запланирован | Реализация ещё не начата |
+| 2026-08-09 | Реализован discovery layer и добавлены safety tests | Unit-тесты прошли: 15 passed |
+| 2026-08-09 | Выполнен smoke test read-only vault | Найдено 230 `.md`-файлов: DLS1 — 100, DLS2 — 130 |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-Будут добавлены после реализации.
+uv run pytest -q
+uv run ruff check .
+uv run python -c "load_config(); discover_markdown_files(...)"
 ```
 
 ### Test and Lint Results
 
-- Tests: `not run`
-- Lint: `not run`
+- Tests: `15 passed` (Windows PowerShell с правами администратора; symlink test выполнен)
+- Lint: `passed` (`All checks passed!`)
 - CI: `not run`
 
 ### Metrics
 
 | Metric | Value | Context |
 |---|---:|---|
-| Discovered Markdown files | not measured | Будет измерено после реализации |
+| Discovered Markdown files | 230 | Read-only smoke test реального vault |
+| DLS1 Markdown files | 100 | Read-only smoke test реального vault |
+| DLS2 Markdown files | 130 | Read-only smoke test реального vault |
 
 ## Review
 
 ### Completed
 
 - Sprint scope согласован.
+- Discovery implementation создана в `src/rag_based_on_obsidian/corpus/discovery.py`.
+- `DiscoveredFile` использован как структурированный discovery result.
+- Allowlist загружается через `.env` и `AppConfig`.
+- Unit и safety tests добавлены.
+- Реальный vault проверен без изменения исходных файлов.
 
 ### Not Completed
 
-- Implementation не начата.
+- Sprint DoD ещё не прошёл формальный аудит.
+- Ветка ещё не опубликована на GitHub.
+- Pull Request ещё не создан.
 
 ### Changed Decisions
 
-- Нет.
+- На Windows symlink-тест требует запуска PowerShell с повышенными правами;
+  в обычном терминале он может быть skipped.
 
 ### Technical Debt
 
-- Нет.
+- После DoD-аудита нужны push ветки, Pull Request, review/CI, merge и closeout.
 
 ## Retrospective
 
