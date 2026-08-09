@@ -1,6 +1,6 @@
 # Sprint 1 — Safe Corpus Discovery
 
-> Статус: `planned`
+> Статус: `completed`
 >
 > Ветка: `sprint/1-safe-corpus-discovery`
 >
@@ -18,9 +18,9 @@ Discovery — первая граница безопасности ingestion pip
 
 ## Scope
 
-- [ ] `CORPUS-001` — реализовать безопасное обнаружение Markdown-файлов только в `DLS1/` и `DLS2/`.
-- [ ] Зафиксировать контракт результата discovery и детерминированный порядок файлов.
-- [ ] Добавить тесты для разрешённых, запрещённых и пограничных путей.
+- [x] `CORPUS-001` — реализовать безопасное обнаружение Markdown-файлов только в `DLS1/` и `DLS2/`.
+- [x] Зафиксировать контракт результата discovery и детерминированный порядок файлов.
+- [x] Добавить тесты для разрешённых, запрещённых и пограничных путей.
 
 ## Out of Scope
 
@@ -38,24 +38,24 @@ Discovery — первая граница безопасности ingestion pip
 
 ## Acceptance Criteria
 
-- [ ] Discovery принимает только `DLS1` и `DLS2`.
-- [ ] Файлы вне allowlist отклоняются.
-- [ ] Path traversal и похожие пограничные пути не обходят allowlist.
-- [ ] Результат поиска детерминирован и содержит только `.md`-файлы.
-- [ ] Discovery не создаёт, не изменяет, не перемещает и не удаляет файлы в vault.
-- [ ] Негативные сценарии покрыты тестами.
+- [x] Discovery принимает только `DLS1` и `DLS2`.
+- [x] Файлы вне allowlist отклоняются.
+- [x] Path traversal и похожие пограничные пути не обходят allowlist.
+- [x] Результат поиска детерминирован и содержит только `.md`-файлы.
+- [x] Discovery не создаёт, не изменяет, не перемещает и не удаляет файлы в vault.
+- [x] Негативные сценарии покрыты тестами.
 
 ## Definition of Done
 
-- [ ] Все задачи Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
-- [ ] CI проходит после публикации изменений.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Sprint-документ содержит реальные результаты и ограничения.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Все задачи Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
+- [x] CI проходит после публикации изменений.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Sprint-документ содержит реальные результаты и ограничения.
+- [x] Пользователь подтвердил завершение спринта.
 
 ## Estimate
 
@@ -82,7 +82,7 @@ uv run python -c "load_config(); discover_markdown_files(...)"
 
 - Tests: `15 passed` (Windows PowerShell с правами администратора; symlink test выполнен)
 - Lint: `passed` (`All checks passed!`)
-- CI: `not run`
+- CI: `pass` — GitHub Actions job `Lint and test`
 
 ### Metrics
 
@@ -105,9 +105,8 @@ uv run python -c "load_config(); discover_markdown_files(...)"
 
 ### Not Completed
 
-- Sprint DoD ещё не прошёл формальный аудит.
-- Ветка ещё не опубликована на GitHub.
-- Pull Request ещё не создан.
+- Локальная рабочая копия ещё не синхронизирована с merge commit в `origin/main`;
+  это post-merge рабочее действие, не незавершённая задача Sprint 1.
 
 ### Changed Decisions
 
@@ -116,20 +115,38 @@ uv run python -c "load_config(); discover_markdown_files(...)"
 
 ### Technical Debt
 
-- После DoD-аудита нужны push ветки, Pull Request, review/CI, merge и closeout.
+- Milestone Sprint 1 имеет `open_issues: 0`, но пока остаётся открытым на GitHub;
+  его закрытие вынесено в отдельное административное действие.
 
 ## Retrospective
 
-Будет заполнена после выполнения спринта.
+### Что сработало
+
+- Последовательность implementation → tests → lint → evidence → PR позволила
+  отделить функциональную работу от административного closeout.
+- Read-only smoke test реального vault подтвердил результат discovery: 230 файлов,
+  из них 100 в `DLS1` и 130 в `DLS2`.
+
+### Сложности
+
+- На Windows symlink-тест потребовал запуска PowerShell с повышенными правами.
+- GitHub CLI в установленной версии не предоставляет отдельную команду
+  `gh milestone`, поэтому состояние Milestone проверялось через GitHub API.
+
+### Изменения для следующего спринта
+
+- Перед началом реализации синхронизировать локальную `main` с `origin/main`.
+- Для каждого спринта заранее связывать локальный документ, GitHub Milestone и
+  атомарную Issue.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
+- [x] Definition of Done проверен.
+- [x] Review проведён.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** —
+**Дата завершения:** 2026-08-09
