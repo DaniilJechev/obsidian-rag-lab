@@ -7,10 +7,12 @@ def test_load_config_reads_vault_root_from_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("OBSIDIAN_VAULT_ROOT", "~/obsidianNotes")
+    monkeypatch.setenv("ALLOWED_CORPUS_DIRECTORIES", "DLS1, DLS2")
 
     config = config_module.load_config()
 
     assert config.vault_root.name == "obsidianNotes"
+    assert config.allowed_corpus_directories == ("DLS1", "DLS2")
 
 
 def test_load_config_requires_vault_root(

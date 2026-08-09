@@ -15,6 +15,7 @@ class AppConfig:
     """Validated configuration required by the application."""
 
     vault_root: Path
+    allowed_corpus_directories: tuple[str, ...]
 
 
 def load_config() -> AppConfig:
@@ -25,4 +26,19 @@ def load_config() -> AppConfig:
     if not vault_root_value:
         raise ValueError("OBSIDIAN_VAULT_ROOT is required")
 
-    return AppConfig(vault_root=Path(vault_root_value).expanduser())
+    directories_value = os.environ.get(
+        "ALLOWED_CORPUS_DIRECTORIES",
+        "DLS1,DLS2",
+    )
+    allowed_directories = tuple(
+        directory.strip()
+        for directory in directories_value.split(",")
+        if directory.strip()
+    )
+    if not allowed_directories:
+        raise ValueError("ALLOWED_CORPUS_DIRECTORIES must not be empty")
+
+    return AppConfig(
+        vault_root=Path(vault_root_value).expanduser(),
+        allowed_corpus_directories=allowed_directories,
+    )
