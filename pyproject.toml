@@ -3,7 +3,13 @@ name = "rag-based-on-obsidian"
 version = "0.1.0"
 description = "Production-like RAG pipeline over a read-only Obsidian vault"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "python-dotenv>=1.2.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
