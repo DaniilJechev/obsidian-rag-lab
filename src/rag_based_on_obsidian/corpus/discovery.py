@@ -1,8 +1,8 @@
 """Read-only discovery of Markdown files inside the configured corpus."""
 
+import warnings
 from collections.abc import Iterator, Sequence
 from pathlib import Path, PurePosixPath
-import warnings
 
 from rag_based_on_obsidian.corpus.discovery_entities import DiscoveredFile
 
@@ -90,10 +90,7 @@ def _validate_allowed_directory_name(directory_name: str) -> None:
 def _iter_regular_markdown_files(directory: Path) -> Iterator[Path]:
     """Recursively yield regular ``.md`` files without following symlinks."""
 
-    try:
-        entries = sorted(directory.iterdir(), key=lambda path: path.name)
-    except PermissionError:
-        raise
+    entries = sorted(directory.iterdir(), key=lambda path: path.name)
 
     for entry in entries:
         if entry.is_symlink():
