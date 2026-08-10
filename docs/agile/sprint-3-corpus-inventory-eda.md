@@ -34,6 +34,8 @@
   sprint.
 - Токенизация для inventory будет baseline-метрикой с явно записанными именем,
   версией и параметрами tokenizer; она не заменяет tokenizer будущей LLM.
+- Разрешено собрать статистику несколькими tokenizer baselines; результаты
+  каждого tokenizer хранятся отдельно и не смешиваются с `word_count`.
 
 ## Ordered Implementation Checklist
 
@@ -53,6 +55,43 @@
 Шаги 1–2 должны быть последовательными. После фиксации contract шаг 3 можно
 разрабатывать параллельно с подготовкой EDA-шаблона, но batch orchestration,
 real-vault run и финальные рекомендации зависят от готового inventory contract.
+
+### Multi-tokenizer baseline
+
+Inventory может считать token statistics для нескольких tokenizer baselines.
+Минимальный набор:
+
+- `regex_word_tokenizer` — контролируемый word-level baseline;
+- tokenizer выбранной embedding-модели — после выбора модели для Phase 4;
+- tokenizer выбранной LLM/API-модели — после выбора модели генерации.
+
+Для каждого tokenizer обязательно сохраняются:
+
+- стабильное имя baseline;
+- тип (`word` или `model`);
+- имя и версия библиотеки;
+- имя и версия модели, если tokenizer model-based;
+- параметры запуска;
+- token counts отдельно от других baselines.
+
+В document-level statistics значения не объединяются:
+
+```json
+{
+  "word_count": 1200,
+  "token_counts": {
+    "regex_word_tokenizer": 1200,
+    "embedding_tokenizer": 1540,
+    "llm_tokenizer": 1625
+  }
+}
+```
+
+Если конкретная embedding- или LLM-модель ещё не выбрана, Sprint 3 всё равно
+может выполнить word-level baseline и оставить model-based baselines явно
+`planned`, а не подставлять выдуманные результаты. Точные tokenizer models и
+зависимости выбираются перед их реализацией; их добавление не должно менять
+основной inventory contract.
 
 ## Scope
 
@@ -90,6 +129,8 @@ real-vault run и финальные рекомендации зависят о�
   `H1`–`H6` и тексту без заголовка.
 - [ ] Статистика включает средний и медианный размер файла.
 - [ ] Статистика включает количество русских и английских слов и их соотношение.
+- [ ] Для каждого доступного tokenizer baseline token statistics считаются и
+  сохраняются отдельно с именем, версией и параметрами.
 - [ ] Пустые файлы, parser-related anomalies и потенциальные дубли явно
   учитываются.
 - [ ] Исходные файлы vault не изменяются и не удаляются.
