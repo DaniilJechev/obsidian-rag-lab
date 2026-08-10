@@ -1,6 +1,6 @@
 # Sprint 2 — Markdown Parsing
 
-> Статус: `planned`
+> Статус: `in-progress`
 >
 > Ветка: `sprint/2-markdown-parsing`
 >
@@ -68,45 +68,61 @@ embedding и citation слоями. Стабильный контракт поз
 
 | Дата | Действие / решение | Результат |
 |---|---|---|
-| — | Sprint запланирован | Реализация ещё не начата |
+| 2026-08-10 | Утверждён parser contract и разделение discovery/content entities | Созданы immutable `markdown_entities.py` и `ParsedDocument` |
+| 2026-08-10 | Реализован полный parser slice | Добавлено извлечение raw text, YAML frontmatter, headings, wikilinks и image links |
+| 2026-08-10 | Добавлены parser integration tests | Parser-specific suite: 5 passed |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-Будут добавлены после реализации.
+uv run ruff check --fix .
+uv run ruff check .
+uv run pytest tests/test_markdown_parser.py -q --basetemp .pytest-tmp
+uv run pytest -q --basetemp .pytest-tmp
 ```
 
 ### Test and Lint Results
 
-- Tests: `not run`
-- Lint: `not run`
+- Tests: parser-specific `5 passed`; full suite `19 passed, 1 skipped`
+- Lint: `passed` (`All checks passed!`)
 - CI: `not run`
 
 ### Metrics
 
 | Metric | Value | Context |
 |---|---:|---|
-| Parsed Markdown files | not measured | Будет измерено после реализации |
+| Parser-specific tests | 5 passed | `tests/test_markdown_parser.py` |
+| Full test suite | 19 passed, 1 skipped | Existing discovery tests plus parser tests |
 
 ## Review
 
 ### Completed
 
 - Sprint scope согласован.
+- Parser entities и `ParsedDocument` созданы в `src/rag_based_on_obsidian/corpus/markdown_entities.py`.
+- Parser реализован в `src/rag_based_on_obsidian/corpus/markdown_parser.py`.
+- Добавлена зависимость `PyYAML` для YAML frontmatter.
+- Тесты parser добавлены в `tests/test_markdown_parser.py`.
+- Проверено сохранение raw text, provenance и read-only поведения на fixtures.
 
 ### Not Completed
 
-- Implementation не начата.
+- Read-only smoke test на реальном vault ещё не выполнен.
+- CI и GitHub review ещё не выполнены.
+- Полный DoD Sprint 2 ещё не пройден.
 
 ### Changed Decisions
 
-- Нет.
+- `warnings` не включены в `ParsedDocument`; ошибки frontmatter не скрываются и
+  представлены исключениями.
+- Frontmatter является optional: при его отсутствии возвращается пустой mapping.
 
 ### Technical Debt
 
-- Нет.
+- Реальные Obsidian edge cases ещё не проверены на smoke test.
+- Parser пока не формирует отдельный ingestion/diagnostic report.
 
 ## Retrospective
 
@@ -120,6 +136,6 @@ embedding и citation слоями. Стабильный контракт поз
 - [ ] Commit/PR/merge выполнены по согласованному Git workflow.
 - [ ] Backlog обновлён.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `in-progress`
 
 **Дата завершения:** —
