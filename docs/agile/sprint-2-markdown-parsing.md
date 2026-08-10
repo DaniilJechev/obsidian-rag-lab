@@ -1,6 +1,6 @@
 # Sprint 2 — Markdown Parsing
 
-> Статус: `in-progress`
+> Статус: `completed`
 >
 > Ветка: `sprint/2-markdown-parsing`
 >
@@ -19,10 +19,10 @@ embedding и citation слоями. Стабильный контракт поз
 
 ## Scope
 
-- [ ] `CORPUS-002` — распарсить Markdown-структуру.
-- [ ] Извлечь raw text, frontmatter, headings, wikilinks и image links.
-- [ ] Сохранить path, filename и folder; ошибки parsing не скрывать.
-- [ ] Добавить fixtures и тесты для обычных, пустых и частично повреждённых заметок.
+- [x] `CORPUS-002` — распарсить Markdown-структуру.
+- [x] Извлечь raw text, frontmatter, headings, wikilinks и image links.
+- [x] Сохранить path, filename и folder; ошибки parsing не скрывать.
+- [x] Добавить fixtures и тесты для обычных, пустых и частично повреждённых заметок.
 
 ## Out of Scope
 
@@ -40,25 +40,25 @@ embedding и citation слоями. Стабильный контракт поз
 
 ## Acceptance Criteria
 
-- [ ] Parser обрабатывает Markdown-файлы из discovery layer.
-- [ ] Frontmatter извлекается без потери raw text.
-- [ ] Headings и wikilinks сохраняются структурированно.
-- [ ] Image links распознаются отдельно от wikilinks.
-- [ ] Ошибки parsing не скрываются.
-- [ ] Parser не изменяет исходные файлы.
-- [ ] Тесты покрывают основные и пограничные форматы.
+- [x] Parser обрабатывает Markdown-файлы из discovery layer.
+- [x] Frontmatter извлекается без потери raw text.
+- [x] Headings и wikilinks сохраняются структурированно.
+- [x] Image links распознаются отдельно от wikilinks.
+- [x] Ошибки parsing не скрываются.
+- [x] Parser не изменяет исходные файлы.
+- [x] Тесты покрывают основные и пограничные форматы.
 
 ## Definition of Done
 
-- [ ] Все задачи Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
-- [ ] CI проходит после публикации изменений.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Sprint-документ содержит реальные результаты и ограничения.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Все задачи Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
+- [x] CI проходит после публикации изменений.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Sprint-документ содержит реальные результаты и ограничения.
+- [x] Пользователь подтвердил завершение спринта.
 
 ## Estimate
 
@@ -91,7 +91,7 @@ uv run pytest tests/manual/test_real_vault_edge_cases.py -q -s -m manual
 - Tests: parser-specific `5 passed`; full suite `19 passed, 1 skipped`;
 - manual smoke-check `1 passed`; edge-case scan `1 passed`
 - Lint: `passed` (`All checks passed!`)
-- CI: `not run`
+- CI: `SUCCESS` в PR #6; GitHub Actions run `31413452964`
 
 ### Metrics
 
@@ -134,8 +134,9 @@ uv run pytest tests/manual/test_real_vault_edge_cases.py -q -s -m manual
 
 ### Not Completed
 
-- CI и GitHub review ещё не выполнены.
-- Полный DoD Sprint 2 ещё не пройден.
+- Новых незавершённых задач текущего scope нет.
+- Отдельный ingestion/diagnostic report остаётся техническим долгом и перенесён
+  за пределы текущего sprint.
 
 ### Changed Decisions
 
@@ -151,16 +152,37 @@ uv run pytest tests/manual/test_real_vault_edge_cases.py -q -s -m manual
 
 ## Retrospective
 
-Будет заполнена после выполнения спринта.
+### Что прошло хорошо
+
+- Parser contract был выделен в отдельные immutable entities.
+- Реализован полный базовый parsing scope без изменения read-only vault.
+- Локальные тесты, Ruff и GitHub Actions CI прошли.
+- Manual smoke-check обработал 230 файлов реального корпуса.
+- Edge-case scan помог явно зафиксировать решение по inline-code wikilinks.
+
+### Что было сложным
+
+- Потребовалась отдельная проверка поведения parser на реальном vault.
+- Windows cleanup временной pytest-директории сначала завершился
+  `PermissionError`; повторный запуск с проектной `--basetemp` прошёл успешно.
+- Первоначальное требование `warnings` было уточнено: warnings не входят в
+  `ParsedDocument`, а parsing errors остаются observable через exceptions.
+
+### Что изменить в следующем sprint
+
+- Сразу использовать отдельную временную директорию для pytest на Windows.
+- Для inventory заранее определить контракт статистики, версию артефакта и
+  параметры запуска.
+- Сохранять реальные execution evidence до открытия closeout PR.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
+- [x] Definition of Done проверен.
+- [x] Review проведён.
+- [x] Retrospective заполнена.
+- [x] Implementation PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён.
 
-**Итоговый статус:** `in-progress`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** —
+**Дата завершения:** 2026-08-10

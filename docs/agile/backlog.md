@@ -57,7 +57,7 @@ Backlog не является жёстким расписанием. Приор�
 | AGILE-003 | P1 | done | 0 | Создать Cursor skill для планирования нового sprint | Skill помогает сформулировать goal, scope, DoD, Issues и Milestone |
 | AGILE-004 | P1 | done | 0 | Создать Cursor skill для новой Git-ветки | Skill безопасно создаёт sprint branch от актуальной `main` |
 | CORPUS-001 | P0 | done | 1 | Безопасно обнаружить Markdown-файлы только в DLS1/DLS2 | Allowlist работает, запрещённые пути отклоняются, vault не изменяется |
-| CORPUS-002 | P1 | ready | 1 | Распарсить Markdown-структуру | Извлекаются текст, headings, frontmatter и wikilinks |
+| CORPUS-002 | P1 | done | 1 | Распарсить Markdown-структуру | Извлекаются текст, headings, frontmatter и wikilinks |
 | CORPUS-003 | P1 | ready | 1 | Подготовить corpus inventory и EDA | Реальные числа файлов, размеров, слов, токенов и дублей сохранены |
 | DATA-001 | P1 | idea | 2 | Спроектировать PostgreSQL schema | Таблицы notes, chunks, ingestion runs, eval, logs и cache описаны миграциями |
 | DATA-002 | P1 | idea | 2 | Реализовать idempotent ingestion state | Content hash, index version, retries и failure accounting работают |
