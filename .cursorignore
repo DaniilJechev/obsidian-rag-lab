@@ -15,7 +15,9 @@ __pycache__/
 !.env.example
 
 # Generated and potentially large local artifacts
-artifacts/
+artifacts/*
+!artifacts/eda/
+!artifacts/eda/**
 *.db
 *.sqlite
 *.sqlite3

@@ -1,6 +1,6 @@
 # Sprint 3 — Corpus Inventory and EDA
 
-> Статус: `planned`
+> Статус: `implementation-complete`
 >
 > Ветка: `sprint/3-corpus-inventory-eda`
 >
@@ -157,43 +157,66 @@ Inventory может считать token statistics для нескольких
 
 | Дата | Действие / решение | Результат |
 |---|---|---|
-| — | Sprint запланирован | Реализация ещё не начата |
+| 2026-08-11 | Inventory baseline | Добавлены document/corpus statistics, duplicate analysis и JSON serialization |
+| 2026-08-11 | Real-vault inventory | `230` документов обнаружено и распарсировано; `0` failed; `Vault modified: no` |
+| 2026-08-11 | EDA implementation | Отдельные PNG, Markdown report с числовыми таблицами, paragraph/heading distributions и chunking implications |
+| 2026-08-11 | Cursor preview support | `.cursorignore` открывает только `artifacts/eda/**`; report использует relative Markdown image links |
 
 ## Validation Evidence
 
 ### Commands
 
-```text
-Будут добавлены после реализации.
+```powershell
+uv run ruff check .
+uv run pytest -q -m "not manual" --basetemp .pytest-tmp-eda
+uv run pytest tests/manual/test_real_vault_inventory.py -q -s -m manual --basetemp .pytest-tmp-eda
+uv run python -m rag_based_on_obsidian.corpus.eda
 ```
 
 ### Test and Lint Results
 
-- Tests: `not run`
-- Lint: `not run`
-- CI: `not run`
+- Ruff: `All checks passed`
+- Non-manual tests: `31 passed, 1 skipped, 3 deselected`
+- Manual real-vault inventory: `1 passed`
+- Real-vault inventory: `230` discovered, `230` parsed, `0` failed
+- Duplicate analysis: `1` group, `3` duplicate documents
+- Anomalies: `empty_document: 3`
+- Read-only check: `Vault modified: no`
+- CI: `not run` (push/PR не выполнялись)
 
 ### Metrics
 
 | Metric | Value | Context |
 |---|---:|---|
-| Corpus files | not measured | Будет измерено после реализации |
-| Mean/median file size | not measured | Байты и/или KiB; будет измерено после реализации |
-| Mean words/tokens by heading level | not measured | Отдельно для `H1`–`H6` и текста без заголовка |
-| Russian/English word counts and ratio | not measured | Будет измерено после реализации |
+| Corpus files | 230 | 230 parsed, 0 failed |
+| Mean/median file size | 4313.79 / 3496 bytes | all parsed documents |
+| Document words | mean 318.92; median 272; p95 789.50 | min 0, max 1512 |
+| Paragraph words | mean 21.16; median 17; p95 54 | 3331 paragraph blocks |
+| RU/EN words | 59980 / 13196 | 81.77% RU, 17.99% EN; mixed/other 0.24% |
+| Duplicate groups/documents | 1 / 3 | SHA-256 content hash groups |
+| Empty documents | 3 | 1.30% of 230 documents |
 
 ## Review
 
 ### Completed
 
-- Sprint scope согласован.
+- Inventory contract, single-document statistics и batch orchestration реализованы.
+- Duplicate analysis, anomaly accounting и JSON serialization реализованы.
+- EDA создаёт отдельные PNG и Markdown report с числовыми таблицами.
+- Paragraph blocks анализируются по `pre-heading`, `H1`–`H6` и `all_levels`.
+- Отсутствующие heading levels исключаются; пустые уровни сохраняются через `empty-rate`.
+- Реальный запуск на DLS1/DLS2 завершён без изменения vault.
+- Ruff и non-manual tests проходят.
 - Временный artifact выбран: `artifacts/corpus_inventory.json`.
 - В scope добавлены heading-level statistics, file-size summary и RU/EN language
   breakdown.
 
 ### Not Completed
 
-- Implementation не начата.
+- CI после публикации ветки не запускался.
+- Пользовательское финальное подтверждение Sprint ещё не получено.
+- Model-based tokenizer baselines не добавлялись: embedding/LLM models для
+  следующей фазы ещё не выбраны.
 
 ### Changed Decisions
 
@@ -220,19 +243,28 @@ vault. Например:
 ### Technical Debt
 
 - JSON inventory будет заменён или дополнен production data layer после проектирования Phase 2.
+- Текущий `token_count` — контролируемый word baseline, а не tokenizer
+  конкретной embedding/LLM-модели.
+- Glossary до первого heading пока классифицируется как `pre-heading`;
+  отдельный `glossary` block остаётся backlog item для chunking slice.
+- В inventory сохраняются агрегаты heading statistics и paragraph blocks, но
+  не полный текст каждого heading span.
 
 ## Retrospective
 
-Будет заполнена после выполнения спринта.
+PNG полезны для визуальных хвостов и выбросов, но Cursor надёжнее анализирует
+EDA через Markdown tables. Поэтому `corpus_eda.md` содержит relative image links
+и точные numeric tables.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
+- [x] Definition of Done проверен частично; CI и финальное пользовательское
+  подтверждение остаются pending.
+- [x] Review evidence проведён по реальному inventory и EDA report.
 - [ ] Retrospective заполнена.
 - [ ] Commit/PR/merge выполнены по согласованному Git workflow.
 - [ ] Backlog обновлён.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `implementation-complete; awaiting commit/publish and user closeout`
 
-**Дата завершения:** —
+**Дата завершения implementation:** 2026-08-11
