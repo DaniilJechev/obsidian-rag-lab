@@ -89,6 +89,8 @@ Sprint 4 не реализует ingestion, chunker, embeddings, Qdrant или A
 
 ## Sprint 5 — реализация и идемпотентность
 
+Подробный draft: `docs/agile/sprint-5-idempotent-ingestion.md`.
+
 ### Цель
 
 Подключить существующие discovery/parser contracts к PostgreSQL и доказать,
@@ -125,6 +127,8 @@ documents, изменение документа вызывает reprocessing, 
 остаётся наблюдаемым.
 
 ## Sprint 6 — production-like test drive
+
+Подробный draft: `docs/agile/sprint-6-production-like-test-drive.md`.
 
 ### Цель
 
