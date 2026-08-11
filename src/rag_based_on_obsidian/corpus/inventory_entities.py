@@ -94,6 +94,15 @@ class DocumentStatistics:
     parse_status: str = "ok"
     anomalies: tuple[str, ...] = ()
     content_hash: str | None = None
+    error_type: str | None = None
+
+
+@dataclass(frozen=True)
+class DuplicateGroup:
+    """Documents that have byte-identical UTF-8 source content."""
+
+    content_hash: str
+    relative_paths: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -107,6 +116,8 @@ class InventorySummary:
     median_file_size_bytes: float
     documents_with_anomalies: int
     anomaly_rate: float
+    duplicate_groups: int = 0
+    duplicate_documents: int = 0
 
 
 @dataclass(frozen=True)
@@ -119,6 +130,7 @@ class CorpusInventory:
     tokenizer_baselines: tuple[TokenizerMetadata, ...]
     summary: InventorySummary
     documents: tuple[DocumentStatistics, ...] = ()
+    duplicate_groups: tuple[DuplicateGroup, ...] = ()
 
 
 def _safe_ratio(numerator: int, denominator: int) -> float:

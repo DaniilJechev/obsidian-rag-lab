@@ -8,6 +8,7 @@ from rag_based_on_obsidian.corpus.language_classifier import (
     classify_word,
 )
 from rag_based_on_obsidian.corpus.markdown_entities import Heading, ParsedDocument
+from rag_based_on_obsidian.corpus.serialization import inventory_to_dict
 from rag_based_on_obsidian.corpus.statistics import (
     calculate_document_statistics,
 )
@@ -88,12 +89,51 @@ def test_batch_inventory_aggregates_documents_and_keeps_parse_failures(
     inventory = build_corpus_inventory(
         files,
         generated_at="2026-08-11T00:00:00Z",
+        show_progress=False,
     )
 
     assert inventory.summary.documents_total == 2
     assert inventory.summary.documents_parsed == 1
     assert inventory.summary.documents_failed == 1
-    assert len(inventory.documents) == 1
-    assert inventory.documents[0].source.relative_path == PurePosixPath(
-        "DLS2/valid.md"
+    failed_document = next(
+        document
+        for document in inventory.documents
+        if document.parse_status == "failed"
+    )
+    assert failed_document.anomalies == ("malformed_frontmatter",)
+    assert len(inventory.documents) == 2
+    assert any(
+        document.source.relative_path == PurePosixPath("DLS2/valid.md")
+        for document in inventory.documents
+    )
+    serialized = inventory_to_dict(inventory)
+    assert serialized["summary"]["documents_failed"] == 1
+    assert next(
+        document["error_type"]
+        for document in serialized["documents"]
+        if document["parse_status"] == "failed"
+    ) == "ValueError"
+
+
+def test_batch_inventory_groups_identical_content(tmp_path: Path) -> None:
+    first = tmp_path / "DLS2" / "first.md"
+    second = tmp_path / "DLS2" / "second.md"
+    first.parent.mkdir()
+    first.write_text("# Same\nText.", encoding="utf-8")
+    second.write_text("# Same\nText.", encoding="utf-8")
+
+    inventory = build_corpus_inventory(
+        [
+            DiscoveredFile(first, PurePosixPath("DLS2/first.md")),
+            DiscoveredFile(second, PurePosixPath("DLS2/second.md")),
+        ],
+        generated_at="2026-08-11T00:00:00Z",
+        show_progress=False,
+    )
+
+    assert inventory.summary.duplicate_groups == 1
+    assert inventory.summary.duplicate_documents == 2
+    assert inventory.duplicate_groups[0].relative_paths == (
+        "DLS2/first.md",
+        "DLS2/second.md",
     )
