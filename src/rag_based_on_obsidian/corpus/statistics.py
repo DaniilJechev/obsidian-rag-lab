@@ -16,6 +16,7 @@ from rag_based_on_obsidian.corpus.language_classifier import (
     classify_word,
 )
 from rag_based_on_obsidian.corpus.markdown_entities import ParsedDocument
+from rag_based_on_obsidian.corpus.paragraph_blocks import extract_paragraph_blocks
 from rag_based_on_obsidian.corpus.word_tokenizer import (
     WORD_TOKENIZER_NAME,
     tokenize_words,
@@ -31,6 +32,7 @@ def calculate_document_statistics(
     words = tokenize_words(analysis_text)
     language_statistics = _language_statistics(words)
     heading_statistics = _heading_statistics(document)
+    paragraph_blocks = extract_paragraph_blocks(document)
     anomalies = _document_anomalies(document, analysis_text)
 
     return DocumentStatistics(
@@ -41,6 +43,7 @@ def calculate_document_statistics(
         word_count=len(words),
         token_counts=(TokenCount(WORD_TOKENIZER_NAME, len(words)),),
         heading_statistics=heading_statistics,
+        paragraph_blocks=paragraph_blocks,
         language_statistics=language_statistics,
         anomalies=anomalies,
         content_hash=hashlib.sha256(

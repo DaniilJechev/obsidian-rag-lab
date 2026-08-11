@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from rag_based_on_obsidian.corpus.discovery_entities import DiscoveredFile
+from rag_based_on_obsidian.corpus.paragraph_blocks import ParagraphBlock
 
 
 @dataclass(frozen=True)
@@ -90,6 +91,7 @@ class DocumentStatistics:
     word_count: int
     token_counts: tuple[TokenCount, ...] = ()
     heading_statistics: tuple[HeadingStatistics, ...] = ()
+    paragraph_blocks: tuple[ParagraphBlock, ...] = ()
     language_statistics: LanguageStatistics = LanguageStatistics(0, 0, 0, 0)
     parse_status: str = "ok"
     anomalies: tuple[str, ...] = ()
