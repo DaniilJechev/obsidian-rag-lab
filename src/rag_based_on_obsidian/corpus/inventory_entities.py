@@ -23,7 +23,7 @@ class TokenCount:
     """Token count produced by one named tokenizer baseline."""
 
     tokenizer_name: str
-    count: int
+    count: float
 
 
 @dataclass(frozen=True)
