@@ -59,8 +59,9 @@ Backlog не является жёстким расписанием. Приор�
 | CORPUS-001 | P0 | done | 1 | Безопасно обнаружить Markdown-файлы только в DLS1/DLS2 | Allowlist работает, запрещённые пути отклоняются, vault не изменяется |
 | CORPUS-002 | P1 | done | 1 | Распарсить Markdown-структуру | Извлекаются текст, headings, frontmatter и wikilinks |
 | CORPUS-003 | P1 | done | 1 | Подготовить corpus inventory и EDA | Реальные числа файлов, размеров, слов, токенов и дублей сохранены |
-| DATA-001 | P1 | idea | 2 | Спроектировать PostgreSQL schema | Таблицы notes, chunks, ingestion runs, eval, logs и cache описаны миграциями |
-| DATA-002 | P1 | idea | 2 | Реализовать idempotent ingestion state | Content hash, index version, retries и failure accounting работают |
+| DATA-001 | P1 | ready | 2 | Спроектировать PostgreSQL schema и migrations | Таблицы notes, ingestion runs/states, versions и chunks contract описаны и создаются Alembic migrations |
+| DATA-002 | P1 | ready | 2 | Реализовать idempotent ingestion | Content hash, parser version, retries, failure accounting и new/changed/unchanged/stale logic работают |
+| DATA-003 | P1 | idea | 2 | Провести production-like PostgreSQL test drive | Полный DLS1+DLS2 run, consistency checks, rollback/recovery и handoff к Phase 3 подтверждены |
 | CHUNK-001 | P1 | idea | 3 | Реализовать heading-aware chunking | Чанки сохраняют note/section metadata и покрыты тестами |
 | CHUNK-002 | P2 | idea | 3 | Сравнить размеры chunk 256/512/1024 | Эксперимент воспроизводим, результаты записаны |
 | EMB-001 | P1 | idea | 4 | Подключить бесплатную локальную embedding-модель на CPU | `EmbeddingProvider` возвращает vectors нужной размерности |
@@ -92,11 +93,12 @@ Backlog не является жёстким расписанием. Приор�
 
 ## Текущий фокус
 
-Фаза 0 формально завершена. Следующая работа относится к Фазе 1, но ещё не
-является автоматически созданным sprint:
+Фаза 1 формально завершена. Следующая работа относится к Фазе 2 и разделена на
+три последовательных sprint-а:
 
-1. Применить `sprint-planning`.
-2. Проверить зависимости и размер scope для `CORPUS-001`, `CORPUS-002`,
-   `CORPUS-003`.
-3. Согласовать Sprint 1, GitHub Milestone и Issues.
-4. Создать sprint branch только после подтверждения scope.
+1. Sprint 4: schema contract и Alembic migrations.
+2. Sprint 5: repositories и idempotent ingestion.
+3. Sprint 6: production-like test drive и consistency.
+
+Первый полный ingestion использует `DLS1 + DLS2`. Cloud deployment не входит в
+Phase 2 и остаётся отдельным сравнением roadmap Phase 13.
