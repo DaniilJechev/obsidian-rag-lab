@@ -182,7 +182,7 @@ uv run python -m rag_based_on_obsidian.corpus.eda
 - Duplicate analysis: `1` group, `3` duplicate documents
 - Anomalies: `empty_document: 3`
 - Read-only check: `Vault modified: no`
-- CI: `not run` (push/PR не выполнялись)
+- CI: `Lint and test — pass` в [PR #9](https://github.com/DaniilJechev/obsidian-rag-lab/pull/9)
 
 ### Metrics
 
@@ -213,8 +213,6 @@ uv run python -m rag_based_on_obsidian.corpus.eda
 
 ### Not Completed
 
-- CI после публикации ветки не запускался.
-- Пользовательское финальное подтверждение Sprint ещё не получено.
 - Model-based tokenizer baselines не добавлялись: embedding/LLM models для
   следующей фазы ещё не выбраны.
 
@@ -258,13 +256,13 @@ EDA через Markdown tables. Поэтому `corpus_eda.md` содержит 
 
 ## Completion
 
-- [x] Definition of Done проверен частично; CI и финальное пользовательское
-  подтверждение остаются pending.
+- [x] Definition of Done проверен по локальным и remote evidence.
 - [x] Review evidence проведён по реальному inventory и EDA report.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
+- [x] Retrospective заполнена.
+- [x] Implementation commit, PR, CI и merge выполнены.
+- [x] `CORPUS-003` закрыт в backlog и GitHub Issue #8 закрыт после merge.
+- [x] Пользователь подтвердил завершение Sprint 3.
 
-**Итоговый статус:** `implementation-complete; awaiting commit/publish and user closeout`
+**Итоговый статус:** `completed`
 
-**Дата завершения implementation:** 2026-08-11
+**Дата завершения Sprint:** 2026-08-11
