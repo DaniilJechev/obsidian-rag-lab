@@ -1,10 +1,12 @@
 """Integration tests for the PostgreSQL schema."""
 
+import os
+
 import pytest
 from sqlalchemy import create_engine, delete, insert, select
 from sqlalchemy.exc import IntegrityError
 
-from rag_based_on_obsidian.config import load_config
+from rag_based_on_obsidian.config import ENV_FILE
 from rag_based_on_obsidian.db.connection import load_database_url
 from rag_based_on_obsidian.db.schema import (
     chunks,
@@ -19,8 +21,10 @@ from rag_based_on_obsidian.db.schema import (
 @pytest.fixture
 def database_connection():
     """Yield a PostgreSQL connection and roll back test data afterward."""
-    config = load_config()
-    if not config.postgres_password:
+    from dotenv import load_dotenv
+
+    load_dotenv(ENV_FILE)
+    if not os.environ.get("POSTGRES_PASSWORD"):
         pytest.skip("POSTGRES_PASSWORD is required for PostgreSQL tests")
 
     engine = create_engine(load_database_url())
