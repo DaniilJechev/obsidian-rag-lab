@@ -4,10 +4,13 @@ version = "0.1.0"
 description = "Production-like RAG pipeline over a read-only Obsidian vault"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "alembic>=1.19.1",
     "matplotlib>=3.11.1",
+    "psycopg[binary]>=3.3.4",
     "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
     "seaborn>=0.13.2",
+    "sqlalchemy>=2.0.52",
     "tqdm>=4.70.0",
 ]
 

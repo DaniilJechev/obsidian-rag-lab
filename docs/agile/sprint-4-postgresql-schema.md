@@ -1,6 +1,6 @@
 # Sprint 4 — PostgreSQL Schema and Migrations
 
-> Статус: `planned`
+> Статус: `implementation-complete`
 >
 > Ветка реализации: `sprint/4-postgresql-schema`
 >
@@ -23,16 +23,17 @@ Phase 1 дала inventory и EDA, но JSON snapshot не является prod
 
 ## Scope
 
-- [ ] Зафиксировать entity/data contract для `notes`, `ingestion_runs`,
-  `ingestion_states`, `index_versions` и `chunks`.
-- [ ] Определить PostgreSQL types, nullability, defaults и JSONB contracts.
-- [ ] Определить primary keys, foreign keys, unique/check constraints и indexes.
-- [ ] Создать SQLAlchemy Core table metadata без ORM.
-- [ ] Настроить Alembic и initial migrations.
-- [ ] Поднять локальный PostgreSQL через Docker Compose и применить migrations
+- [x] Зафиксировать entity/data contract для `notes`, `ingestion_runs`,
+  `ingestion_states`, `index_versions`, `chunks` и `note_links`.
+- [x] Определить PostgreSQL types, nullability, defaults и JSONB contracts.
+- [x] Определить primary keys, foreign keys, unique/check constraints и indexes.
+- [x] Создать SQLAlchemy Core table metadata без ORM.
+- [x] Настроить Alembic и initial migrations.
+- [x] Поднять локальный PostgreSQL через Docker Compose и применить migrations
   на пустой базе.
-- [ ] Добавить schema integration tests на PostgreSQL.
-- [ ] Документировать связи, инварианты и SQL-эквиваленты существенных операций.
+- [x] Добавить schema integration tests на PostgreSQL.
+- [x] Документировать связи, инварианты и SQL-эквиваленты существенных операций.
+- [x] Проверить resolved и unresolved wikilinks через `note_links`.
 
 ## Out of Scope
 
@@ -50,19 +51,21 @@ Phase 1 дала inventory и EDA, но JSON snapshot не является prod
 - `alembic/` — versioned schema migrations.
 - `src/rag_based_on_obsidian/db/` — SQLAlchemy Core metadata/configuration.
 - `tests/` — PostgreSQL schema integration tests.
-- `docs/architecture/phase-2-database-schema.md` — schema/data contract.
+- `docs/architecture/phase-2-database-schema.md` — schema/data contract,
+  JSONB contracts и `note_links`.
 - `docs/agile/sprint-4-postgresql-schema.md` — execution evidence.
 
 ## Acceptance Criteria
 
-- [ ] Пустая PostgreSQL database поднимается через Docker Compose.
-- [ ] `alembic upgrade head` создаёт всю согласованную schema.
-- [ ] Повторный `alembic upgrade head` не создаёт повторных объектов.
-- [ ] `notes.relative_path` имеет уникальное ограничение.
-- [ ] Foreign keys для note/run/state/chunk relationships проверяются.
-- [ ] JSONB-поля имеют описанный shape и validation expectations.
-- [ ] Schema tests запускаются на PostgreSQL, а не только на SQLite.
-- [ ] `obsidianNotes` не изменяется.
+- [x] Пустая PostgreSQL database поднимается через Docker Compose.
+- [x] `alembic upgrade head` создаёт всю согласованную schema.
+- [x] Повторный `alembic upgrade head` не создаёт повторных объектов.
+- [x] `notes.relative_path` имеет уникальное ограничение.
+- [x] Foreign keys для note/run/state/chunk relationships проверяются.
+- [x] `note_links` хранит raw references, resolved targets и unresolved links.
+- [x] JSONB-поля имеют описанный shape и validation expectations.
+- [x] Schema tests запускаются на PostgreSQL, а не только на SQLite.
+- [x] `obsidianNotes` не изменяется.
 
 ## Definition of Done
 
@@ -124,11 +127,52 @@ Sprint 6 проводит production-like test drive полного DLS1+DLS2:
 | 2026-08-11 | Phase 2 decomposition | Sprint 4 — schema, Sprint 5 — idempotent ingestion, Sprint 6 — production-like test drive |
 | 2026-08-11 | Stack decision | PostgreSQL, Docker Compose, psycopg, SQLAlchemy Core, Alembic, pytest |
 | 2026-08-11 | Corpus decision | Первый полный ingestion: DLS1 + DLS2 |
+| 2026-08-12 | Initial schema implementation | SQLAlchemy Core metadata, Alembic initial migration and PostgreSQL tables applied |
+| 2026-08-12 | Schema parity verification | Explicit CHECK constraint names aligned metadata with PostgreSQL; `alembic check` passed |
+| 2026-08-12 | Integration tests | PostgreSQL tests cover CHECK, UNIQUE, foreign keys, CASCADE and SET NULL behavior |
+| 2026-08-12 | Clean bootstrap | Temporary `rag_bootstrap_test` started with no relations; `upgrade head` created the schema; database was removed after verification |
+| 2026-08-12 | Repeatability check | Repeated `upgrade head` on the configured database produced no new upgrade |
 
 ## Validation Evidence
 
-До начала реализации validation не выполнялась. Здесь будут записаны реальные
-команды и результаты Sprint 4; выдуманные результаты не добавляются.
+Реальные validation results:
+
+```text
+uv run alembic current
+→ 909bce321e14 (head)
+
+uv run alembic history
+→ <base> -> 909bce321e14 (head), create initial schema
+
+uv run alembic check
+→ No new upgrade operations detected.
+
+uv run ruff check .
+→ All checks passed!
+
+uv run pytest tests/test_postgres_schema.py -q
+→ 7 passed
+
+docker compose --env-file .env -f docker/compose.yml exec postgres psql -U rag -d rag_bootstrap_test -P pager=off -c "\dt"
+→ Did not find any relations.
+
+uv run alembic upgrade head  # temporary rag_bootstrap_test
+→ Running upgrade  -> 909bce321e14, create initial schema
+
+docker compose --env-file .env -f docker/compose.yml exec postgres psql -U rag -d rag_bootstrap_test -P pager=off -c "\dt"
+→ 7 relations after bootstrap
+
+uv run alembic upgrade head  # already-current configured database
+→ no Running upgrade output
+```
+
+PostgreSQL inspection confirmed seven tables including `alembic_version`, the
+expected primary/unique constraints, JSONB columns, and `note_links` foreign
+keys with `ON DELETE CASCADE` and `ON DELETE SET NULL`.
+
+The clean bootstrap used a temporary PostgreSQL database rather than the
+existing Docker volume. The temporary database was dropped after verification;
+the primary `rag` database and its volume were preserved.
 
 ## Completion
 
@@ -138,6 +182,6 @@ Sprint 6 проводит production-like test drive полного DLS1+DLS2:
 - [ ] Commit/PR/merge выполнены.
 - [ ] Backlog обновлён.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `implementation-complete`
 
 **Дата планирования:** 2026-08-11
