@@ -103,11 +103,13 @@ Repositories
 - [x] Unit и PostgreSQL integration assertions проходят; Windows cleanup
   остаётся локальным environmental carry-over.
 - [x] Ruff проходит.
-- [ ] CI проходит после публикации.
+- [x] CI проходит после публикации: GitHub Actions Ubuntu `Lint and test` passed
+  in PR #15.
 - [x] `obsidianNotes` остаётся read-only.
 - [x] Секреты не добавлены в Git.
 - [x] Идемпотентное поведение, counters и ограничения задокументированы.
-- [ ] Пользователь подтвердил завершение Sprint 5.
+- [x] Пользователь подтвердил завершение Sprint 5 через full
+  `/sprint-post-implementation` authorization.
 
 ## Execution Log
 
@@ -121,6 +123,7 @@ Repositories
 | 2026-08-13 | Failure/stale coverage expanded | PostgreSQL scenario покрывает `new`, `unchanged`, `changed`, `failed`, `stale`; полный модуль дал 9 успешных assertions |
 | 2026-08-13 | Review fixes | Исправлен статус пустого batch: `0` документов завершается как `completed`, а не `failed` |
 | 2026-08-13 | Code review fixes | Исправлены retry после failed note, сохранение успешной note projection, race-safe index versions, failed-state persistence, concurrent run serialization, scope-aware stale detection, deterministic latest state и безопасный downgrade guard |
+| 2026-08-13 | Published and merged | Создан PR #15; Ubuntu CI `Lint and test` passed; PR merged в `main` с merge commit `d95e565`; Issue #12 закрыт автоматически |
 
 ## Validation Evidence
 
@@ -160,8 +163,8 @@ Repositories
 
 Migration применена, parity подтверждена. Функциональные assertions проходят.
 Локальный Windows cleanup `PermissionError` не устраняется отключением cleanup
-или ослаблением тестов; он остаётся environmental carry-over, который должен
-быть отдельно проверен в CI/Linux.
+или ослаблением тестов. Ubuntu CI прошёл чисто, поэтому проблема подтверждена
+как Windows-local environmental limitation, не блокирующая Sprint 5.
 
 ## Review
 
@@ -178,18 +181,18 @@ detection и downgrade safety.
 
 Implementation выявила две границы для следующего шага:
 
-1. локальный Windows pytest cleanup требует CI/Linux подтверждения с чистым
-   process exit code;
+1. локальный Windows pytest cleanup остаётся environmental limitation; CI/Linux
+   является чистым authoritative validation path;
 2. полный DLS1+DLS2 прогон, duration/success-rate и consistency audit остаются
    Sprint 6, как и планировалось.
 
 ## Completion
 
-- [x] Definition of Done проверен после database validation; CI остаётся
-  внешним gate, который ещё не наблюдался для текущей ветки.
+- [x] Definition of Done проверен после database validation и успешного CI.
 - [x] Review проведён.
 - [x] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
+- [x] Implementation commit `f54ad45`, PR #15 и merge commit `d95e565`
+  выполнены по согласованному Git workflow.
+- [x] Backlog обновлён: `DATA-002=done`, `DATA-003=ready`.
 
-**Итоговый статус:** `ready-for-closeout`
+**Итоговый статус:** `completed`
