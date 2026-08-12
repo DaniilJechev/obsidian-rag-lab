@@ -16,6 +16,11 @@ class AppConfig:
 
     vault_root: Path
     allowed_corpus_directories: tuple[str, ...]
+    postgres_host: str
+    postgres_port: int
+    postgres_database: str
+    postgres_user: str
+    postgres_password: str = ""
 
 
 def load_config() -> AppConfig:
@@ -41,4 +46,9 @@ def load_config() -> AppConfig:
     return AppConfig(
         vault_root=Path(vault_root_value).expanduser(),
         allowed_corpus_directories=allowed_directories,
+        postgres_host=os.environ.get("POSTGRES_HOST", "localhost"),
+        postgres_port=int(os.environ.get("POSTGRES_PORT", "5432")),
+        postgres_database=os.environ.get("POSTGRES_DB", "rag"),
+        postgres_user=os.environ.get("POSTGRES_USER", "rag"),
+        postgres_password=os.environ.get("POSTGRES_PASSWORD", ""),
     )
