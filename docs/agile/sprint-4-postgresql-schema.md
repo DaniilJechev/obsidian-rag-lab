@@ -1,6 +1,6 @@
 # Sprint 4 — PostgreSQL Schema and Migrations
 
-> Статус: `implementation-complete`
+> Статус: `closed`
 >
 > Ветка реализации: `sprint/4-postgresql-schema`
 >
@@ -176,12 +176,66 @@ the primary `rag` database and its volume were preserved.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены.
-- [ ] Backlog обновлён.
+- [x] Definition of Done проверен по локальному и remote evidence.
+- [x] Acceptance Criteria проверены; clean bootstrap и повторный `upgrade head`
+  подтверждены на PostgreSQL.
+- [x] Тесты и Ruff проходят; PostgreSQL integration suite подтвердил 7
+  constraint/FK сценариев.
+- [x] CI `Lint and test` прошёл в [PR #14](https://github.com/DaniilJechev/obsidian-rag-lab/pull/14).
+- [x] Read-only vault не изменён, секреты не добавлены в Git.
+- [x] Review/merge evidence подтверждены в
+  [PR #14](https://github.com/DaniilJechev/obsidian-rag-lab/pull/14);
+  merge commit: `17a711c`.
+- [x] Backlog `DATA-001` обновлён до `done`.
+- [x] Пользователь подтвердил завершение Sprint 4.
 
-**Итоговый статус:** `implementation-complete`
+## Review
+
+### Completed
+
+- Schema contract, SQLAlchemy Core metadata и Alembic initial migration
+  согласованы и применены к PostgreSQL.
+- Constraint и foreign-key behavior покрыты integration tests.
+- Воспроизводимость проверена через clean bootstrap временной базы.
+- CI failure, вызванный отсутствующим `OBSIDIAN_VAULT_ROOT` в GitHub Actions,
+  исправлен: schema tests теперь skip-аются без PostgreSQL credentials, не
+  требуя vault-конфигурацию.
+
+### Not Completed
+
+- Repositories и idempotent ingestion не входят в Sprint 4 и перенесены в
+  Sprint 5.
+- Production-like полный прогон DLS1+DLS2 и consistency checks перенесены в
+  Sprint 6.
+
+### Technical Debt
+
+- PostgreSQL integration tests требуют доступную локальную PostgreSQL и
+  credentials; в CI без них они skip-аются.
+- Windows pytest иногда завершается `WinError 5` при cleanup временной
+  директории; сами тестовые assertions при этом проходят. Linux CI завершился
+  успешно.
+- JSONB shape validation остаётся Python/JSON Schema-layer contract, а не
+  PostgreSQL-native JSON Schema constraint.
+
+## Retrospective
+
+- Явные имена `CHECK` constraints необходимы для стабильного `alembic check`;
+  без них metadata и PostgreSQL могли ложно расходиться.
+- Clean bootstrap на временной базе дал более сильное evidence
+  воспроизводимости, чем проверка только существующего Docker volume.
+- Schema integration tests нужно отделять от vault-конфигурации, поскольку
+  database layer должен тестироваться независимо от read-only corpus.
+
+## Post-merge
+
+- PR [#14](https://github.com/DaniilJechev/obsidian-rag-lab/pull/14) merged
+  в `main` с commit `17a711c`.
+- Issue [#11](https://github.com/DaniilJechev/obsidian-rag-lab/issues/11)
+  закрыт через `Closes #11`.
+- Milestone `Phase 2 — PostgreSQL Data Layer` оставлен открытым: Sprint 5 и
+  Sprint 6 ещё не завершены.
+
+**Итоговый статус:** `closed`
 
 **Дата планирования:** 2026-08-11
