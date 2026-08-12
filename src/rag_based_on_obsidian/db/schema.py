@@ -73,10 +73,22 @@ notes = Table(
         nullable=False,
         server_default="now()",
     ),
-    CheckConstraint("file_size_bytes >= 0"),
-    CheckConstraint("character_count >= 0"),
-    CheckConstraint("word_count >= 0"),
-    CheckConstraint("parse_status IN ('parsed', 'failed')"),
+    CheckConstraint(
+        "file_size_bytes >= 0",
+        name="notes_file_size_bytes_check",
+    ),
+    CheckConstraint(
+        "character_count >= 0",
+        name="notes_character_count_check",
+    ),
+    CheckConstraint(
+        "word_count >= 0",
+        name="notes_word_count_check",
+    ),
+    CheckConstraint(
+        "parse_status IN ('parsed', 'failed')",
+        name="notes_parse_status_check",
+    ),
 )
 
 
@@ -161,11 +173,26 @@ ingestion_runs = Table(
         nullable=False,
         server_default="now()",
     ),
-    CheckConstraint("documents_total >= 0"),
-    CheckConstraint("documents_succeeded >= 0"),
-    CheckConstraint("documents_failed >= 0"),
-    CheckConstraint("documents_skipped >= 0"),
-    CheckConstraint("status IN ('running', 'completed', 'failed', 'partial')"),
+    CheckConstraint(
+        "documents_total >= 0",
+        name="ingestion_runs_documents_total_check",
+    ),
+    CheckConstraint(
+        "documents_succeeded >= 0",
+        name="ingestion_runs_documents_succeeded_check",
+    ),
+    CheckConstraint(
+        "documents_failed >= 0",
+        name="ingestion_runs_documents_failed_check",
+    ),
+    CheckConstraint(
+        "documents_skipped >= 0",
+        name="ingestion_runs_documents_skipped_check",
+    ),
+    CheckConstraint(
+        "status IN ('running', 'completed', 'failed', 'partial')",
+        name="ingestion_runs_status_check",
+    ),
 )
 
 
@@ -243,7 +270,10 @@ ingestion_states = Table(
         "run_id",
         name="uq_ingestion_states_note_run",
     ),
-    CheckConstraint("status IN ('discovered', 'parsed', 'failed', 'stale')"),
+    CheckConstraint(
+        "status IN ('discovered', 'parsed', 'failed', 'stale')",
+        name="ingestion_states_status_check",
+    ),
 )
 
 
@@ -304,12 +334,30 @@ chunks = Table(
         "chunk_index",
         name="uq_chunks_note_version_index",
     ),
-    CheckConstraint("chunk_index >= 0"),
-    CheckConstraint("section_level BETWEEN 1 AND 6"),
-    CheckConstraint("start_offset >= 0"),
-    CheckConstraint("end_offset >= 0"),
-    CheckConstraint("word_count >= 0"),
-    CheckConstraint("token_count >= 0"),
+    CheckConstraint(
+        "chunk_index >= 0",
+        name="chunks_chunk_index_check",
+    ),
+    CheckConstraint(
+        "section_level BETWEEN 1 AND 6",
+        name="chunks_section_level_check",
+    ),
+    CheckConstraint(
+        "start_offset >= 0",
+        name="chunks_start_offset_check",
+    ),
+    CheckConstraint(
+        "end_offset >= 0",
+        name="chunks_end_offset_check",
+    ),
+    CheckConstraint(
+        "word_count >= 0",
+        name="chunks_word_count_check",
+    ),
+    CheckConstraint(
+        "token_count >= 0",
+        name="chunks_token_count_check",
+    ),
 )
 
 
