@@ -271,7 +271,8 @@ ingestion_states = Table(
         name="uq_ingestion_states_note_run",
     ),
     CheckConstraint(
-        "status IN ('discovered', 'parsed', 'failed', 'stale')",
+        "status IN ('discovered', 'parsed', 'new', 'changed', "
+        "'unchanged', 'failed', 'stale')",
         name="ingestion_states_status_check",
     ),
 )

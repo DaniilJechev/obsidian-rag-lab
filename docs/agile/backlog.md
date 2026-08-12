@@ -60,8 +60,8 @@ Backlog не является жёстким расписанием. Приор�
 | CORPUS-002 | P1 | done | 1 | Распарсить Markdown-структуру | Извлекаются текст, headings, frontmatter и wikilinks |
 | CORPUS-003 | P1 | done | 1 | Подготовить corpus inventory и EDA | Реальные числа файлов, размеров, слов, токенов и дублей сохранены |
 | DATA-001 | P1 | done | 2 | Спроектировать PostgreSQL schema и migrations | Таблицы notes, ingestion runs/states, versions и chunks contract описаны и создаются Alembic migrations |
-| DATA-002 | P1 | ready | 2 | Реализовать idempotent ingestion | Content hash, parser version, retries, failure accounting и new/changed/unchanged/stale logic работают |
-| DATA-003 | P1 | idea | 2 | Провести production-like PostgreSQL test drive | Полный DLS1+DLS2 run, consistency checks, rollback/recovery и handoff к Phase 3 подтверждены |
+| DATA-002 | P1 | done | 2 | Реализовать idempotent ingestion | Repositories, content hash, parser version, failure accounting и new/changed/unchanged/stale logic покрыты unit/PostgreSQL scenarios; CI/Linux confirmation of local Windows pytest cleanup remains an environmental follow-up |
+| DATA-003 | P1 | ready | 2 | Провести production-like PostgreSQL test drive | Полный DLS1+DLS2 run, consistency checks, rollback/recovery и handoff к Phase 3 подтверждены |
 | CHUNK-001 | P1 | idea | 3 | Реализовать heading-aware chunking | Чанки сохраняют note/section metadata и покрыты тестами |
 | CHUNK-002 | P2 | idea | 3 | Сравнить размеры chunk 256/512/1024 | Эксперимент воспроизводим, результаты записаны |
 | EMB-001 | P1 | idea | 4 | Подключить бесплатную локальную embedding-модель на CPU | `EmbeddingProvider` возвращает vectors нужной размерности |

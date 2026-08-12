@@ -1,12 +1,14 @@
 """Integration tests for the PostgreSQL schema."""
 
 import os
+from pathlib import Path, PurePosixPath
 
 import pytest
-from sqlalchemy import create_engine, delete, insert, select
+from sqlalchemy import create_engine, delete, func, insert, select
 from sqlalchemy.exc import IntegrityError
 
 from rag_based_on_obsidian.config import ENV_FILE
+from rag_based_on_obsidian.corpus.discovery_entities import DiscoveredFile
 from rag_based_on_obsidian.db.connection import load_database_url
 from rag_based_on_obsidian.db.schema import (
     chunks,
@@ -16,6 +18,7 @@ from rag_based_on_obsidian.db.schema import (
     note_links,
     notes,
 )
+from rag_based_on_obsidian.ingestion.orchestrator import run_ingestion
 
 
 @pytest.fixture
@@ -190,6 +193,110 @@ def test_ingestion_runs_reject_negative_counters(database_connection) -> None:
                 documents_total=-1,
             )
         )
+
+
+def test_ingestion_is_idempotent_and_reprocesses_parser_changes(
+    database_connection,
+    tmp_path: Path,
+) -> None:
+    """Repeated input creates no note duplicates and parser changes reprocess."""
+    source_path = tmp_path / "DLS2" / "idempotent.md"
+    source_path.parent.mkdir()
+    source_path.write_text("# Idempotent\nText.", encoding="utf-8")
+    discovered = DiscoveredFile(
+        absolute_path=source_path,
+        relative_path=PurePosixPath("DLS2/idempotent.md"),
+    )
+
+    first = run_ingestion(
+        database_connection,
+        [discovered],
+        parser_version="parser-v1",
+    )
+    second = run_ingestion(
+        database_connection,
+        [discovered],
+        parser_version="parser-v1",
+    )
+    parser_changed = run_ingestion(
+        database_connection,
+        [discovered],
+        parser_version="parser-v2",
+    )
+
+    assert first.new == 1
+    assert second.unchanged == 1
+    assert parser_changed.changed == 1
+    assert database_connection.scalar(
+        select(func.count()).select_from(notes).where(
+            notes.c.relative_path == "DLS2/idempotent.md"
+        )
+    ) == 1
+    assert database_connection.scalar(
+        select(func.count()).select_from(ingestion_states)
+    ) == 3
+
+
+def test_failed_note_isolated_and_stale_note_recorded(
+    database_connection,
+    tmp_path: Path,
+) -> None:
+    """A parse failure does not abort the batch; missing notes become stale."""
+    valid_path = tmp_path / "DLS2" / "valid.md"
+    failed_path = tmp_path / "DLS2" / "failed.md"
+    valid_path.parent.mkdir()
+    valid_path.write_text("# Valid\nText.", encoding="utf-8")
+    failed_path.write_text("---\ntitle: [unclosed\n", encoding="utf-8")
+    discovered = [
+        DiscoveredFile(valid_path, PurePosixPath("DLS2/valid.md")),
+        DiscoveredFile(failed_path, PurePosixPath("DLS2/failed.md")),
+    ]
+
+    first = run_ingestion(database_connection, discovered)
+    second = run_ingestion(
+        database_connection,
+        [discovered[0]],
+    )
+
+    assert first.new == 1
+    assert first.failed == 1
+    assert second.stale == 1
+    assert database_connection.scalar(
+        select(func.count())
+        .select_from(ingestion_states)
+        .where(ingestion_states.c.status == "failed")
+    ) == 1
+    assert database_connection.scalar(
+        select(func.count())
+        .select_from(ingestion_states)
+        .where(ingestion_states.c.status == "stale")
+    ) == 1
+
+
+def test_failed_note_is_retried_after_source_is_fixed(
+    database_connection,
+    tmp_path: Path,
+) -> None:
+    """A failed attempt must not make a later successful retry look unchanged."""
+    source_path = tmp_path / "DLS2" / "retry.md"
+    source_path.parent.mkdir()
+    source_path.write_text("---\ntitle: [unclosed\n", encoding="utf-8")
+    discovered = DiscoveredFile(
+        source_path,
+        PurePosixPath("DLS2/retry.md"),
+    )
+
+    failed = run_ingestion(database_connection, [discovered])
+    source_path.write_text("# Fixed\nText.", encoding="utf-8")
+    retried = run_ingestion(database_connection, [discovered])
+
+    assert failed.failed == 1
+    assert retried.changed == 1
+    assert database_connection.scalar(
+        select(notes.c.parse_status).where(
+            notes.c.relative_path == "DLS2/retry.md"
+        )
+    ) == "parsed"
 
 
 def test_chunks_require_valid_note_and_unique_position(database_connection) -> None:
