@@ -78,7 +78,7 @@ operational validation, а также позволяет отдельно про
 
 - entity/data contract;
 - таблицы `notes`, `ingestion_runs`, `ingestion_states`,
-  `index_versions`;
+  `index_versions`, `note_links`;
 - schema contract для `chunks`;
 - primary/foreign keys, unique/check constraints и indexes;
 - JSONB contract для structured metadata;

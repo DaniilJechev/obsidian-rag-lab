@@ -24,7 +24,7 @@ Phase 1 дала inventory и EDA, но JSON snapshot не является prod
 ## Scope
 
 - [ ] Зафиксировать entity/data contract для `notes`, `ingestion_runs`,
-  `ingestion_states`, `index_versions` и `chunks`.
+  `ingestion_states`, `index_versions`, `chunks` и `note_links`.
 - [ ] Определить PostgreSQL types, nullability, defaults и JSONB contracts.
 - [ ] Определить primary keys, foreign keys, unique/check constraints и indexes.
 - [ ] Создать SQLAlchemy Core table metadata без ORM.
@@ -33,6 +33,7 @@ Phase 1 дала inventory и EDA, но JSON snapshot не является prod
   на пустой базе.
 - [ ] Добавить schema integration tests на PostgreSQL.
 - [ ] Документировать связи, инварианты и SQL-эквиваленты существенных операций.
+- [ ] Проверить resolved и unresolved wikilinks через `note_links`.
 
 ## Out of Scope
 
@@ -50,7 +51,8 @@ Phase 1 дала inventory и EDA, но JSON snapshot не является prod
 - `alembic/` — versioned schema migrations.
 - `src/rag_based_on_obsidian/db/` — SQLAlchemy Core metadata/configuration.
 - `tests/` — PostgreSQL schema integration tests.
-- `docs/architecture/phase-2-database-schema.md` — schema/data contract.
+- `docs/architecture/phase-2-database-schema.md` — schema/data contract,
+  JSONB contracts и `note_links`.
 - `docs/agile/sprint-4-postgresql-schema.md` — execution evidence.
 
 ## Acceptance Criteria
@@ -60,6 +62,7 @@ Phase 1 дала inventory и EDA, но JSON snapshot не является prod
 - [ ] Повторный `alembic upgrade head` не создаёт повторных объектов.
 - [ ] `notes.relative_path` имеет уникальное ограничение.
 - [ ] Foreign keys для note/run/state/chunk relationships проверяются.
+- [ ] `note_links` хранит raw references, resolved targets и unresolved links.
 - [ ] JSONB-поля имеют описанный shape и validation expectations.
 - [ ] Schema tests запускаются на PostgreSQL, а не только на SQLite.
 - [ ] `obsidianNotes` не изменяется.
