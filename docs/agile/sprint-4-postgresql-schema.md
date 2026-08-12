@@ -23,9 +23,9 @@ Phase 1 дала inventory и EDA, но JSON snapshot не является prod
 
 ## Scope
 
-- [ ] Зафиксировать entity/data contract для `notes`, `ingestion_runs`,
+- [x] Зафиксировать entity/data contract для `notes`, `ingestion_runs`,
   `ingestion_states`, `index_versions`, `chunks` и `note_links`.
-- [ ] Определить PostgreSQL types, nullability, defaults и JSONB contracts.
+- [x] Определить PostgreSQL types, nullability, defaults и JSONB contracts.
 - [x] Определить primary keys, foreign keys, unique/check constraints и indexes.
 - [x] Создать SQLAlchemy Core table metadata без ORM.
 - [x] Настроить Alembic и initial migrations.
@@ -57,9 +57,9 @@ Phase 1 дала inventory и EDA, но JSON snapshot не является prod
 
 ## Acceptance Criteria
 
-- [ ] Пустая PostgreSQL database поднимается через Docker Compose.
+- [x] Пустая PostgreSQL database поднимается через Docker Compose.
 - [x] `alembic upgrade head` создаёт всю согласованную schema.
-- [ ] Повторный `alembic upgrade head` не создаёт повторных объектов.
+- [x] Повторный `alembic upgrade head` не создаёт повторных объектов.
 - [x] `notes.relative_path` имеет уникальное ограничение.
 - [x] Foreign keys для note/run/state/chunk relationships проверяются.
 - [x] `note_links` хранит raw references, resolved targets и unresolved links.
@@ -130,6 +130,8 @@ Sprint 6 проводит production-like test drive полного DLS1+DLS2:
 | 2026-08-12 | Initial schema implementation | SQLAlchemy Core metadata, Alembic initial migration and PostgreSQL tables applied |
 | 2026-08-12 | Schema parity verification | Explicit CHECK constraint names aligned metadata with PostgreSQL; `alembic check` passed |
 | 2026-08-12 | Integration tests | PostgreSQL tests cover CHECK, UNIQUE, foreign keys, CASCADE and SET NULL behavior |
+| 2026-08-12 | Clean bootstrap | Temporary `rag_bootstrap_test` started with no relations; `upgrade head` created the schema; database was removed after verification |
+| 2026-08-12 | Repeatability check | Repeated `upgrade head` on the configured database produced no new upgrade |
 
 ## Validation Evidence
 
@@ -150,15 +152,27 @@ uv run ruff check .
 
 uv run pytest tests/test_postgres_schema.py -q
 → 7 passed
+
+docker compose --env-file .env -f docker/compose.yml exec postgres psql -U rag -d rag_bootstrap_test -P pager=off -c "\dt"
+→ Did not find any relations.
+
+uv run alembic upgrade head  # temporary rag_bootstrap_test
+→ Running upgrade  -> 909bce321e14, create initial schema
+
+docker compose --env-file .env -f docker/compose.yml exec postgres psql -U rag -d rag_bootstrap_test -P pager=off -c "\dt"
+→ 7 relations after bootstrap
+
+uv run alembic upgrade head  # already-current configured database
+→ no Running upgrade output
 ```
 
 PostgreSQL inspection confirmed seven tables including `alembic_version`, the
 expected primary/unique constraints, JSONB columns, and `note_links` foreign
 keys with `ON DELETE CASCADE` and `ON DELETE SET NULL`.
 
-The empty-volume bootstrap and explicit repeated `upgrade head` checks were not
-run in this evidence pass; they remain open acceptance items rather than being
-marked as completed by assumption.
+The clean bootstrap used a temporary PostgreSQL database rather than the
+existing Docker volume. The temporary database was dropped after verification;
+the primary `rag` database and its volume were preserved.
 
 ## Completion
 

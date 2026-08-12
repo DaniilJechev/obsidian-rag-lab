@@ -57,11 +57,17 @@
 
 | Шаг | Что делаешь |
 |---|---|
+| 2.0 | **Реализовать PostgreSQL schema как фундамент data layer:** описать таблицы, типы, primary/foreign keys, `UNIQUE`/`CHECK` constraints, JSONB-контракты, indexes и связи через SQLAlchemy Core; версионировать изменения и воспроизводимо применять их через Alembic migrations |
 | 2.1 | Postgres: `notes`, `chunks`, `embeddings`, `eval_items`, `query_logs`, `cache` |
 | 2.2 | Метаданные для фильтров: `folder`, `lecture`, `tags` |
 | 2.3 | Версия индекса `index_version` для кеша/инвалидации |
 
 **Стек:** `SQL || PostGreSQL`, `Python`, `Docker` (Postgres в compose)
+
+**Результат шага 2.0:** пустая локальная PostgreSQL database получает
+воспроизводимую schema через Alembic, а SQLAlchemy Core metadata, migration
+history и integration tests фиксируют её контракт. Этот шаг не реализует
+ingestion, query repositories, embeddings или retrieval.
 
 *Позже:* векторы можно держать в Qdrant, метаданные/логи — в Postgres.
 

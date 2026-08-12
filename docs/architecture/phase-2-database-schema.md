@@ -14,31 +14,35 @@ migrations в Sprint 4.
 - Пути хранятся только как относительные значения.
 - `TIMESTAMPTZ` используется для времени.
 - `JSONB` используется для структурированных полей, а форма JSON проверяется
-  JSON Schema на Python-слое и integration tests.
+JSON Schema на Python-слое и integration tests.
 - Wikilinks хранятся в отдельной таблице `note_links`, а не списком ID внутри
-  `notes`.
+`notes`.
+
+
 
 ## Таблица `notes`
 
 Одна строка соответствует одной обнаруженной заметке.
 
-| Поле | PostgreSQL type | Ограничения | Назначение |
-|---|---|---|---|
-| `note_id` | `BIGINT` identity | `PRIMARY KEY` | Внутренний стабильный ID |
-| `relative_path` | `TEXT` | `NOT NULL`, `UNIQUE` | Путь вроде `DLS2/RAG.md` |
-| `source_directory` | `TEXT` | `NOT NULL` | `DLS1` или `DLS2` |
-| `title` | `TEXT` | `NOT NULL` | Заголовок с filename fallback |
-| `content_hash` | `TEXT` | `NOT NULL` | SHA-256 raw content для idempotency |
-| `file_size_bytes` | `BIGINT` | `NOT NULL`, `>= 0` | Размер файла в байтах |
-| `character_count` | `INTEGER` | `NOT NULL`, `>= 0` | Количество символов |
-| `word_count` | `INTEGER` | `NOT NULL`, `>= 0` | Количество слов |
-| `language_statistics` | `JSONB` | `NOT NULL`, default `{}` | Языковые counts/ratios |
-| `parse_status` | `TEXT` | `NOT NULL`, controlled values | Результат Markdown parser |
-| `anomalies` | `JSONB` | `NOT NULL`, default `[]` | Проверенные anomalies |
-| `source_mtime` | `TIMESTAMPTZ` | nullable | Время изменения исходного файла |
-| `parser_version` | `TEXT` | `NOT NULL` | Версия parser |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Создание строки в БД |
-| `updated_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Последнее обновление строки |
+
+| Поле                  | PostgreSQL type   | Ограничения                   | Назначение                          |
+| --------------------- | ----------------- | ----------------------------- | ----------------------------------- |
+| `note_id`             | `BIGINT` identity | `PRIMARY KEY`                 | Внутренний стабильный ID            |
+| `relative_path`       | `TEXT`            | `NOT NULL`, `UNIQUE`          | Путь вроде `DLS2/RAG.md`            |
+| `source_directory`    | `TEXT`            | `NOT NULL`                    | `DLS1` или `DLS2`                   |
+| `title`               | `TEXT`            | `NOT NULL`                    | Заголовок с filename fallback       |
+| `content_hash`        | `TEXT`            | `NOT NULL`                    | SHA-256 raw content для idempotency |
+| `file_size_bytes`     | `BIGINT`          | `NOT NULL`, `>= 0`            | Размер файла в байтах               |
+| `character_count`     | `INTEGER`         | `NOT NULL`, `>= 0`            | Количество символов                 |
+| `word_count`          | `INTEGER`         | `NOT NULL`, `>= 0`            | Количество слов                     |
+| `language_statistics` | `JSONB`           | `NOT NULL`, default `{}`      | Языковые counts/ratios              |
+| `parse_status`        | `TEXT`            | `NOT NULL`, controlled values | Результат Markdown parser           |
+| `anomalies`           | `JSONB`           | `NOT NULL`, default `[]`      | Проверенные anomalies               |
+| `source_mtime`        | `TIMESTAMPTZ`     | nullable                      | Время изменения исходного файла     |
+| `parser_version`      | `TEXT`            | `NOT NULL`                    | Версия parser                       |
+| `created_at`          | `TIMESTAMPTZ`     | `NOT NULL`, default `now()`   | Создание строки в БД                |
+| `updated_at`          | `TIMESTAMPTZ`     | `NOT NULL`, default `now()`   | Последнее обновление строки         |
+
 
 `note_id` не получает отдельный `UNIQUE`: `PRIMARY KEY` уже означает
 `UNIQUE + NOT NULL`.
@@ -54,7 +58,11 @@ created_at    → первая запись note в PostgreSQL
 updated_at    → последнее изменение строки note в PostgreSQL
 ```
 
+
+
 ## JSONB contracts
+
+
 
 ### `language_statistics`
 
@@ -95,15 +103,17 @@ database contract; PostgreSQL хранит validated payload как `JSONB`.
 
 Одна строка соответствует одной wikilink-связи из source note.
 
-| Поле | PostgreSQL type | Ограничения | Назначение |
-|---|---|---|---|
-| `link_id` | `BIGINT` identity | `PRIMARY KEY` | ID связи |
-| `source_note_id` | `BIGINT` | `NOT NULL`, FK → `notes` | Откуда идёт ссылка |
-| `target_note_id` | `BIGINT` | nullable, FK → `notes` | Разрешённая target note |
-| `target_reference` | `TEXT` | `NOT NULL` | Raw target из wikilink |
-| `display_text` | `TEXT` | nullable | Явный alias/display text |
-| `link_type` | `TEXT` | `NOT NULL` | Тип связи |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Время записи строки связи в БД |
+
+| Поле               | PostgreSQL type   | Ограничения                 | Назначение                     |
+| ------------------ | ----------------- | --------------------------- | ------------------------------ |
+| `link_id`          | `BIGINT` identity | `PRIMARY KEY`               | ID связи                       |
+| `source_note_id`   | `BIGINT`          | `NOT NULL`, FK → `notes`    | Откуда идёт ссылка             |
+| `target_note_id`   | `BIGINT`          | nullable, FK → `notes`      | Разрешённая target note        |
+| `target_reference` | `TEXT`            | `NOT NULL`                  | Raw target из wikilink         |
+| `display_text`     | `TEXT`            | nullable                    | Явный alias/display text       |
+| `link_type`        | `TEXT`            | `NOT NULL`                  | Тип связи                      |
+| `created_at`       | `TIMESTAMPTZ`     | `NOT NULL`, default `now()` | Время записи строки связи в БД |
+
 
 Ограничения и поведение:
 
@@ -197,7 +207,7 @@ markdown_link
 - `wikilink_heading` — ссылка с heading subpath, например `[[Note#Section]]`;
 - `wikilink_block` — ссылка на block reference, например `[[Note#^block-id]]`;
 - `markdown_link` — обычная Markdown-ссылка, если parser решит считать её
-  связью между notes.
+связью между notes.
 
 Image embeds не являются `note_links`: их следует хранить отдельным типом
 структурных/media references, потому что target может быть изображением, а не
@@ -223,18 +233,20 @@ Markdown обычно нет. Если связь будет удалена и �
 
 Одна строка — один запуск ingestion pipeline для заданного corpus scope.
 
-| Поле | PostgreSQL type | Ограничения | Назначение |
-|---|---|---|---|
-| `run_id` | `BIGINT` identity | `PRIMARY KEY` | ID запуска |
-| `started_at` | `TIMESTAMPTZ` | `NOT NULL` | Начало запуска |
-| `finished_at` | `TIMESTAMPTZ` | nullable | Завершение; NULL у незаконченного run |
-| `status` | `TEXT` | `NOT NULL` | `running`, `completed`, `failed`, `partial` |
-| `corpus_scope` | `TEXT` | `NOT NULL` | Например `DLS1+DLS2` |
-| `documents_total` | `INTEGER` | `NOT NULL`, default `0`, `>= 0` | Найдено документов |
-| `documents_succeeded` | `INTEGER` | `NOT NULL`, default `0`, `>= 0` | Успешно обработано |
-| `documents_failed` | `INTEGER` | `NOT NULL`, default `0`, `>= 0` | Ошибки обработки |
-| `documents_skipped` | `INTEGER` | `NOT NULL`, default `0`, `>= 0` | Пропущено по idempotency |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Создание run row |
+
+| Поле                  | PostgreSQL type   | Ограничения                     | Назначение                                  |
+| --------------------- | ----------------- | ------------------------------- | ------------------------------------------- |
+| `run_id`              | `BIGINT` identity | `PRIMARY KEY`                   | ID запуска                                  |
+| `started_at`          | `TIMESTAMPTZ`     | `NOT NULL`                      | Начало запуска                              |
+| `finished_at`         | `TIMESTAMPTZ`     | nullable                        | Завершение; NULL у незаконченного run       |
+| `status`              | `TEXT`            | `NOT NULL`                      | `running`, `completed`, `failed`, `partial` |
+| `corpus_scope`        | `TEXT`            | `NOT NULL`                      | Например `DLS1+DLS2`                        |
+| `documents_total`     | `INTEGER`         | `NOT NULL`, default `0`, `>= 0` | Найдено документов                          |
+| `documents_succeeded` | `INTEGER`         | `NOT NULL`, default `0`, `>= 0` | Успешно обработано                          |
+| `documents_failed`    | `INTEGER`         | `NOT NULL`, default `0`, `>= 0` | Ошибки обработки                            |
+| `documents_skipped`   | `INTEGER`         | `NOT NULL`, default `0`, `>= 0` | Пропущено по idempotency                    |
+| `created_at`          | `TIMESTAMPTZ`     | `NOT NULL`, default `now()`     | Создание run row                            |
+
 
 Инварианты:
 
@@ -245,19 +257,23 @@ documents_succeeded + documents_failed + documents_skipped
     <= documents_total
 ```
 
+
+
 ## Таблица `index_versions`
 
 Одна строка — согласованный набор версий pipeline-компонентов.
 
-| Поле | PostgreSQL type | Ограничения | Назначение |
-|---|---|---|---|
-| `index_version_id` | `BIGINT` identity | `PRIMARY KEY` | ID версии |
-| `parser_version` | `TEXT` | `NOT NULL` | Версия parser |
-| `chunking_version` | `TEXT` | `NOT NULL` | `planned` до Phase 3 |
-| `embedding_model` | `TEXT` | nullable | Модель будущих embeddings |
-| `embedding_version` | `TEXT` | nullable | Версия embedding model |
-| `embedding_parameters` | `JSONB` | `NOT NULL`, default `{}` | Параметры модели |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Создание version row |
+
+| Поле                   | PostgreSQL type   | Ограничения                 | Назначение                |
+| ---------------------- | ----------------- | --------------------------- | ------------------------- |
+| `index_version_id`     | `BIGINT` identity | `PRIMARY KEY`               | ID версии                 |
+| `parser_version`       | `TEXT`            | `NOT NULL`                  | Версия parser             |
+| `chunking_version`     | `TEXT`            | `NOT NULL`                  | `planned` до Phase 3      |
+| `embedding_model`      | `TEXT`            | nullable                    | Модель будущих embeddings |
+| `embedding_version`    | `TEXT`            | nullable                    | Версия embedding model    |
+| `embedding_parameters` | `JSONB`           | `NOT NULL`, default `{}`    | Параметры модели          |
+| `created_at`           | `TIMESTAMPTZ`     | `NOT NULL`, default `now()` | Создание version row      |
+
 
 Одинаковый набор компонентов должен иметь один version record. В Sprint 4
 достаточно зафиксировать contract и unique identity constraint; выбор
@@ -267,19 +283,21 @@ embedding model остаётся будущим решением.
 
 Одна строка — результат обработки конкретной note в конкретном run.
 
-| Поле | PostgreSQL type | Ограничения | Назначение |
-|---|---|---|---|
-| `state_id` | `BIGINT` identity | `PRIMARY KEY` | ID результата |
-| `note_id` | `BIGINT` | `NOT NULL`, FK → `notes` | Обрабатываемая note |
-| `run_id` | `BIGINT` | `NOT NULL`, FK → `ingestion_runs` | Запуск |
-| `index_version_id` | `BIGINT` | `NOT NULL`, FK → `index_versions` | Версии компонентов |
-| `content_hash` | `TEXT` | `NOT NULL` | Hash на момент обработки |
-| `parser_version` | `TEXT` | `NOT NULL` | Фактически применённый parser |
-| `status` | `TEXT` | `NOT NULL` | `discovered`, `parsed`, `failed`, `stale` |
-| `error_type` | `TEXT` | nullable | Классификация ошибки |
-| `error_message` | `TEXT` | nullable | Диагностика ошибки |
-| `processed_at` | `TIMESTAMPTZ` | nullable | Завершение обработки note |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Создание state row |
+
+| Поле               | PostgreSQL type   | Ограничения                       | Назначение                                |
+| ------------------ | ----------------- | --------------------------------- | ----------------------------------------- |
+| `state_id`         | `BIGINT` identity | `PRIMARY KEY`                     | ID результата                             |
+| `note_id`          | `BIGINT`          | `NOT NULL`, FK → `notes`          | Обрабатываемая note                       |
+| `run_id`           | `BIGINT`          | `NOT NULL`, FK → `ingestion_runs` | Запуск                                    |
+| `index_version_id` | `BIGINT`          | `NOT NULL`, FK → `index_versions` | Версии компонентов                        |
+| `content_hash`     | `TEXT`            | `NOT NULL`                        | Hash на момент обработки                  |
+| `parser_version`   | `TEXT`            | `NOT NULL`                        | Фактически применённый parser             |
+| `status`           | `TEXT`            | `NOT NULL`                        | `discovered`, `parsed`, `failed`, `stale` |
+| `error_type`       | `TEXT`            | nullable                          | Классификация ошибки                      |
+| `error_message`    | `TEXT`            | nullable                          | Диагностика ошибки                        |
+| `processed_at`     | `TIMESTAMPTZ`     | nullable                          | Завершение обработки note                 |
+| `created_at`       | `TIMESTAMPTZ`     | `NOT NULL`, default `now()`       | Создание state row                        |
+
 
 `ingestion_states` — историческая таблица результатов, поэтому у одной note
 может быть много state rows в разных runs. Для текущего состояния используется
@@ -297,22 +315,24 @@ UNIQUE(note_id, run_id)
 
 Одна строка — будущий retrieval chunk, принадлежащий note.
 
-| Поле | PostgreSQL type | Ограничения | Назначение |
-|---|---|---|---|
-| `chunk_id` | `BIGINT` identity | `PRIMARY KEY` | ID chunk |
-| `note_id` | `BIGINT` | `NOT NULL`, FK → `notes` | Parent note |
-| `chunk_index` | `INTEGER` | `NOT NULL`, `>= 0` | Порядок внутри note |
-| `text` | `TEXT` | `NOT NULL` | Текст chunk |
-| `section_title` | `TEXT` | nullable | Заголовок секции |
-| `section_level` | `SMALLINT` | nullable, `1..6` | H1–H6 |
-| `section_path` | `JSONB` | `NOT NULL`, default `[]` | Путь по headings |
-| `section_type` | `TEXT` | `NOT NULL` | `pre_heading`, `heading_body`, etc. |
-| `start_offset` | `INTEGER` | nullable, `>= 0` | Offset в source view |
-| `end_offset` | `INTEGER` | nullable, `>= 0` | Конец source span |
-| `word_count` | `INTEGER` | `NOT NULL`, `>= 0` | Word count |
-| `token_count` | `INTEGER` | `NOT NULL`, `>= 0` | Baseline/model token count |
-| `chunking_version` | `TEXT` | `NOT NULL` | Версия splitter |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Создание chunk row |
+
+| Поле               | PostgreSQL type   | Ограничения                 | Назначение                          |
+| ------------------ | ----------------- | --------------------------- | ----------------------------------- |
+| `chunk_id`         | `BIGINT` identity | `PRIMARY KEY`               | ID chunk                            |
+| `note_id`          | `BIGINT`          | `NOT NULL`, FK → `notes`    | Parent note                         |
+| `chunk_index`      | `INTEGER`         | `NOT NULL`, `>= 0`          | Порядок внутри note                 |
+| `text`             | `TEXT`            | `NOT NULL`                  | Текст chunk                         |
+| `section_title`    | `TEXT`            | nullable                    | Заголовок секции                    |
+| `section_level`    | `SMALLINT`        | nullable, `1..6`            | H1–H6                               |
+| `section_path`     | `JSONB`           | `NOT NULL`, default `[]`    | Путь по headings                    |
+| `section_type`     | `TEXT`            | `NOT NULL`                  | `pre_heading`, `heading_body`, etc. |
+| `start_offset`     | `INTEGER`         | nullable, `>= 0`            | Offset в source view                |
+| `end_offset`       | `INTEGER`         | nullable, `>= 0`            | Конец source span                   |
+| `word_count`       | `INTEGER`         | `NOT NULL`, `>= 0`          | Word count                          |
+| `token_count`      | `INTEGER`         | `NOT NULL`, `>= 0`          | Baseline/model token count          |
+| `chunking_version` | `TEXT`            | `NOT NULL`                  | Версия splitter                     |
+| `created_at`       | `TIMESTAMPTZ`     | `NOT NULL`, default `now()` | Создание chunk row                  |
+
 
 Ограничение для versioned chunks:
 
@@ -332,32 +352,38 @@ contract и relationship `notes → chunks`.
 
 Одна строка — один вопрос в gold evaluation set.
 
-| Поле | PostgreSQL type | Ограничения | Назначение |
-|---|---|---|---|
-| `eval_item_id` | `BIGINT` identity | `PRIMARY KEY` | ID вопроса |
-| `question` | `TEXT` | `NOT NULL` | Текст вопроса |
-| `corpus_scope` | `TEXT` | `NOT NULL` | На каком корпусе размечено |
-| `relevant_note_ids` | `JSONB` | `NOT NULL`, default `[]` | Relevant notes |
-| `relevant_chunk_ids` | `JSONB` | `NOT NULL`, default `[]` | Relevant chunks |
-| `dataset_version` | `TEXT` | `NOT NULL` | Версия набора |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Создание item |
+
+| Поле                 | PostgreSQL type   | Ограничения                 | Назначение                 |
+| -------------------- | ----------------- | --------------------------- | -------------------------- |
+| `eval_item_id`       | `BIGINT` identity | `PRIMARY KEY`               | ID вопроса                 |
+| `question`           | `TEXT`            | `NOT NULL`                  | Текст вопроса              |
+| `corpus_scope`       | `TEXT`            | `NOT NULL`                  | На каком корпусе размечено |
+| `relevant_note_ids`  | `JSONB`           | `NOT NULL`, default `[]`    | Relevant notes             |
+| `relevant_chunk_ids` | `JSONB`           | `NOT NULL`, default `[]`    | Relevant chunks            |
+| `dataset_version`    | `TEXT`            | `NOT NULL`                  | Версия набора              |
+| `created_at`         | `TIMESTAMPTZ`     | `NOT NULL`, default `now()` | Создание item              |
+
+
+
 
 ### `query_logs`
 
 Одна строка — один пользовательский/retrieval query.
 
-| Поле | PostgreSQL type | Ограничения | Назначение |
-|---|---|---|---|
-| `query_id` | `BIGINT` identity | `PRIMARY KEY` | ID query |
-| `question` | `TEXT` | `NOT NULL` | Исходный запрос пользователя |
-| `prompt_text` | `TEXT` | nullable | Итоговый prompt, отправленный LLM |
-| `response_text` | `TEXT` | nullable | Финальный текст ответа LLM |
-| `retrieval_version` | `TEXT` | `NOT NULL` | Версия retrieval pipeline |
-| `latency_ms` | `INTEGER` | nullable, `>= 0` | Latency |
-| `result_count` | `INTEGER` | `NOT NULL`, default `0`, `>= 0` | Число результатов |
-| `status` | `TEXT` | `NOT NULL` | `success` или `failed` |
-| `error_type` | `TEXT` | nullable | Ошибка |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Время query |
+
+| Поле                | PostgreSQL type   | Ограничения                     | Назначение                        |
+| ------------------- | ----------------- | ------------------------------- | --------------------------------- |
+| `query_id`          | `BIGINT` identity | `PRIMARY KEY`                   | ID query                          |
+| `question`          | `TEXT`            | `NOT NULL`                      | Исходный запрос пользователя      |
+| `prompt_text`       | `TEXT`            | nullable                        | Итоговый prompt, отправленный LLM |
+| `response_text`     | `TEXT`            | nullable                        | Финальный текст ответа LLM        |
+| `retrieval_version` | `TEXT`            | `NOT NULL`                      | Версия retrieval pipeline         |
+| `latency_ms`        | `INTEGER`         | nullable, `>= 0`                | Latency                           |
+| `result_count`      | `INTEGER`         | `NOT NULL`, default `0`, `>= 0` | Число результатов                 |
+| `status`            | `TEXT`            | `NOT NULL`                      | `success` или `failed`            |
+| `error_type`        | `TEXT`            | nullable                        | Ошибка                            |
+| `created_at`        | `TIMESTAMPTZ`     | `NOT NULL`, default `now()`     | Время query                       |
+
 
 `question` — исходный запрос пользователя. `prompt_text` — уже собранный
 контекстный prompt после retrieval, переданный генеративной модели. Это не
@@ -376,64 +402,31 @@ redaction, retention, доступ и максимальный размер ло
 
 Одна строка — описание модели или tokenizer baseline.
 
-| Поле | PostgreSQL type | Ограничения | Назначение |
-|---|---|---|---|
-| `model_id` | `BIGINT` identity | `PRIMARY KEY` | ID модели |
-| `provider` | `TEXT` | `NOT NULL` | `local`, `openrouter`, etc. |
-| `model_name` | `TEXT` | `NOT NULL` | Имя модели |
-| `model_version` | `TEXT` | nullable | Версия |
-| `model_type` | `TEXT` | `NOT NULL` | `embedding`, `llm`, `tokenizer` |
-| `dimension` | `INTEGER` | nullable, `> 0` | Vector dimension |
-| `parameters` | `JSONB` | `NOT NULL`, default `{}` | Дополнительные параметры |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Создание metadata |
+
+| Поле            | PostgreSQL type   | Ограничения                 | Назначение                      |
+| --------------- | ----------------- | --------------------------- | ------------------------------- |
+| `model_id`      | `BIGINT` identity | `PRIMARY KEY`               | ID модели                       |
+| `provider`      | `TEXT`            | `NOT NULL`                  | `local`, `openrouter`, etc.     |
+| `model_name`    | `TEXT`            | `NOT NULL`                  | Имя модели                      |
+| `model_version` | `TEXT`            | nullable                    | Версия                          |
+| `model_type`    | `TEXT`            | `NOT NULL`                  | `embedding`, `llm`, `tokenizer` |
+| `dimension`     | `INTEGER`         | nullable, `> 0`             | Vector dimension                |
+| `parameters`    | `JSONB`           | `NOT NULL`, default `{}`    | Дополнительные параметры        |
+| `created_at`    | `TIMESTAMPTZ`     | `NOT NULL`, default `now()` | Создание metadata               |
+
+
+
 
 ### `cache`
 
 Одна строка — значение кэша с версией вычисляющего pipeline.
 
-| Поле | PostgreSQL type | Ограничения | Назначение |
-|---|---|---|---|
-| `cache_key` | `TEXT` | `PRIMARY KEY` | Детерминированный ключ |
-| `cache_type` | `TEXT` | `NOT NULL` | `exact`, `semantic`, etc. |
-| `value` | `JSONB` | `NOT NULL` | Cached result |
-| `pipeline_version` | `TEXT` | `NOT NULL` | Версия вычисления |
-| `expires_at` | `TIMESTAMPTZ` | nullable | TTL; NULL означает без TTL |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, default `now()` | Создание cache row |
 
-## Scope clarification
-
-В Sprint 4 реализуются migrations и schema для:
-
-```text
-notes
-note_links
-ingestion_runs
-ingestion_states
-index_versions
-chunks
-```
-
-`eval_items`, `query_logs`, `model_metadata` и `cache` пока являются
-расширяемыми contracts: их поля зафиксированы для совместимости, но
-полноценная operational/evaluation logic переносится в последующие фазы.
-
-## Связи
-
-```text
-notes
-  ├──< ingestion_states >── ingestion_runs
-  ├──< ingestion_states >── index_versions
-  ├──< chunks
-  └──< note_links >── notes
-```
-
-## Что проверяем в Sprint 4
-
-- migrations создают schema на пустом PostgreSQL;
-- повторный `alembic upgrade head` безопасен;
-- duplicate `relative_path` отклоняется;
-- invalid foreign keys отклоняются;
-- `note_links` поддерживает resolved и unresolved links;
-- JSONB payloads проходят JSON Schema validation;
-- `notes → chunks` relationship готов для Phase 3;
-- `obsidianNotes` не изменяется.
+| Поле               | PostgreSQL type | Ограничения                 | Назначение                 |
+| ------------------ | --------------- | --------------------------- | -------------------------- |
+| `cache_key`        | `TEXT`          | `PRIMARY KEY`               | Детерминированный ключ     |
+| `cache_type`       | `TEXT`          | `NOT NULL`                  | `exact`, `semantic`, etc.  |
+| `value`            | `JSONB`         | `NOT NULL`                  | Cached result              |
+| `pipeline_version` | `TEXT`          | `NOT NULL`                  | Версия вычисления          |
+| `expires_at`       | `TIMESTAMPTZ`   | nullable                    | TTL; NULL означает без TTL |
+| `created_at`       | `TIMESTAMPTZ`   | `NOT NULL`, default `now()` | Создание cache row         |
