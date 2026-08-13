@@ -16,7 +16,7 @@
 | `Qdrant` vs `pgvectors` | один — deep в pet, второй — comparison |
 | `XGBoost` vs `catboost` | достаточно одного |
 | облачный `LLM` vs `vLLM` | сначала API, потом self-host backend |
-| `LangChain` vs свой pipeline | свой код ок, но LangChain лучше закрыть практикой на фазах 3/8 |
+| `LangChain` vs свой pipeline | LangChain-first splitters/adapters; собственные contracts, persistence и experiment logic остаются прозрачными |
 
 ---
 
@@ -75,16 +75,51 @@ ingestion, query repositories, embeddings или retrieval.
 
 ## Фаза 3 — Chunking
 
-**Цель:** нарезка под атомарные заметки Obsidian.
+**Цель:** LangChain-first recursive structural chunking под retrieval units
+для заметок Obsidian с сохранением heading context, offsets и versioned metadata.
 
 | Шаг | Что делаешь |
 |---|---|
-| 3.1 | Recursive / heading-aware splitter (H1/H2 + абзацы) |
-| 3.2 | Размеры: 256 / 512 / 1024 + overlap; абляция на eval |
-| 3.3 | Сохранять parent note id + section title в metadata |
-| 3.4 | Wikilinks: опционально 1-hop соседние заметки как metadata/graph hint |
+| 3.1 | Sprint 7: typed Markdown blocks, `SectionTree`, offsets и LangChain `Document(page_content, metadata)` |
+| 3.2 | Sprint 8: LangChain recursive structural splitter, heading в chunk text, selective overlap и versioned PostgreSQL persistence |
+| 3.3 | Sprint 9: YAML-driven candidates `256/512/1024`, structural metrics и ранний MLflow tracking |
+| 3.4 | Сохранять parent `note_id`, section path, parser/content versions и chunking version; старые chunk versions не удалять автоматически |
+| 3.5 | Wikilinks хранить как metadata/graph hint; LangGraph orchestration остаётся Phase 10 |
 
-**Стек:** `Python`, `LangChain` (splitters) *или* свой сплиттер; конфиги yaml; эксперименты → `MLFlow`
+**Стек:** `Python`, `LangChain` (основной splitter/runtime contract), PostgreSQL,
+YAML configs, local JSON/CSV/Markdown/PNG artifacts и `MLflow` для tracking
+parameters, metrics, configs и artifacts. `LangGraph` в Phase 10.
+
+### Phase 3 — Sprint boundaries
+
+**Sprint 7 — LangChain Documents and SectionTree**
+
+- typed blocks и SectionTree с `direct_body`, children, section path и offsets;
+- pre-heading text, пустые headings, code/list/table blocks и wikilinks metadata;
+- `ChunkingPolicy`, typed YAML validation и metadata propagation;
+- unit tests и базовый MLflow run для sectionization.
+
+**Sprint 8 — Versioned Recursive Structural Chunks**
+
+- LangChain recursive structural splitter поверх section/block Documents;
+- heading включается в `text`, metadata сохраняет note/section/offset context;
+- overlap только для oversized sections;
+- `(note_id, chunking_version, chunk_index)` как version-aware identity;
+- старые версии сохраняются для audit/rollback, active version выбирается явно;
+- deterministic output, idempotent regeneration и PostgreSQL transaction tests.
+
+**Sprint 9 — Controlled Experiments and MLflow Baseline**
+
+- YAML-driven сравнение candidate sizes `256/512/1024`;
+- overlap comparison только для больших текстовых секций;
+- MLflow parameters, metrics, Git commit, config snapshots и generated artifacts;
+- JSON/CSV/Markdown/PNG reports;
+- выбор baseline и документированный `chunk → embedding` handoff для Phase 4.
+
+Phase 3 не реализует embeddings, Qdrant, BM25/RRF, retrieval evaluation, LLM,
+FastAPI или LangGraph. Semantic splitting остаётся optional experiment после
+появления embeddings, а practical LangGraph graph/state orchestration относится
+к Phase 10.
 
 ---
 
@@ -98,7 +133,8 @@ ingestion, query repositories, embeddings или retrieval.
 | 4.2 | Батч-эмбеддинг чанков + ретраи; success rate пайплайна |
 | 4.3 | A/B двух моделей эмбеддингов на одном gold-сете |
 
-**Стек:** `Python`, `Transformers`, `Pytorch`, `Numpy`, `Docker`  
+**Стек:** `Python`, `Transformers`, `Pytorch`, `Numpy`, `Docker`; `MLflow` уже
+используется с Phase 3 для наследуемого experiment tracking.
 GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 
 ---
