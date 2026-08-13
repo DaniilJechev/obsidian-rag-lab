@@ -20,6 +20,8 @@ from rag_based_on_obsidian.db.schema import (
 )
 from rag_based_on_obsidian.ingestion.orchestrator import run_ingestion
 
+pytestmark = pytest.mark.manual
+
 
 @pytest.fixture
 def database_connection():
@@ -200,27 +202,30 @@ def test_ingestion_is_idempotent_and_reprocesses_parser_changes(
     tmp_path: Path,
 ) -> None:
     """Repeated input creates no note duplicates and parser changes reprocess."""
-    source_path = tmp_path / "DLS2" / "idempotent.md"
+    source_path = tmp_path / "Sprint6Idempotency" / "idempotent.md"
     source_path.parent.mkdir()
     source_path.write_text("# Idempotent\nText.", encoding="utf-8")
     discovered = DiscoveredFile(
         absolute_path=source_path,
-        relative_path=PurePosixPath("DLS2/idempotent.md"),
+        relative_path=PurePosixPath("Sprint6Idempotency/idempotent.md"),
     )
 
     first = run_ingestion(
         database_connection,
         [discovered],
+        corpus_scope="Sprint6Idempotency",
         parser_version="parser-v1",
     )
     second = run_ingestion(
         database_connection,
         [discovered],
+        corpus_scope="Sprint6Idempotency",
         parser_version="parser-v1",
     )
     parser_changed = run_ingestion(
         database_connection,
         [discovered],
+        corpus_scope="Sprint6Idempotency",
         parser_version="parser-v2",
     )
 
@@ -229,11 +234,14 @@ def test_ingestion_is_idempotent_and_reprocesses_parser_changes(
     assert parser_changed.changed == 1
     assert database_connection.scalar(
         select(func.count()).select_from(notes).where(
-            notes.c.relative_path == "DLS2/idempotent.md"
+            notes.c.relative_path == "Sprint6Idempotency/idempotent.md"
         )
     ) == 1
     assert database_connection.scalar(
-        select(func.count()).select_from(ingestion_states)
+        select(func.count())
+        .select_from(ingestion_states)
+        .join(notes, ingestion_states.c.note_id == notes.c.note_id)
+        .where(notes.c.relative_path == "Sprint6Idempotency/idempotent.md")
     ) == 3
 
 
@@ -242,20 +250,25 @@ def test_failed_note_isolated_and_stale_note_recorded(
     tmp_path: Path,
 ) -> None:
     """A parse failure does not abort the batch; missing notes become stale."""
-    valid_path = tmp_path / "DLS2" / "valid.md"
-    failed_path = tmp_path / "DLS2" / "failed.md"
+    valid_path = tmp_path / "Sprint6Failure" / "valid.md"
+    failed_path = tmp_path / "Sprint6Failure" / "failed.md"
     valid_path.parent.mkdir()
     valid_path.write_text("# Valid\nText.", encoding="utf-8")
     failed_path.write_text("---\ntitle: [unclosed\n", encoding="utf-8")
     discovered = [
-        DiscoveredFile(valid_path, PurePosixPath("DLS2/valid.md")),
-        DiscoveredFile(failed_path, PurePosixPath("DLS2/failed.md")),
+        DiscoveredFile(valid_path, PurePosixPath("Sprint6Failure/valid.md")),
+        DiscoveredFile(failed_path, PurePosixPath("Sprint6Failure/failed.md")),
     ]
 
-    first = run_ingestion(database_connection, discovered)
+    first = run_ingestion(
+        database_connection,
+        discovered,
+        corpus_scope="Sprint6Failure",
+    )
     second = run_ingestion(
         database_connection,
         [discovered[0]],
+        corpus_scope="Sprint6Failure",
     )
 
     assert first.new == 1
@@ -278,25 +291,87 @@ def test_failed_note_is_retried_after_source_is_fixed(
     tmp_path: Path,
 ) -> None:
     """A failed attempt must not make a later successful retry look unchanged."""
-    source_path = tmp_path / "DLS2" / "retry.md"
+    source_path = tmp_path / "Sprint6Retry" / "retry.md"
     source_path.parent.mkdir()
     source_path.write_text("---\ntitle: [unclosed\n", encoding="utf-8")
     discovered = DiscoveredFile(
         source_path,
-        PurePosixPath("DLS2/retry.md"),
+        PurePosixPath("Sprint6Retry/retry.md"),
     )
 
-    failed = run_ingestion(database_connection, [discovered])
+    failed = run_ingestion(
+        database_connection,
+        [discovered],
+        corpus_scope="Sprint6Retry",
+    )
     source_path.write_text("# Fixed\nText.", encoding="utf-8")
-    retried = run_ingestion(database_connection, [discovered])
+    retried = run_ingestion(
+        database_connection,
+        [discovered],
+        corpus_scope="Sprint6Retry",
+    )
 
     assert failed.failed == 1
     assert retried.changed == 1
     assert database_connection.scalar(
         select(notes.c.parse_status).where(
-            notes.c.relative_path == "DLS2/retry.md"
+            notes.c.relative_path == "Sprint6Retry/retry.md"
         )
     ) == "parsed"
+
+
+def test_sprint6_version_mismatch_and_scope_aware_stale(
+    database_connection,
+    tmp_path: Path,
+) -> None:
+    """Parser changes reprocess notes and scoped stale excludes other corpora."""
+    dls1_path = tmp_path / "Sprint6ScopeA" / "scope.md"
+    dls2_path = tmp_path / "Sprint6ScopeB" / "other.md"
+    dls1_path.parent.mkdir()
+    dls2_path.parent.mkdir()
+    dls1_path.write_text("# Scope\nText.", encoding="utf-8")
+    dls2_path.write_text("# Other\nText.", encoding="utf-8")
+    dls1_file = DiscoveredFile(
+        dls1_path,
+        PurePosixPath("Sprint6ScopeA/scope.md"),
+    )
+    dls2_file = DiscoveredFile(
+        dls2_path,
+        PurePosixPath("Sprint6ScopeB/other.md"),
+    )
+
+    first = run_ingestion(
+        database_connection,
+        [dls1_file, dls2_file],
+        corpus_scope="Sprint6ScopeA,Sprint6ScopeB",
+        parser_version="parser-v1",
+    )
+    version_changed = run_ingestion(
+        database_connection,
+        [dls1_file, dls2_file],
+        corpus_scope="Sprint6ScopeA,Sprint6ScopeB",
+        parser_version="parser-v2",
+    )
+    dls1_only = run_ingestion(
+        database_connection,
+        [dls1_file],
+        corpus_scope="Sprint6ScopeA",
+        parser_version="parser-v2",
+    )
+
+    assert first.new == 2
+    assert version_changed.changed == 2
+    assert dls1_only.unchanged == 1
+    assert dls1_only.stale == 0
+    assert database_connection.scalar(
+        select(func.count())
+        .select_from(notes)
+        .where(
+            notes.c.relative_path.in_(
+                ("Sprint6ScopeA/scope.md", "Sprint6ScopeB/other.md")
+            )
+        )
+    ) == 2
 
 
 def test_chunks_require_valid_note_and_unique_position(database_connection) -> None:

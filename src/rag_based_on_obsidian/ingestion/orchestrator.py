@@ -1,7 +1,7 @@
 """Orchestrate read-only corpus processing and idempotent database writes."""
 
 import hashlib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path, PurePosixPath
 
 from sqlalchemy import Connection, create_engine
@@ -40,6 +40,7 @@ def run_ingestion(
     *,
     corpus_scope: str = "DLS1,DLS2",
     parser_version: str = PARSER_VERSION,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> RunCounters:
     """Process discovered files in one transaction with per-note isolation."""
     counters = RunCounters()
@@ -104,6 +105,12 @@ def run_ingestion(
                     discovered_file=discovered_file,
                     parser_version=parser_version,
                     error=error,
+                )
+            if progress_callback is not None:
+                progress_callback(
+                    counters.total,
+                    len(discovered_files),
+                    relative_path,
                 )
 
         scope_directories = tuple(
