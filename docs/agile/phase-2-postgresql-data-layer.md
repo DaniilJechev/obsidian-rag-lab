@@ -1,6 +1,6 @@
 # Phase 2 — PostgreSQL Data Layer
 
-> Статус: `planned`
+> Статус: `completed`
 >
 > Roadmap: `Фаза 2`
 >
@@ -177,3 +177,24 @@ Phase 2 считается готовой к переходу, когда:
 - schema поддерживает связь `note → chunks`;
 - полный локальный DLS1+DLS2 test drive завершён;
 - deferred chunking work явно передан в Phase 3.
+
+## Phase 2 closeout evidence
+
+Phase 2 завершена после merge Sprint 6:
+
+- Sprint 4: PostgreSQL schema, SQLAlchemy Core metadata и Alembic migrations
+  merged в `main`.
+- Sprint 5: repositories и idempotent ingestion merged в `main`; backlog
+  `DATA-002` закрыт.
+- Sprint 6: production-like DLS1+DLS2 test drive и consistency evidence
+  merged в `main` через [PR #17](https://github.com/DaniilJechev/obsidian-rag-lab/pull/17),
+  merge commit `f1f9afb0`.
+- Local validation: `40 passed, 1 skipped, 14 deselected`; manual PostgreSQL
+  suite: `11 passed`; Ruff: `All checks passed`.
+- Production-like baseline: `230` discovered notes, `100%` success rate,
+  consistency `PASS`, без duplicate paths и orphan references.
+- `obsidianNotes` оставлен read-only; secrets в Git не добавлялись.
+
+**Итоговый статус Phase 2:** `completed`. Следующий инженерный результат —
+планирование Phase 3 heading-aware/recursive chunking; chunker ещё не
+реализован и не считается частью Phase 2.

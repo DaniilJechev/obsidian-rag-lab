@@ -1,6 +1,6 @@
 # Sprint 6 — Production-like PostgreSQL Test Drive
 
-> Статус: `implementation-complete`
+> Статус: `completed`
 >
 > Ветка реализации: `sprint/6-production-like-test-drive`
 >
@@ -98,14 +98,14 @@ success_rate = (new + changed + unchanged) / total
 
 ## Definition of Done
 
-- [ ] Scope выполнен или carry-over записан в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Tests и Ruff проходят.
-- [ ] CI проходит после публикации.
-- [ ] Vault остаётся read-only.
-- [ ] Секреты не добавлены в Git.
-- [ ] Production-like evidence и metrics записаны.
-- [ ] Пользователь подтвердил завершение Sprint 6.
+- [x] Scope выполнен; carry-over отсутствует, deferred chunking передан в Phase 3.
+- [x] Acceptance Criteria проверены.
+- [x] Tests и Ruff проходят.
+- [x] CI проходит после публикации.
+- [x] Vault остаётся read-only.
+- [x] Секреты не добавлены в Git.
+- [x] Production-like evidence и metrics записаны.
+- [x] Пользователь подтвердил завершение Sprint 6.
 
 ## Execution Log
 
@@ -116,6 +116,8 @@ success_rate = (new + changed + unchanged) / total
 | 2026-08-13 | Baseline production-like run | `run_id=85`; 230 discovered, 230 unchanged, 0 failed, 0 stale; database duration `5.768s`; success rate `100%`; consistency `PASS` |
 | 2026-08-13 | Repeatability and SQL audit | Second unchanged run produced no duplicate paths; latest run had 230 states, 0 duplicate paths, 0 orphan note/run/index references; notes in DLS1+DLS2 scope: 230 |
 | 2026-08-13 | Failure/recovery and version/scope tests | PostgreSQL scenarios cover isolated parse failure, fixed-source retry, parser version mismatch (`changed`) and scope-aware stale exclusion; counters observed as expected |
+| 2026-08-13 | Implementation PR merged | PR [#17](https://github.com/DaniilJechev/obsidian-rag-lab/pull/17) merged into `main` with merge commit `f1f9afb0`; CI `Lint and test` passed |
+| 2026-08-13 | Sprint closeout | DoD confirmed; no carry-over inside Sprint 6; chunking remains explicitly deferred to Phase 3 |
 
 ## Validation Evidence
 
@@ -177,5 +179,5 @@ chunking_version
 Sprint 6 фиксирует только handoff contract; chunker и выбор chunk size относятся
 к Phase 3.
 
-**Итоговый статус:** `implementation-complete`; Git/PR/CI closeout ожидает
-публикации Sprint 6 branch.
+**Итоговый статус:** `completed`; Sprint 6 implementation PR merged, closeout
+evidence recorded, and Phase 3 handoff confirmed.
