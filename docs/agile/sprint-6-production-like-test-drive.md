@@ -1,6 +1,6 @@
 # Sprint 6 — Production-like PostgreSQL Test Drive
 
-> Статус: `draft`
+> Статус: `planned`
 >
 > Ветка реализации: `sprint/6-production-like-test-drive`
 >
@@ -20,6 +20,17 @@ Unit и integration tests показывают локальную коррект
 Production-like test drive проверяет, что все слои работают вместе на полном
 разрешённом корпусе и дают наблюдаемый, согласованный результат.
 
+## Backlog and estimate
+
+- Backlog: `DATA-003`
+- Estimate: 1 короткий sprint, ориентировочно 5–10 часов.
+- Expected artifacts:
+  - repeatable local test-drive command;
+  - operational consistency queries;
+  - observed baseline/repeat-run metrics;
+  - failure/recovery evidence;
+  - Phase 3 `note → chunks` handoff contract.
+
 ## Scope
 
 - [ ] Выполнить полный локальный ingestion DLS1+DLS2.
@@ -31,6 +42,40 @@ Production-like test drive проверяет, что все слои работ
 - [ ] Проверить foreign keys, unique constraints и transaction boundaries.
 - [ ] Подготовить operational queries и список ограничений.
 - [ ] Подготовить handoff contract для будущей связи `note → chunks`.
+
+## Metrics and invariants
+
+Для каждого production-like run фиксируются только наблюдаемые значения:
+
+```text
+duration_seconds = finished_at - started_at
+success_rate = (new + changed + unchanged) / total
+```
+
+При `total = 0` success rate равен `0.0`, чтобы не допускать деления на ноль.
+
+Обязательные invariants:
+
+- каждый discovered path в текущем scope имеет одну текущую запись `notes`;
+- `notes.relative_path` уникален;
+- каждая запись `ingestion_states` ссылается на существующие
+  `note_id`, `run_id` и `index_version_id`;
+- в одном run не более одного state для одной note;
+- сумма `new + changed + unchanged + failed` равна количеству discovered
+  documents;
+- `stale` считается только внутри текущего `corpus_scope`;
+- повторный run не увеличивает количество `notes` для уже известных paths;
+- vault остаётся read-only.
+
+## Dependencies and risks
+
+- Sprint 5 implementation и migration head должны быть применены в PostgreSQL.
+- Для полного run нужны `OBSIDIAN_VAULT_ROOT`, доступ к PostgreSQL и healthy
+  Docker service.
+- Полный run читается локально и не должен запускаться автоматически в CI.
+- Реальные counters, duration и success rate нельзя определить заранее.
+- Если consistency audit найдёт дефект ingestion, он становится carry-over, а
+  не скрытой частью Sprint 6 validation.
 
 ## Out of Scope
 
@@ -67,9 +112,43 @@ Production-like test drive проверяет, что все слои работ
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-11 | Sprint draft created | Implementation зависит от Sprint 5 idempotent ingestion |
+| 2026-08-13 | Scope approved for implementation | `DATA-003`: full DLS1+DLS2 run, repeatability, consistency, failure/recovery, version/stale checks и Phase 3 handoff; chunking/retrieval остаются out of scope |
 
 ## Validation Evidence
 
-До начала реализации validation не выполнялась.
+До начала реализации production-like validation не выполнялась.
 
-**Итоговый статус:** `draft`
+## Phase 3 handoff contract
+
+Будущий chunker получает от текущего data layer:
+
+```text
+note_id
+relative_path
+content_hash
+parser_version
+source_directory
+title
+source_mtime
+```
+
+Каждый chunk должен будет дополнительно хранить:
+
+```text
+note_id
+chunk_index
+text
+section_title
+section_level
+section_path
+start_offset
+end_offset
+word_count
+token_count
+chunking_version
+```
+
+Sprint 6 фиксирует только handoff contract; chunker и выбор chunk size относятся
+к Phase 3.
+
+**Итоговый статус:** `planned`

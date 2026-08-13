@@ -190,7 +190,11 @@ class IngestionRunRepository:
         """Create a running batch record before processing documents."""
         return self.connection.execute(
             insert(ingestion_runs)
-            .values(status="running", corpus_scope=corpus_scope)
+            .values(
+                status="running",
+                corpus_scope=corpus_scope,
+                started_at=datetime.now(UTC),
+            )
             .returning(ingestion_runs.c.run_id)
         ).scalar_one()
 
