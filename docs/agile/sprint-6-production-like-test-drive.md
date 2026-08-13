@@ -1,6 +1,6 @@
 # Sprint 6 — Production-like PostgreSQL Test Drive
 
-> Статус: `planned`
+> Статус: `implementation-complete`
 >
 > Ветка реализации: `sprint/6-production-like-test-drive`
 >
@@ -33,15 +33,15 @@ Production-like test drive проверяет, что все слои работ
 
 ## Scope
 
-- [ ] Выполнить полный локальный ingestion DLS1+DLS2.
-- [ ] Зафиксировать total/new/changed/unchanged/failed/stale counters.
-- [ ] Рассчитать duration и success rate из database state.
-- [ ] Проверить rollback и recovery после искусственной failure.
-- [ ] Проверить version mismatch и stale handling.
-- [ ] Выполнить consistency checks между inventory, notes, states и runs.
-- [ ] Проверить foreign keys, unique constraints и transaction boundaries.
-- [ ] Подготовить operational queries и список ограничений.
-- [ ] Подготовить handoff contract для будущей связи `note → chunks`.
+- [x] Выполнить полный локальный ingestion DLS1+DLS2.
+- [x] Зафиксировать total/new/changed/unchanged/failed/stale counters.
+- [x] Рассчитать duration и success rate из database state.
+- [x] Проверить rollback и recovery после искусственной failure.
+- [x] Проверить version mismatch и stale handling.
+- [x] Выполнить consistency checks между inventory, notes, states и runs.
+- [x] Проверить foreign keys, unique constraints и transaction boundaries.
+- [x] Подготовить operational queries и список ограничений.
+- [x] Подготовить handoff contract для будущей связи `note → chunks`.
 
 ## Metrics and invariants
 
@@ -88,13 +88,13 @@ success_rate = (new + changed + unchanged) / total
 
 ## Acceptance Criteria
 
-- [ ] Полный локальный DLS1+DLS2 run завершён с наблюдаемым summary.
-- [ ] Повторный run без изменений не создаёт дубликаты.
-- [ ] Failure одной note не приводит к неконтролируемому partial state.
-- [ ] Rollback/recovery behavior подтверждён тестом.
-- [ ] Version mismatch корректно маркирует устаревший результат.
-- [ ] Consistency checks проходят.
-- [ ] Результаты и ограничения записаны для перехода к Phase 3.
+- [x] Полный локальный DLS1+DLS2 run завершён с наблюдаемым summary.
+- [x] Повторный run без изменений не создаёт дубликаты.
+- [x] Failure одной note не приводит к неконтролируемому partial state.
+- [x] Rollback/recovery behavior подтверждён тестом.
+- [x] Version mismatch корректно маркирует устаревший результат.
+- [x] Consistency checks проходят.
+- [x] Результаты и ограничения записаны для перехода к Phase 3.
 
 ## Definition of Done
 
@@ -113,10 +113,36 @@ success_rate = (new + changed + unchanged) / total
 |---|---|---|
 | 2026-08-11 | Sprint draft created | Implementation зависит от Sprint 5 idempotent ingestion |
 | 2026-08-13 | Scope approved for implementation | `DATA-003`: full DLS1+DLS2 run, repeatability, consistency, failure/recovery, version/stale checks и Phase 3 handoff; chunking/retrieval остаются out of scope |
+| 2026-08-13 | Baseline production-like run | `run_id=85`; 230 discovered, 230 unchanged, 0 failed, 0 stale; database duration `5.768s`; success rate `100%`; consistency `PASS` |
+| 2026-08-13 | Repeatability and SQL audit | Second unchanged run produced no duplicate paths; latest run had 230 states, 0 duplicate paths, 0 orphan note/run/index references; notes in DLS1+DLS2 scope: 230 |
+| 2026-08-13 | Failure/recovery and version/scope tests | PostgreSQL scenarios cover isolated parse failure, fixed-source retry, parser version mismatch (`changed`) and scope-aware stale exclusion; counters observed as expected |
 
 ## Validation Evidence
 
-До начала реализации production-like validation не выполнялась.
+Production-like validation выполнена локально:
+
+- `python -m rag_based_on_obsidian.ingestion.test_drive` завершил полный
+  DLS1+DLS2 run `85`: `total=230`, `unchanged=230`, `failed=0`, `stale=0`,
+  `success_rate=100%`, consistency `PASS`.
+- Read-only PostgreSQL audit подтвердил `0` duplicate paths, `0` orphan note
+  states, `0` orphan run states и `0` orphan index states.
+- Повторный ingestion не увеличил число `notes`: в разрешённом scope осталось
+  `230` записей.
+- Integration scenarios проверяют failure isolation, rollback через test
+  transaction, retry после исправления source, parser-version mismatch и
+  scope-aware stale detection.
+- Ruff проходит: `uv run ruff check src/ tests/`.
+- Project-local pytest temp root `.pytest-tmp` устраняет Windows cleanup failure
+  на `%LOCALAPPDATA%\\Temp\\pytest-of-*\\pytest-current`; default validation
+  теперь завершается с `40 passed, 1 skipped, 14 deselected`.
+- PostgreSQL integration suite `tests/test_postgres_schema.py` помечен как
+  `manual`, чтобы обычный `uv run pytest -q` и CI не зависели от локального
+  Docker/PostgreSQL. Явный запуск `uv run pytest tests/test_postgres_schema.py
+  -q -m manual` завершается с `11 passed`.
+- На Windows для этого ручного integration run рекомендуется запускать
+  PowerShell/Terminal от имени администратора как operational precaution для
+  доступа к Docker/PostgreSQL и file locks; стандартный project-local pytest
+  workflow от администратора не зависит.
 
 ## Phase 3 handoff contract
 
@@ -151,4 +177,5 @@ chunking_version
 Sprint 6 фиксирует только handoff contract; chunker и выбор chunk size относятся
 к Phase 3.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `implementation-complete`; Git/PR/CI closeout ожидает
+публикации Sprint 6 branch.

@@ -23,6 +23,8 @@ from rag_based_on_obsidian.ingestion.orchestrator import run_ingestion
 class TestDriveResult:
     """Observed result of one production-like ingestion run."""
 
+    __test__ = False
+
     run_id: int
     discovered_files: int
     elapsed_seconds: float

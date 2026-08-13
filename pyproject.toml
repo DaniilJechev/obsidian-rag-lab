@@ -25,6 +25,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+addopts = "-m 'not manual' --basetemp .pytest-tmp"
 markers = [
-    "manual: tests that require the external read-only Obsidian vault",
+    "manual: tests requiring explicit local resources or elevated Windows execution",
 ]
