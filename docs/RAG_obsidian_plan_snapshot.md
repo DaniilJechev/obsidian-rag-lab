@@ -78,6 +78,12 @@ ingestion, query repositories, embeddings или retrieval.
 **Цель:** LangChain-first recursive structural chunking под retrieval units
 для заметок Obsidian с сохранением heading context, offsets и versioned metadata.
 
+**GitHub tracking:** все три sprint-а относятся к общей milestone
+[Phase 3 — LangChain-first Chunking](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/5):
+Sprint 7 — [#19](https://github.com/DaniilJechev/obsidian-rag-lab/issues/19),
+Sprint 8 — [#20](https://github.com/DaniilJechev/obsidian-rag-lab/issues/20),
+Sprint 9 — [#21](https://github.com/DaniilJechev/obsidian-rag-lab/issues/21).
+
 | Шаг | Что делаешь |
 |---|---|
 | 3.1 | Sprint 7: typed Markdown blocks, `SectionTree`, offsets и LangChain `Document(page_content, metadata)` |
@@ -94,6 +100,7 @@ parameters, metrics, configs и artifacts. `LangGraph` в Phase 10.
 
 **Sprint 7 — LangChain Documents and SectionTree**
 
+- GitHub: [Issue #19](https://github.com/DaniilJechev/obsidian-rag-lab/issues/19)
 - typed blocks и SectionTree с `direct_body`, children, section path и offsets;
 - pre-heading text, пустые headings, code/list/table blocks и wikilinks metadata;
 - `ChunkingPolicy`, typed YAML validation и metadata propagation;
@@ -101,6 +108,7 @@ parameters, metrics, configs и artifacts. `LangGraph` в Phase 10.
 
 **Sprint 8 — Versioned Recursive Structural Chunks**
 
+- GitHub: [Issue #20](https://github.com/DaniilJechev/obsidian-rag-lab/issues/20)
 - LangChain recursive structural splitter поверх section/block Documents;
 - heading включается в `text`, metadata сохраняет note/section/offset context;
 - overlap только для oversized sections;
@@ -110,6 +118,7 @@ parameters, metrics, configs и artifacts. `LangGraph` в Phase 10.
 
 **Sprint 9 — Controlled Experiments and MLflow Baseline**
 
+- GitHub: [Issue #21](https://github.com/DaniilJechev/obsidian-rag-lab/issues/21)
 - YAML-driven сравнение candidate sizes `256/512/1024`;
 - overlap comparison только для больших текстовых секций;
 - MLflow parameters, metrics, Git commit, config snapshots и generated artifacts;

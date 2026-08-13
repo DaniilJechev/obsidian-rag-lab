@@ -7,6 +7,11 @@
 > Связанная фаза roadmap: `Фаза 3`
 >
 > Зависимость: Sprint 8 — Versioned Recursive Structural Chunking
+>
+> Backlog: `CHUNK-002`
+>
+> GitHub: [Issue #21](https://github.com/DaniilJechev/obsidian-rag-lab/issues/21)
+> · [Milestone Phase 3 — LangChain-first Chunking](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/5)
 
 ## Sprint Goal
 

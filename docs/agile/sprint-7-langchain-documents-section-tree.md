@@ -7,6 +7,13 @@
 > Связанная фаза roadmap: `Фаза 3`
 >
 > Зависимость: Phase 1 Markdown parser и Sprint 6 `note → chunks` handoff
+>
+> Backlog: `CHUNK-003`, `CHUNK-004`, `CHUNK-005`
+>
+> Оценка: 8–16 часов
+>
+> GitHub: [Issue #19](https://github.com/DaniilJechev/obsidian-rag-lab/issues/19)
+> · [Milestone Phase 3 — LangChain-first Chunking](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/5)
 
 ## Sprint Goal
 

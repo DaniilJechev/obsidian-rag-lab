@@ -62,8 +62,11 @@ Backlog не является жёстким расписанием. Приор�
 | DATA-001 | P1 | done | 2 | Спроектировать PostgreSQL schema и migrations | Таблицы notes, ingestion runs/states, versions и chunks contract описаны и создаются Alembic migrations |
 | DATA-002 | P1 | done | 2 | Реализовать idempotent ingestion | Repositories, content hash, parser version, failure accounting и new/changed/unchanged/stale logic покрыты unit/PostgreSQL scenarios; CI/Linux confirmation of local Windows pytest cleanup remains an environmental follow-up |
 | DATA-003 | P1 | done | 2 | Провести production-like PostgreSQL test drive | Полный DLS1+DLS2 run, consistency checks, rollback/recovery и handoff к Phase 3 подтверждены; CI/PR closeout остаётся отдельным pipeline |
-| CHUNK-001 | P1 | idea | 3 | Реализовать heading-aware chunking | Чанки сохраняют note/section metadata и покрыты тестами |
-| CHUNK-002 | P2 | idea | 3 | Сравнить размеры chunk 256/512/1024 | Эксперимент воспроизводим, результаты записаны |
+| CHUNK-001 | P1 | idea | 3 | Реализовать heading-aware и recursive structural chunking | Versioned chunks сохраняют note/section metadata, headings и offsets; deterministic output покрыт тестами |
+| CHUNK-002 | P2 | idea | 3 | Сравнить размеры chunk 256/512/1024 | YAML-driven эксперимент воспроизводим, результаты записаны в MLflow и generated artifacts |
+| CHUNK-003 | P1 | ready | 3 | Спроектировать SectionTree и typed Markdown blocks | Поддерживаемые block types, hierarchy, section paths и character offsets имеют явный контракт и тесты |
+| CHUNK-004 | P1 | ready | 3 | Определить LangChain Document и ChunkingPolicy contracts | Metadata propagation, heading context и typed YAML policy contract валидируются focused tests |
+| CHUNK-005 | P1 | ready | 3 | Добавить YAML validation и sectionization evidence | Некорректные configs отклоняются, а фактически выполненная sectionization evidence может быть записана в MLflow |
 | EMB-001 | P1 | idea | 4 | Подключить бесплатную локальную embedding-модель на CPU | `EmbeddingProvider` возвращает vectors нужной размерности |
 | EMB-002 | P2 | idea | 4 | Сравнить batching и ограниченную concurrency | Throughput, latency и ошибки измерены |
 | RET-001 | P1 | idea | 5 | Создать Qdrant collection и dense retrieval | Search, payload и metadata filters работают |
@@ -93,12 +96,17 @@ Backlog не является жёстким расписанием. Приор�
 
 ## Текущий фокус
 
-Фаза 1 формально завершена. Следующая работа относится к Фазе 2 и разделена на
+Фазы 1 и 2 завершены; Phase 2 закрыта после Sprint 6 и полного DLS1+DLS2
+production-like test drive. Следующая работа относится к Phase 3 и разделена на
 три последовательных sprint-а:
 
-1. Sprint 4: schema contract и Alembic migrations.
-2. Sprint 5: repositories и idempotent ingestion.
-3. Sprint 6: production-like test drive и consistency.
+1. Sprint 7: SectionTree, typed blocks, LangChain Documents и policy contracts
+   (`CHUNK-003`, `CHUNK-004`, `CHUNK-005`; GitHub [#19](https://github.com/DaniilJechev/obsidian-rag-lab/issues/19)).
+2. Sprint 8: LangChain recursive structural chunking и versioned persistence
+   (`CHUNK-001`; GitHub [#20](https://github.com/DaniilJechev/obsidian-rag-lab/issues/20)).
+3. Sprint 9: YAML-driven comparison размеров `256/512/1024` и MLflow baseline
+   (`CHUNK-002`; GitHub [#21](https://github.com/DaniilJechev/obsidian-rag-lab/issues/21)).
 
-Первый полный ingestion использует `DLS1 + DLS2`. Cloud deployment не входит в
-Phase 2 и остаётся отдельным сравнением roadmap Phase 13.
+LangGraph, embeddings, retrieval и изменения в `obsidianNotes` остаются вне
+Phase 3 согласно sprint-документам и roadmap. Все три sprint-а относятся к
+общей GitHub milestone [Phase 3 — LangChain-first Chunking](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/5).

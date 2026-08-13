@@ -7,6 +7,11 @@
 > Связанная фаза roadmap: `Фаза 3`
 >
 > Зависимость: Sprint 7 — LangChain Documents and SectionTree
+>
+> Backlog: `CHUNK-001`
+>
+> GitHub: [Issue #20](https://github.com/DaniilJechev/obsidian-rag-lab/issues/20)
+> · [Milestone Phase 3 — LangChain-first Chunking](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/5)
 
 ## Sprint Goal
 
