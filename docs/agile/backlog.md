@@ -62,7 +62,7 @@ Backlog не является жёстким расписанием. Приор�
 | DATA-001 | P1 | done | 2 | Спроектировать PostgreSQL schema и migrations | Таблицы notes, ingestion runs/states, versions и chunks contract описаны и создаются Alembic migrations |
 | DATA-002 | P1 | done | 2 | Реализовать idempotent ingestion | Repositories, content hash, parser version, failure accounting и new/changed/unchanged/stale logic покрыты unit/PostgreSQL scenarios; CI/Linux confirmation of local Windows pytest cleanup remains an environmental follow-up |
 | DATA-003 | P1 | done | 2 | Провести production-like PostgreSQL test drive | Полный DLS1+DLS2 run, consistency checks, rollback/recovery и handoff к Phase 3 подтверждены; CI/PR closeout остаётся отдельным pipeline |
-| CHUNK-001 | P1 | idea | 3 | Реализовать heading-aware и recursive structural chunking | Versioned chunks сохраняют note/section metadata, headings и offsets; deterministic output покрыт тестами |
+| CHUNK-001 | P1 | done | 3 | Реализовать heading-aware и recursive structural chunking | Versioned chunks сохраняют note/section metadata, headings и offsets; deterministic output, PostgreSQL persistence, migration, CI и owner/assistant review подтверждены в Sprint 8 |
 | CHUNK-002 | P2 | idea | 3 | Сравнить размеры chunk 256/512/1024 | YAML-driven эксперимент воспроизводим, результаты записаны в MLflow и generated artifacts |
 | CHUNK-003 | P1 | done | 3 | Спроектировать SectionTree и typed Markdown blocks | Контракт, hierarchy, section paths, offsets и focused tests реализованы; Sprint 7 merged в `main` |
 | CHUNK-004 | P1 | done | 3 | Определить LangChain Document и ChunkingPolicy contracts | Document adapter, metadata propagation, strict YAML policy и tests реализованы; Sprint 7 merged в `main` |
@@ -97,13 +97,16 @@ Backlog не является жёстким расписанием. Приор�
 ## Текущий фокус
 
 Фазы 1 и 2 завершены; Phase 2 закрыта после Sprint 6 и полного DLS1+DLS2
-production-like test drive. Следующая работа относится к Phase 3 и разделена на
-три последовательных sprint-а:
+production-like test drive. Sprint 7 и Sprint 8 Phase 3 завершены; Sprint 8
+закрывается после фиксации review exception, DoD, retrospective и merge
+evidence. Следующая работа относится к Sprint 9, который пока не начат:
 
 1. Sprint 7: SectionTree, typed blocks, LangChain Documents и policy contracts
    (`CHUNK-003`, `CHUNK-004`, `CHUNK-005`; GitHub [#19](https://github.com/DaniilJechev/obsidian-rag-lab/issues/19)).
 2. Sprint 8: LangChain recursive structural chunking и versioned persistence
-   (`CHUNK-001`; GitHub [#20](https://github.com/DaniilJechev/obsidian-rag-lab/issues/20)).
+   (`CHUNK-001`; GitHub [#20](https://github.com/DaniilJechev/obsidian-rag-lab/issues/20))
+   — done, PR [#24](https://github.com/DaniilJechev/obsidian-rag-lab/pull/24)
+   merged.
 3. Sprint 9: YAML-driven comparison размеров `256/512/1024` и MLflow baseline
    (`CHUNK-002`; GitHub [#21](https://github.com/DaniilJechev/obsidian-rag-lab/issues/21)).
 
