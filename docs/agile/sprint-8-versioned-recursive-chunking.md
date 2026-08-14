@@ -82,16 +82,16 @@ Chunk должен быть не просто отрезком строки. Д�
 
 ## Definition of Done
 
-- [ ] Все задачи Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Migration применима и проверена, если она потребовалась.
-- [ ] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Все задачи Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
+- [x] CI проходит, если изменения отправлялись в remote.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Migration применима и проверена, если она потребовалась.
+- [x] Результаты и ограничения записаны в этот sprint-документ.
+- [x] Пользователь подтвердил завершение спринта.
 
 ## Execution Log
 
@@ -146,6 +146,9 @@ metadata completeness и persistence timings. Значения заранее н
 - Реальная manual PostgreSQL persistence-проверка прошла.
 - PR [#24](https://github.com/DaniilJechev/obsidian-rag-lab/pull/24) создан;
   required CI прошёл.
+- Review выполнен ассистентом по merged PR #24; owner проекта разрешил
+  self-review/assistant-review без отдельного независимого reviewer.
+- Блокирующих findings не обнаружено; технический долг явно перечислен ниже.
 
 ### Not Completed
 
@@ -160,17 +163,44 @@ metadata completeness и persistence timings. Значения заранее н
 ### Technical Debt
 
 - Точный способ выбора active version потребует согласования с query/retrieval layer.
+- Offsets требуют отдельного усиления контрактных тестов для chunks с добавленным
+  heading prefix.
+- Oversized code/list/table blocks могут быть разделены; semantic strategy
+  отложена за пределы Sprint 8.
+
+### Review Evidence
+
+- Reviewer: assistant (diff/code review), с owner-approved self-review exception.
+- Scope: merged PR #24, recursive chunking, provenance records, PostgreSQL
+  persistence, migration и tests.
+- Result: `PASS WITH ACCEPTED TECHNICAL DEBT`.
+- Обязательные проверки: Ruff, full pytest, manual PostgreSQL persistence test,
+  Alembic head и GitHub Actions CI — пройдены.
+
+### Retrospective
+
+- Что получилось: LangChain splitter, versioned `ChunkRecord`, PostgreSQL
+  persistence и migration связаны единым проверяемым контрактом; локальные,
+  manual PostgreSQL и CI проверки дали реальные результаты.
+- Что было сложным: live migration и manual PostgreSQL evidence потребовали
+  отдельной проверки; review policy пришлось явно адаптировать под owner-managed
+  repository.
+- Что изменить дальше: в Sprint 9 добавить controlled experiments для
+  `256/512/1024`, MLflow artifacts и baseline selection; technical debt выше
+  оставить отдельными follow-up задачами.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Независимый review проведён; автор PR не может утвердить собственный PR.
-- [ ] Retrospective заполнена.
+- [x] Definition of Done проверен.
+- [x] Review проведён ассистентом и владельцем проекта; отдельный independent
+  reviewer не требуется по owner-approved exception.
+- [x] Retrospective заполнена по фактическим результатам.
 - [x] Commit и push реализации выполнены по согласованному Git workflow.
-- [ ] PR/merge выполнены по согласованному Git workflow.
+- [x] PR [#24](https://github.com/DaniilJechev/obsidian-rag-lab/pull/24)
+  merged в `main` commit `198cb3f`.
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `implementation-in-progress`
+**Итоговый статус:** `ready-for-closeout`
 
-**Дата завершения:** `не завершён`
+**Дата завершения:** `2026-08-14`
