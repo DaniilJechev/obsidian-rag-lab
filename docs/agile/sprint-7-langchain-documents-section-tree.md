@@ -323,7 +323,6 @@ length distribution, overlap rate и boundary violations после splitting)
   SQLite/file artifact evidence.
 - Изменение `obsidianNotes/DLS1/Бустинг.md` считается разрешённым пользовательским
   изменением и не относится к текущему Sprint 7 implementation scope.
-
 ## Retrospective
 
 ### What went well
