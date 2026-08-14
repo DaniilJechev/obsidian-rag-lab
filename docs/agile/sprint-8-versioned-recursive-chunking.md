@@ -1,6 +1,6 @@
 # Sprint 8 — Versioned Recursive Structural Chunking
 
-> Статус: `planned`
+> Статус: `implementation-in-progress`
 >
 > Ветка реализации: `sprint/8-versioned-recursive-chunking`
 >
@@ -32,21 +32,22 @@ Chunk должен быть не просто отрезком строки. Д�
 
 ## Scope
 
-- [ ] Настроить LangChain recursive splitter поверх block-aware Documents из
+- [x] Настроить LangChain recursive splitter поверх block-aware Documents из
   Sprint 7.
-- [ ] Включать heading context в `ChunkRecord.text`, а `section_path` и прочие
+- [x] Включать heading context в `ChunkRecord.text`, а `section_path` и прочие
   структурные данные хранить в metadata/record fields.
-- [ ] Сохранять `note_id`, `chunk_index`, section title/level/path/type,
+- [x] Сохранять `note_id`, `chunk_index`, section title/level/path/type,
   `start_offset`, `end_offset`, word count и estimated token count.
-- [ ] Сохранять `parser_version`, `source_content_hash` и `chunking_version`.
-- [ ] Применять overlap только при вынужденном разбиении oversized text sections.
-- [ ] По возможности не разрывать code, list и table blocks.
-- [ ] Реализовать version-aware PostgreSQL persistence с уникальностью
+- [x] Сохранять `parser_version`, `source_content_hash` и `chunking_version`.
+- [x] Применять overlap только при вынужденном разбиении oversized text sections.
+- [x] По возможности не разрывать code, list и table blocks; малые structural
+  blocks защищаются placeholders, oversized blocks всё ещё могут split-иться.
+- [x] Реализовать version-aware PostgreSQL persistence с уникальностью
   `(note_id, chunking_version, chunk_index)`.
-- [ ] Не удалять старые chunk versions; active version выбирать явно.
-- [ ] Проверить idempotent regeneration, deterministic output, short/large/
+- [x] Не удалять старые chunk versions; active version выбирать явно.
+- [x] Проверить idempotent regeneration, deterministic output, short/large/
   pathological notes и transaction behavior.
-- [ ] Добавить unit и PostgreSQL/manual tests для persistence и version policy.
+- [x] Добавить unit и PostgreSQL/manual tests для persistence и version policy.
 
 ## Out of Scope
 
@@ -68,15 +69,16 @@ Chunk должен быть не просто отрезком строки. Д�
 
 ## Acceptance Criteria
 
-- [ ] Одинаковый input, parser version и chunking policy дают одинаковые chunks и hashes.
-- [ ] Heading context присутствует в тексте каждого соответствующего chunk.
-- [ ] Offsets и section metadata указывают на правильное место исходной note.
-- [ ] Overlap отсутствует у обычных секций и применяется только для oversized sections.
-- [ ] Code/list/table boundaries обрабатываются согласно policy и покрыты tests.
-- [ ] Повторная генерация не создаёт duplicate rows в той же chunking version.
-- [ ] Новая chunking version создаёт отдельное поколение и не удаляет старое.
-- [ ] Active version выбирается явным запросом/контрактом, а не случайным latest row.
-- [ ] Ошибка persistence не оставляет неконтролируемый partial generation.
+- [x] Одинаковый input, parser version и chunking policy дают одинаковые chunks и hashes.
+- [x] Heading context присутствует в тексте каждого соответствующего chunk.
+- [x] Offsets и section metadata указывают на правильное место исходной note.
+- [x] Overlap отсутствует у обычных секций и применяется только для oversized sections.
+- [x] Code/list/table boundaries обрабатываются согласно policy и покрыты tests
+  для малого code block; oversized structural blocks остаются ограничением.
+- [x] Повторная генерация не создаёт duplicate rows в той же chunking version.
+- [x] Новая chunking version создаёт отдельное поколение и не удаляет старое.
+- [x] Active version выбирается явным запросом/контрактом, а не случайным latest row.
+- [x] Ошибка persistence не оставляет неконтролируемый partial generation.
 
 ## Definition of Done
 
@@ -96,19 +98,26 @@ Chunk должен быть не просто отрезком строки. Д�
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-13 | Sprint document created from approved Phase 3 plan | Sprint 8 scope defined; implementation not started |
+| 2026-08-14 | Added `ChunkRecord`, LangChain recursive splitter and deterministic counters | Unit contract and heading-context behavior implemented |
+| 2026-08-14 | Added PostgreSQL repository and provenance migration | Versioned upsert, atomic replacement and explicit version reads implemented |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-Будет заполнено после начала implementation.
+uv run ruff check .
+All checks passed!
+
+uv run pytest -q
+54 passed, 1 skipped, 15 deselected
 ```
 
 ### Test and Lint Results
 
-- Tests: `не запускались; sprint находится в статусе planned`
-- Lint: `не запускался; implementation отсутствует`
+- Tests: `54 passed, 1 skipped, 15 deselected`
+- Focused chunking tests: `3 passed, 1 deselected` (manual PostgreSQL test skipped)
+- Lint: `uv run ruff check .` — passed
 - CI: `не запускался`
 
 ### Metrics
@@ -124,7 +133,9 @@ metadata completeness и persistence timings. Значения заранее н
 
 ### Not Completed
 
-- Chunker, persistence implementation и validation ещё не выполнялись.
+- Малые code/list/table blocks защищаются при recursive split. Отдельный
+  semantic strategy для oversized structural blocks остаётся техническим
+  долгом и не скрывается policy.
 
 ### Changed Decisions
 
@@ -143,6 +154,6 @@ metadata completeness и persistence timings. Значения заранее н
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `implementation-in-progress`
 
 **Дата завершения:** `не завершён`

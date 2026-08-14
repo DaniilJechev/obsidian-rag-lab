@@ -145,6 +145,35 @@ Sprint 8 должен сохранять происхождение каждог
 Старая chunking version не удаляется автоматически. Active version выбирается
 явно, чтобы сохранить audit history и возможность сравнения/rollback.
 
+## Sprint 8 implementation boundary
+
+`chunking/recursive.py` использует `RecursiveCharacterTextSplitter` из
+`langchain-text-splitters`. Для обычной секции overlap принудительно равен
+нулю; policy overlap включается только для oversized секций. Heading context
+добавляется к каждому результирующему chunk, а offset ищется в исходном
+`source_text`, а не в нормализованной копии `Document.page_content`.
+
+`chunking/records.py` содержит immutable `ChunkRecord`. Word count и
+estimated token count используют детерминированные Unicode-aware proxy
+регулярные выражения. Это не tokenizer конкретной LLM: такой tokenizer
+появится только после выбора embedding/LLM stack.
+
+`chunking/persistence.py` содержит два намеренно разных действия:
+
+- `upsert_generation()` идемпотентно обновляет конкретные identity keys;
+- `replace_generation()` атомарно пересоздаёт одну `(note_id, version)` в
+  savepoint и удаляет stale rows только этой версии.
+
+Обе операции сохраняют старые версии, а `list_generation()` требует явный
+`chunking_version`; repository не выводит active version через случайный
+`latest` row. Migration `7a2c4d1e9f30_add_chunk_provenance.py` добавляет
+`parser_version` и `source_content_hash` для аудита regenerated chunks.
+
+Текущая implementation boundary: малые code/list/table blocks защищаются от
+separator-based splitting. Oversized structural blocks всё ещё могут
+разрезаться; для них отдельная semantic strategy остаётся техническим долгом
+Sprint 8 и явно покрывается ограничением policy.
+
 ## Boundaries
 
 Structural boundaries являются предпочтительными:
