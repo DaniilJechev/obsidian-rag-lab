@@ -110,15 +110,25 @@ uv run ruff check .
 All checks passed!
 
 uv run pytest -q
-54 passed, 1 skipped, 15 deselected
+54 passed, 1 skipped, 15 deselected in 25.43s
+
+uv run pytest tests/test_chunking_persistence.py -m manual -q
+1 passed in 1.57s
+
+uv run alembic current
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+7a2c4d1e9f30 (head)
 ```
 
 ### Test and Lint Results
 
 - Tests: `54 passed, 1 skipped, 15 deselected`
-- Focused chunking tests: `3 passed, 1 deselected` (manual PostgreSQL test skipped)
+- Focused chunking tests: `3 passed, 1 deselected`
+- Manual PostgreSQL persistence test: `1 passed in 1.57s`
 - Lint: `uv run ruff check .` — passed
-- CI: `не запускался`
+- Alembic: database is at `7a2c4d1e9f30 (head)`
+- CI: `не запускался; PR ещё не создан`
 
 ### Metrics
 
@@ -130,6 +140,9 @@ metadata completeness и persistence timings. Значения заранее н
 ### Completed
 
 - Определены chunk contract, version policy, границы и критерии приёмки.
+- Migration `7a2c4d1e9f30` применена к PostgreSQL и подтверждена через
+  `uv run alembic current`.
+- Реальная manual PostgreSQL persistence-проверка прошла.
 
 ### Not Completed
 
@@ -150,7 +163,8 @@ metadata completeness и persistence timings. Значения заранее н
 - [ ] Definition of Done проверен.
 - [ ] Review проведён.
 - [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Commit и push реализации выполнены по согласованному Git workflow.
+- [ ] PR/merge выполнены по согласованному Git workflow.
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
