@@ -1,6 +1,6 @@
 # Sprint 7 — LangChain Documents and SectionTree
 
-> Статус: `implementation-complete; closeout-pending`
+> Статус: `completed`
 >
 > Ветка реализации: `sprint/7-langchain-documents-section-tree`
 >
@@ -236,12 +236,12 @@ Recursive splitter не должен получать бесформенную �
 - [ ] Acceptance Criteria проверены.
 - [x] Тесты добавлены или обновлены и проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит, если изменения отправлялись в remote.
 - [x] Read-only vault не изменён текущей работой; изменение
   `obsidianNotes/DLS1/Бустинг.md` подтверждено пользователем как намеренное.
 - [x] Секреты не добавлены в Git.
 - [x] Contracts и ограничения записаны в этот sprint-документ или архитектурную документацию.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Пользователь подтвердил завершение спринта.
 
 ## Execution Log
 
@@ -252,6 +252,7 @@ Recursive splitter не должен получать бесформенную �
 | 2026-08-14 | Added `tests/test_chunking_documents.py`, Phase 3 architecture document and YAML policies | Contracts and configuration flow documented |
 | 2026-08-14 | Added strict Pydantic policy validation with `extra="forbid"` and regression test | Unknown YAML fields now fail validation |
 | 2026-08-14 | Ran local validation after strict policy change | `51 passed, 1 skipped, 14 deselected`; Ruff passed |
+| 2026-08-14 | PR #22 merged into `main` | Squash merge `ee7cbc8`; GitHub CI passed |
 
 ## Validation Evidence
 
@@ -269,7 +270,7 @@ uv run pytest -q
 
 - Tests: `PASS — 51 passed, 1 skipped, 14 deselected`
 - Lint: `PASS — All checks passed`
-- CI: `UNKNOWN — branch is not yet pushed with the post-implementation changes`
+- CI: `PASS — GitHub Actions PR #22, Lint and test`
 
 ### Metrics
 
@@ -310,6 +311,7 @@ length distribution, overlap rate и boundary violations после splitting)
 - Remote CI evidence, Git publication and formal closeout ещё не выполнены.
 - Strict YAML validation теперь реализована через Pydantic
   `ConfigDict(extra="forbid")` и покрыта regression test.
+- PR #22 прошёл GitHub Actions и merged в `main` squash commit `ee7cbc8`.
 
 ### Changed Decisions
 
@@ -322,15 +324,37 @@ length distribution, overlap rate и boundary violations после splitting)
 - Изменение `obsidianNotes/DLS1/Бустинг.md` считается разрешённым пользовательским
   изменением и не относится к текущему Sprint 7 implementation scope.
 
+## Retrospective
+
+### What went well
+
+- SectionTree, LangChain Documents and policy validation were implemented as
+  separate contracts with focused tests.
+- MLflow sectionization tracking was introduced before chunk-size experiments,
+  so structural evidence is already reproducible.
+- The PR passed GitHub CI before merge.
+
+### What to improve
+
+- Keep sprint evidence synchronized immediately after each validation rerun.
+- Define strict configuration behavior before adding candidate YAML policies.
+- Separate implementation closeout from post-merge documentation closeout.
+
+### Carried over
+
+- Recursive structural chunk generation and versioned persistence move to Sprint 8.
+- Candidate comparison and baseline selection move to Sprint 9.
+
 ## Completion
 
 - [x] Definition of Done проверен; local pre-push verdict `READY`.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [x] Backlog обновлён до статуса implementation-in-progress.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Review проведён через PR scope/CI gate; личный review пользователя явно
+  разрешён без ожидания.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён до статуса `done`.
+- [x] Следующий sprint выбран и запланирован: Sprint 8.
 
-**Итоговый статус:** `implementation-complete; closeout-pending`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** `не завершён формально`
+**Дата завершения:** `2026-08-14`

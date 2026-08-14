@@ -64,9 +64,9 @@ Backlog не является жёстким расписанием. Приор�
 | DATA-003 | P1 | done | 2 | Провести production-like PostgreSQL test drive | Полный DLS1+DLS2 run, consistency checks, rollback/recovery и handoff к Phase 3 подтверждены; CI/PR closeout остаётся отдельным pipeline |
 | CHUNK-001 | P1 | idea | 3 | Реализовать heading-aware и recursive structural chunking | Versioned chunks сохраняют note/section metadata, headings и offsets; deterministic output покрыт тестами |
 | CHUNK-002 | P2 | idea | 3 | Сравнить размеры chunk 256/512/1024 | YAML-driven эксперимент воспроизводим, результаты записаны в MLflow и generated artifacts |
-| CHUNK-003 | P1 | in-progress | 3 | Спроектировать SectionTree и typed Markdown blocks | Контракт, hierarchy, section paths, offsets и focused tests реализованы; formal sprint closeout ожидает CI/review evidence |
-| CHUNK-004 | P1 | in-progress | 3 | Определить LangChain Document и ChunkingPolicy contracts | Document adapter, metadata propagation и YAML policy loading реализованы; неизвестные YAML-поля пока требуют отдельного contract decision |
-| CHUNK-005 | P1 | in-progress | 3 | Добавить YAML validation и sectionization evidence | MLflow sectionization run, structural metrics и artifacts покрыты integration test; remote CI и closeout ещё не выполнены |
+| CHUNK-003 | P1 | done | 3 | Спроектировать SectionTree и typed Markdown blocks | Контракт, hierarchy, section paths, offsets и focused tests реализованы; Sprint 7 merged в `main` |
+| CHUNK-004 | P1 | done | 3 | Определить LangChain Document и ChunkingPolicy contracts | Document adapter, metadata propagation, strict YAML policy и tests реализованы; Sprint 7 merged в `main` |
+| CHUNK-005 | P1 | done | 3 | Добавить YAML validation и sectionization evidence | MLflow sectionization evidence, structural metrics, artifacts и GitHub CI подтверждены |
 | EMB-001 | P1 | idea | 4 | Подключить бесплатную локальную embedding-модель на CPU | `EmbeddingProvider` возвращает vectors нужной размерности |
 | EMB-002 | P2 | idea | 4 | Сравнить batching и ограниченную concurrency | Throughput, latency и ошибки измерены |
 | RET-001 | P1 | idea | 5 | Создать Qdrant collection и dense retrieval | Search, payload и metadata filters работают |
