@@ -23,3 +23,17 @@ def test_load_config_requires_vault_root(
 
     with pytest.raises(ValueError, match="OBSIDIAN_VAULT_ROOT is required"):
         config_module.load_config()
+
+
+def test_load_chunking_policy_from_yaml() -> None:
+    policy = config_module.load_chunking_policy_by_name("policy_chunking_512")
+
+    assert policy.name == "policy-chunking-512"
+    assert policy.chunk_size == 512
+    assert policy.chunk_overlap == 0
+    assert policy.include_heading_context is True
+
+
+def test_load_chunking_policy_rejects_path_traversal() -> None:
+    with pytest.raises(ValueError, match="plain filename stem"):
+        config_module.load_chunking_policy_by_name("../secret")

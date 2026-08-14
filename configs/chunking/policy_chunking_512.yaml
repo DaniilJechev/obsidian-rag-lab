@@ -1,0 +1,11 @@
+name: policy-chunking-512
+chunk_size: 512
+chunk_overlap: 0
+separators:
+  - "\n\n"
+  - "\n"
+  - " "
+include_heading_context: true
+preserve_code_blocks: true
+preserve_list_blocks: true
+preserve_table_blocks: true

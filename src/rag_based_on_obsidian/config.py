@@ -4,10 +4,14 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
 from dotenv import load_dotenv
+
+from rag_based_on_obsidian.chunking.policy import ChunkingPolicy
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ENV_FILE = PROJECT_ROOT / ".env"
+CHUNKING_CONFIG_DIR = PROJECT_ROOT / "configs" / "chunking"
 
 
 @dataclass(frozen=True)
@@ -52,3 +56,27 @@ def load_config() -> AppConfig:
         postgres_user=os.environ.get("POSTGRES_USER", "rag"),
         postgres_password=os.environ.get("POSTGRES_PASSWORD", ""),
     )
+
+
+def load_chunking_policy(path: Path) -> ChunkingPolicy:
+    """Load and validate one YAML chunking policy."""
+    if path.suffix.lower() not in {".yaml", ".yml"}:
+        raise ValueError("chunking policy path must have a .yaml or .yml suffix")
+
+    with path.open(encoding="utf-8") as config_file:
+        raw_config = yaml.safe_load(config_file)
+
+    if not isinstance(raw_config, dict):
+        raise TypeError("chunking policy YAML must contain a mapping")
+    return ChunkingPolicy.model_validate(raw_config)
+
+
+def load_chunking_policy_by_name(name: str) -> ChunkingPolicy:
+    """Load a named policy from the project's ``configs/chunking`` directory."""
+    if not name or Path(name).name != name:
+        raise ValueError("chunking policy name must be a plain filename stem")
+
+    policy_path = CHUNKING_CONFIG_DIR / f"{name}.yaml"
+    if not policy_path.is_file():
+        raise FileNotFoundError(f"chunking policy not found: {policy_path}")
+    return load_chunking_policy(policy_path)
