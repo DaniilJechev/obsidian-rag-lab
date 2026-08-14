@@ -322,6 +322,8 @@ chunks = Table(
         Integer,
         nullable=False,
     ),
+    Column("parser_version", Text, nullable=True),
+    Column("source_content_hash", Text, nullable=True),
     Column("chunking_version", Text, nullable=False),
     Column(
         "created_at",
