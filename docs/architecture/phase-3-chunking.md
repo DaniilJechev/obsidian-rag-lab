@@ -210,3 +210,56 @@ uv run pytest -q
 
 Тесты не изменяют read-only vault. Generated MLflow tracking data остаётся
 локальным артефактом и не должен добавляться в Git.
+
+## Sprint 9 experiment architecture
+
+Sprint 9 compares independent chunking-policy runs, not model-training epochs.
+The primary comparison dimensions are:
+
+- `chunk_size`: `256`, `512`, `1024` estimated tokens;
+- overlap policy: no overlap for ordinary sections and selective overlap only
+  for oversized text sections;
+- optional repeat/iteration when measuring reproducibility.
+
+The planned flow is:
+
+```text
+YAML policy
+    ↓
+validated experiment contract
+    ↓
+SectionTree → LangChain Documents → ChunkRecord
+    ↓
+metrics collector + artifact writers
+    ↓
+MLflow parameters/metrics/artifacts
+    ↓
+MLflow UI + PNG/HTML charts + Markdown report
+    ↓
+baseline selection → versioned chunk → embedding handoff
+```
+
+MLflow is the primary local tracking and comparison UI. During implementation
+the user will manually start MLflow UI against the agreed local tracking
+location, open it in a browser and verify that candidate runs, parameters,
+metrics and artifacts are visible. The exact command depends on the selected
+tracking location and must be recorded in Sprint 9 validation evidence. pandas
+may prepare summary DataFrames, but visual evidence is also stored as generated
+PNG/HTML charts and Markdown reports. TensorBoard is intentionally out of
+scope because this sprint does not train a model or produce epoch-based
+learning curves.
+
+Minimum experiment metrics:
+
+- chunk count;
+- median/p95 estimated-token length;
+- short-chunk rate;
+- oversized-section and overlap usage;
+- boundary violations;
+- duplicate hashes;
+- metadata completeness;
+- storage size and generation latency.
+
+The final baseline must be chosen using multiple declared criteria and must
+include a versioned `chunk → embedding` contract for Phase 4. Generated MLflow
+tracking data remains local and should not be added to Git.
