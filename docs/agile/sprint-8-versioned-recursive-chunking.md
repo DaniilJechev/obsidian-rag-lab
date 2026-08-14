@@ -100,6 +100,7 @@ Chunk должен быть не просто отрезком строки. Д�
 | 2026-08-13 | Sprint document created from approved Phase 3 plan | Sprint 8 scope defined; implementation not started |
 | 2026-08-14 | Added `ChunkRecord`, LangChain recursive splitter and deterministic counters | Unit contract and heading-context behavior implemented |
 | 2026-08-14 | Added PostgreSQL repository and provenance migration | Versioned upsert, atomic replacement and explicit version reads implemented |
+| 2026-08-14 | Published implementation PR #24 and completed GitHub Actions CI | CI `Lint and test` passed; independent review remains required |
 
 ## Validation Evidence
 
@@ -128,7 +129,7 @@ INFO  [alembic.runtime.migration] Will assume transactional DDL.
 - Manual PostgreSQL persistence test: `1 passed in 1.57s`
 - Lint: `uv run ruff check .` — passed
 - Alembic: database is at `7a2c4d1e9f30 (head)`
-- CI: `не запускался; PR ещё не создан`
+- CI: GitHub Actions `Lint and test` passed in PR #24
 
 ### Metrics
 
@@ -143,6 +144,8 @@ metadata completeness и persistence timings. Значения заранее н
 - Migration `7a2c4d1e9f30` применена к PostgreSQL и подтверждена через
   `uv run alembic current`.
 - Реальная manual PostgreSQL persistence-проверка прошла.
+- PR [#24](https://github.com/DaniilJechev/obsidian-rag-lab/pull/24) создан;
+  required CI прошёл.
 
 ### Not Completed
 
@@ -161,7 +164,7 @@ metadata completeness и persistence timings. Значения заранее н
 ## Completion
 
 - [ ] Definition of Done проверен.
-- [ ] Review проведён.
+- [ ] Независимый review проведён; автор PR не может утвердить собственный PR.
 - [ ] Retrospective заполнена.
 - [x] Commit и push реализации выполнены по согласованному Git workflow.
 - [ ] PR/merge выполнены по согласованному Git workflow.
