@@ -1,6 +1,6 @@
 # Sprint 7 — LangChain Documents and SectionTree
 
-> Статус: `planned`
+> Статус: `implementation-complete; closeout-pending`
 >
 > Ветка реализации: `sprint/7-langchain-documents-section-tree`
 >
@@ -219,27 +219,28 @@ Recursive splitter не должен получать бесформенную �
 
 ## Acceptance Criteria
 
-- [ ] Для каждой поддерживаемой block type определены поля и инварианты.
-- [ ] `SectionTree` детерминированно восстанавливает hierarchy, section path и
+- [x] Для каждой поддерживаемой block type определены поля и инварианты.
+- [x] `SectionTree` детерминированно восстанавливает hierarchy, section path и
   offsets исходного документа.
-- [ ] Pre-heading text и пустые headings имеют явное, протестированное поведение.
-- [ ] LangChain `Document` сохраняет согласованный metadata contract.
-- [ ] YAML policy validation отклоняет неизвестные или некорректные значения.
-- [ ] Unit tests покрывают code/list/table boundaries и не требуют записи в vault.
-- [ ] MLflow run фактически создан после focused tests и содержит parameters,
+- [x] Pre-heading text и пустые headings имеют явное, протестированное поведение.
+- [x] LangChain `Document` сохраняет согласованный metadata contract.
+- [x] YAML policy validation отклоняет неизвестные или некорректные значения.
+- [x] Unit tests покрывают code/list/table boundaries и не требуют записи в vault.
+- [x] MLflow run фактически создан после focused tests и содержит parameters,
   structural metrics и artifacts.
-- [ ] Chunk-size, overlap и retrieval metrics не выдаются за результаты Sprint 7.
+- [x] Chunk-size, overlap и retrieval metrics не выдаются за результаты Sprint 7.
 
 ## Definition of Done
 
-- [ ] Все задачи Scope выполнены или явно перенесены в backlog.
+- [x] Все задачи Scope выполнены или явно перенесены в backlog.
 - [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
 - [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Contracts и ограничения записаны в этот sprint-документ или архитектурную документацию.
+- [x] Read-only vault не изменён текущей работой; изменение
+  `obsidianNotes/DLS1/Бустинг.md` подтверждено пользователем как намеренное.
+- [x] Секреты не добавлены в Git.
+- [x] Contracts и ограничения записаны в этот sprint-документ или архитектурную документацию.
 - [ ] Пользователь подтвердил завершение спринта.
 
 ## Execution Log
@@ -247,20 +248,28 @@ Recursive splitter не должен получать бесформенную �
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-13 | Sprint document created from approved Phase 3 plan | Sprint 7 scope defined; implementation not started |
+| 2026-08-14 | Implemented SectionTree, LangChain Documents, policy loading and MLflow tracking | Implementation slice completed; focused tests and artifacts added |
+| 2026-08-14 | Added `tests/test_chunking_documents.py`, Phase 3 architecture document and YAML policies | Contracts and configuration flow documented |
+| 2026-08-14 | Added strict Pydantic policy validation with `extra="forbid"` and regression test | Unknown YAML fields now fail validation |
+| 2026-08-14 | Ran local validation after strict policy change | `51 passed, 1 skipped, 14 deselected`; Ruff passed |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-Будет заполнено после начала implementation.
+uv run ruff check .
+All checks passed
+
+uv run pytest -q
+51 passed, 1 skipped, 14 deselected
 ```
 
 ### Test and Lint Results
 
-- Tests: `не запускались; sprint находится в статусе planned`
-- Lint: `не запускался; implementation отсутствует`
-- CI: `не запускался`
+- Tests: `PASS — 51 passed, 1 skipped, 14 deselected`
+- Lint: `PASS — All checks passed`
+- CI: `UNKNOWN — branch is not yet pushed with the post-implementation changes`
 
 ### Metrics
 
@@ -280,20 +289,27 @@ langchain_documents_total
 sectionization_duration_seconds
 ```
 
-Фактические значения будут записаны после реального MLflow run; заранее
-выдумывать их нельзя. Chunk metrics (`chunk_count`, chunk length distribution,
-overlap rate и boundary violations после splitting) относятся к Sprint 9.
+Фактическая MLflow integration evidence проверяется в
+`tests/test_chunking_tracking_run.py`: run создаётся через SQLite tracking URI,
+логируются parameters и scalar structural metrics, а JSON/CSV artifacts
+проверяются в temporary artifact directory. Chunk metrics (`chunk_count`, chunk
+length distribution, overlap rate и boundary violations после splitting)
+относятся к Sprint 9.
 
 ## Review
 
 ### Completed
 
-- Sprint scope, boundaries, contracts и acceptance criteria сформулированы.
+- Sprint scope, boundaries и contracts сформулированы и реализованы.
+- SectionTree, LangChain Document adapter, ChunkingPolicy и YAML loader
+  покрыты focused tests.
+- MLflow sectionization tracking покрыт integration test.
 
 ### Not Completed
 
-- Implementation, tests, MLflow run и CI evidence ещё не выполнялись; это
-  запланированные результаты Sprint 7.
+- Remote CI evidence, Git publication and formal closeout ещё не выполнены.
+- Strict YAML validation теперь реализована через Pydantic
+  `ConfigDict(extra="forbid")` и покрыта regression test.
 
 ### Changed Decisions
 
@@ -301,19 +317,20 @@ overlap rate и boundary violations после splitting) относятся к 
 
 ### Technical Debt
 
-- Нужно выбрать точную реализацию Markdown block extraction поверх существующего parser.
-- Нужно выбрать local MLflow tracking URI и правила исключения generated tracking
-  data из Git.
+- Production MLflow tracking server не входит в Sprint 7; используется local
+  SQLite/file artifact evidence.
+- Изменение `obsidianNotes/DLS1/Бустинг.md` считается разрешённым пользовательским
+  изменением и не относится к текущему Sprint 7 implementation scope.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
+- [x] Definition of Done проверен; local pre-push verdict `READY`.
 - [ ] Review проведён.
 - [ ] Retrospective заполнена.
 - [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
+- [x] Backlog обновлён до статуса implementation-in-progress.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `implementation-complete; closeout-pending`
 
-**Дата завершения:** `не завершён`
+**Дата завершения:** `не завершён формально`

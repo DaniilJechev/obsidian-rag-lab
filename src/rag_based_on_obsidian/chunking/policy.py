@@ -1,10 +1,12 @@
 """Validated YAML-backed chunking policy contract."""
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ChunkingPolicy(BaseModel):
     """Configuration contract shared by future structural chunkers."""
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str = Field(min_length=1)
     chunk_size: int = Field(gt=0)

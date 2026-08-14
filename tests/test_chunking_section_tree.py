@@ -127,3 +127,14 @@ def test_chunking_policy_validates_overlap_and_separators() -> None:
             chunk_overlap=0,
             separators=[""],
         )
+
+
+def test_chunking_policy_rejects_unknown_fields() -> None:
+    with pytest.raises(ValueError, match="extra_forbidden"):
+        ChunkingPolicy(
+            name="strict",
+            chunk_size=512,
+            chunk_overlap=0,
+            separators=["\n\n", "\n", " "],
+            unknown_option=True,
+        )
