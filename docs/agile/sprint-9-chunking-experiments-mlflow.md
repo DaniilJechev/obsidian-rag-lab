@@ -1,6 +1,6 @@
 # Sprint 9 — Chunking Experiments and MLflow Baseline
 
-> Статус: `planned`
+> Статус: `implementation-in-progress`
 >
 > Ветка реализации: `sprint/9-chunking-experiments-mlflow`
 >
@@ -44,11 +44,13 @@ embeddings и RAGAS появятся позже, когда будет гото�
   structural-block preservation rules и `chunking_version`.
 - [ ] Реализовать deterministic experiment runner поверх `ChunkingPolicy` и
   `chunk_section_tree`.
-- [ ] Собрать metrics: chunk count, median/p95 length, short-chunk rate,
-  oversized-section count, overlap usage, boundary violations, duplicate hashes,
-  metadata completeness, storage size и generation latency.
-- [ ] Сгенерировать JSON summary, CSV comparison data, Markdown report,
-  PNG/HTML charts и YAML/config snapshots.
+- [ ] Собрать metrics: chunk count, median/mean/p95 length, rate of chunks
+  strictly below 25% of the configured token budget, explicit short-chunk
+  threshold, oversized-section count, overlap usage, boundary violations,
+  duplicate hashes, metadata completeness, storage size и generation latency.
+- [ ] Сгенерировать JSON summary, CSV comparison data, Markdown report и
+  YAML/config snapshots в `artifacts/chunking/<policy-name>/`; визуальное
+  сравнение выполнять через MLflow UI.
 - [ ] Логировать каждый run в локальный MLflow: parameters, metrics, tags,
   Git commit, config snapshot и artifacts.
 - [ ] Подключить локальный MLflow UI к tracking location, открыть его в
@@ -58,7 +60,7 @@ embeddings и RAGAS появятся позже, когда будет гото�
   artifacts и selective overlap.
 - [ ] Выполнить controlled matrix: `256/512/1024` с no-overlap baseline и
   selective overlap только для oversized text sections.
-- [ ] Сравнить runs в MLflow UI и generated charts, выбрать baseline по
+- [ ] Сравнить runs в MLflow UI, выбрать baseline по
   нескольким заранее объявленным критериям.
 - [ ] Зафиксировать versioned `chunk → embedding` handoff для Phase 4.
 
@@ -69,8 +71,8 @@ embeddings и RAGAS появятся позже, когда будет гото�
 - Сравнение embedding-моделей — Phase 4.
 - Qdrant, BM25/RRF, reranking, LLM и LangGraph.
 - Production MLflow tracking server и MLOps hardening — поздние фазы.
-- TensorBoard как отдельный tracking stack; для этого sprint достаточно MLflow
-  UI и report artifacts.
+- TensorBoard, pyplot и отдельный HTML visualization stack; для этого sprint
+  достаточно MLflow UI и machine-readable report artifacts.
 - Изменение исходного vault.
 
 ## Expected Artifacts
@@ -79,8 +81,8 @@ embeddings и RAGAS появятся позже, когда будет гото�
 - `src/rag_based_on_obsidian/chunking/experiments.py` — experiment contracts,
   runner, metrics и MLflow boundary.
 - `tests/test_chunking_experiments.py` — config/metric reproducibility tests.
-- `artifacts/chunking/` — JSON, CSV, Markdown, PNG/HTML reports и config
-  snapshots.
+- `artifacts/chunking/<policy-name>/` — JSON, CSV, Markdown reports и config
+  snapshots для каждого candidate run.
 - `mlruns/` или согласованный local MLflow tracking location — только если
   tracking storage не включён в Git.
 - Локальный MLflow UI — визуальное сравнение runs `256/512/1024`, overlap
@@ -99,9 +101,9 @@ embeddings и RAGAS появятся позже, когда будет гото�
 - [ ] Отдельно видны oversized sections и влияние selective overlap.
 - [ ] Boundary violations и metadata completeness измеряются, а не оцениваются субъективно.
 - [ ] Baseline выбран по заранее объявленным критериям, а не по одному показателю.
-- [ ] MLflow UI и PNG/HTML charts показывают сравнение runs по размерам и
-  overlap policy; pandas используется для подготовки данных, а не как единственный
-  способ отображения.
+- [ ] MLflow UI показывает сравнение runs по размерам и overlap policy;
+  JSON/CSV/Markdown artifacts сохраняют воспроизводимые результаты без
+  обязательного plotting stack.
 - [ ] Phase 4 получает versioned contract с chunk text, metadata и source identity.
 - [ ] Generated tracking data и секреты не попадают в Git.
 
@@ -123,19 +125,23 @@ embeddings и RAGAS появятся позже, когда будет гото�
 |---|---|---|
 | 2026-08-13 | Sprint document created from approved Phase 3 plan | Sprint 9 scope defined; experiments not started |
 | 2026-08-14 | Planning refinement | Ordered protocol, runner, metrics, MLflow UI and visualization artifacts defined; implementation not started |
+| 2026-08-14 | Implementation items 1–8 | Added versioned YAML candidates, experiment contracts, deterministic runner, metric collector, per-policy JSON/CSV/Markdown artifacts under `artifacts/chunking/`, MLflow adapter and focused tests |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-Будет заполнено после начала implementation.
+uv run ruff check .
+uv run pytest tests/test_chunking_experiments.py -q
+uv run pytest -q
 ```
 
 ### Test and Lint Results
 
-- Tests: `не запускались; sprint находится в статусе planned`
-- Lint: `не запускался; implementation отсутствует`
+- Tests: `4 passed` (focused Sprint 9 tests)
+- Tests: `58 passed, 1 skipped, 15 deselected` (full suite)
+- Lint: `All checks passed` (`uv run ruff check .`)
 - CI: `не запускался`
 
 ### Metrics
@@ -152,12 +158,13 @@ latency или storage. Sprint должен сохранить фактичес�
 - Уточнено, что runs сравниваются как independent policies, а не как training
   epochs: `chunk_size`, overlap policy и optional repeat/iteration являются
   параметрами сравнения.
-- MLflow выбран основным tracking/UI; pandas используется для подготовки
-  summary data, а PNG/HTML charts и Markdown reports — для review.
+- MLflow выбран основным tracking/UI; JSON/CSV artifacts используются для
+  воспроизводимых данных, Markdown report — для review.
 
 ### Not Completed
 
-- YAML runs, MLflow artifacts, candidate comparison и baseline selection ещё не выполнялись.
+- Full-corpus YAML runs, local MLflow UI verification, candidate comparison и
+  baseline selection ещё не выполнялись.
 
 ### Changed Decisions
 
@@ -196,6 +203,6 @@ latency или storage. Sprint должен сохранить фактичес�
 - [x] Следующий sprint выбран или запланирован: Sprint 9 planned; implementation
   ещё не начата.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `implementation-in-progress`
 
 **Дата завершения:** `не завершён`

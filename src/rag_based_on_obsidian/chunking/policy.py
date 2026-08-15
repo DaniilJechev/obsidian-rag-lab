@@ -9,6 +9,7 @@ class ChunkingPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(min_length=1)
+    chunking_version: str = Field(default="policy-v1", min_length=1)
     chunk_size: int = Field(gt=0)
     chunk_overlap: int = Field(ge=0)
     separators: list[str] = Field(min_length=1)
