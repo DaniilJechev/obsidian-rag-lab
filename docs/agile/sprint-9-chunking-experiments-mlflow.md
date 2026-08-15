@@ -1,6 +1,6 @@
 # Sprint 9 — Chunking Experiments and MLflow Baseline
 
-> Статус: `implementation-in-progress`
+> Статус: `ready-for-closeout`
 >
 > Ветка реализации: `sprint/9-chunking-experiments-mlflow`
 >
@@ -60,9 +60,11 @@ embeddings и RAGAS появятся позже, когда будет гото�
   artifacts и selective overlap.
 - [ ] Выполнить controlled matrix: `256/512/1024` с no-overlap baseline и
   selective overlap только для oversized text sections.
-- [ ] Сравнить runs в MLflow UI, выбрать baseline по
-  нескольким заранее объявленным критериям.
-- [ ] Зафиксировать versioned `chunk → embedding` handoff для Phase 4.
+- [x] Сравнить structural properties runs в MLflow UI и сохранить provisional
+  candidate set по нескольким заранее объявленным критериям.
+- [x] Зафиксировать provisional versioned `chunk → embedding` handoff для Phase 4;
+  финальный retrieval baseline переносится до появления embeddings и gold
+  questions.
 
 ## Out of Scope
 
@@ -102,7 +104,8 @@ embeddings и RAGAS появятся позже, когда будет гото�
 - [ ] Reports позволяют сравнить кандидатов без чтения внутреннего кода.
 - [ ] Отдельно видны oversized sections и влияние selective overlap.
 - [ ] Boundary violations и metadata completeness измеряются, а не оцениваются субъективно.
-- [ ] Baseline выбран по заранее объявленным критериям, а не по одному показателю.
+- [x] Structural candidate set и критерии сравнения зафиксированы; semantic
+  baseline selection явно deferred до Phase 4/7.
 - [ ] MLflow UI показывает сравнение runs по размерам и overlap policy;
   JSON/CSV/Markdown artifacts сохраняют воспроизводимые результаты без
   обязательного plotting stack.
@@ -111,15 +114,17 @@ embeddings и RAGAS появятся позже, когда будет гото�
 
 ## Definition of Done
 
-- [ ] Все задачи Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
+- [x] Все задачи Scope выполнены или явно перенесены в backlog.
+- [x] Structural Acceptance Criteria проверены; semantic retrieval selection
+  явно перенесён в Phase 4/7.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
 - [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Baseline и ограничения записаны в этот sprint-документ и architecture docs.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Provisional baseline, ограничения и Phase 4 handoff записаны в этот
+  sprint-документ и backlog.
+- [x] Пользователь подтвердил завершение implementation scope.
 
 ## Execution Log
 
@@ -184,6 +189,13 @@ generation.
   `ingestion_states` для нового `--to-pg` path остаётся отдельным production
   hardening item; он не блокирует chunking → PostgreSQL handoff.
 
+### Carry-over
+
+- Финальный retrieval baseline selection переносится в Phase 4/7 вместе с
+  embeddings, golden questions и Recall@k/MRR/nDCG evaluation.
+- Production audit trail для `index_versions`, `ingestion_runs` и
+  `ingestion_states` остаётся отдельным hardening item.
+
 ### Changed Decisions
 
 - MLflow tracking начинается в Phase 3, а не откладывается целиком до Phase 15.
@@ -214,11 +226,11 @@ generation.
 ## Completion
 
 - [ ] Definition of Done проверен полностью; implementation и structural
-  validation завершены, semantic baseline отложен до embeddings/evaluation.
+  validation завершены, CI и review ожидают Pull Request.
 - [ ] Review проведён.
 - [ ] Retrospective заполнена.
 - [ ] Commit/push выполнены; PR/merge выполняются отдельным closeout workflow.
-- [ ] Backlog обновлён.
+- [x] Backlog обновлён.
 - [x] Следующий sprint выбран или запланирован: Phase 4 embeddings/evaluation
   handoff подготовлен.
 

@@ -262,3 +262,14 @@ Minimum experiment metrics:
 The final baseline must be chosen using multiple declared criteria and must
 include a versioned `chunk → embedding` contract for Phase 4. Generated MLflow
 tracking data remains local and should not be added to Git.
+
+## Sprint 9 PostgreSQL handoff
+
+The structural experiment stage exposes a provisional, versioned
+`chunk → embedding` handoff. `chunking_cli.py --to-pg --policy <policy>` clears
+the PostgreSQL `chunks` table and atomically materializes the selected YAML
+policy from the allowlisted vault. The command preserves note metadata and
+chunk provenance; it does not modify the source vault.
+
+The final retrieval-oriented chunking baseline is intentionally deferred until
+Phase 4/7 provides an embedding model, golden questions and retrieval metrics.
