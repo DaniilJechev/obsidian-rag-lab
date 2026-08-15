@@ -7,11 +7,21 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-from rag_based_on_obsidian.chunking.policy import ChunkingPolicy
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ENV_FILE = PROJECT_ROOT / ".env"
 CHUNKING_CONFIG_DIR = PROJECT_ROOT / "configs" / "chunking"
+DEFAULT_MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
+DEFAULT_MLFLOW_BACKEND_STORE_URI = "sqlite:///mlflow.db"
+DEFAULT_MLFLOW_ARTIFACT_ROOT = Path("artifacts") / "mlflow"
+DEFAULT_EXPERIMENT_ARTIFACT_DIR = Path("artifacts") / "chunking"
+DEFAULT_EXPERIMENT_NAME = "sprint-9-chunking-experiments"
+DEFAULT_EXPERIMENT_PROTOCOL_PATH = (
+    PROJECT_ROOT / "configs" / "experiments" / "sprint9_chunking.yaml"
+)
+DEFAULT_CHUNK_INGESTION_CONFIG_PATH = (
+    PROJECT_ROOT / "configs" / "ingestion" / "chunk_ingestion.yaml"
+)
+from rag_based_on_obsidian.chunking.policy import ChunkingPolicy
 
 
 @dataclass(frozen=True)
@@ -25,13 +35,24 @@ class AppConfig:
     postgres_database: str
     postgres_user: str
     postgres_password: str = ""
+    mlflow_tracking_uri: str = DEFAULT_MLFLOW_TRACKING_URI
+    mlflow_backend_store_uri: str = DEFAULT_MLFLOW_BACKEND_STORE_URI
+    mlflow_artifact_root: Path = DEFAULT_MLFLOW_ARTIFACT_ROOT
+    experiment_artifact_dir: Path = DEFAULT_EXPERIMENT_ARTIFACT_DIR
+    experiment_name: str = DEFAULT_EXPERIMENT_NAME
+    experiment_protocol_path: Path = DEFAULT_EXPERIMENT_PROTOCOL_PATH
+    chunk_ingestion_config_path: Path = DEFAULT_CHUNK_INGESTION_CONFIG_PATH
 
 
-def load_config() -> AppConfig:
+def load_config(*, vault_root_override: Path | None = None) -> AppConfig:
     """Load application configuration from the project ``.env`` file."""
 
     load_dotenv(ENV_FILE)
-    vault_root_value = os.environ.get("OBSIDIAN_VAULT_ROOT")
+    vault_root_value = (
+        str(vault_root_override)
+        if vault_root_override is not None
+        else os.environ.get("OBSIDIAN_VAULT_ROOT")
+    )
     if not vault_root_value:
         raise ValueError("OBSIDIAN_VAULT_ROOT is required")
 
@@ -55,6 +76,42 @@ def load_config() -> AppConfig:
         postgres_database=os.environ.get("POSTGRES_DB", "rag"),
         postgres_user=os.environ.get("POSTGRES_USER", "rag"),
         postgres_password=os.environ.get("POSTGRES_PASSWORD", ""),
+        mlflow_tracking_uri=os.environ.get(
+            "MLFLOW_TRACKING_URI",
+            DEFAULT_MLFLOW_TRACKING_URI,
+        ),
+        mlflow_backend_store_uri=os.environ.get(
+            "MLFLOW_BACKEND_STORE_URI",
+            DEFAULT_MLFLOW_BACKEND_STORE_URI,
+        ),
+        mlflow_artifact_root=Path(
+            os.environ.get(
+                "MLFLOW_ARTIFACT_ROOT",
+                str(DEFAULT_MLFLOW_ARTIFACT_ROOT),
+            )
+        ).expanduser(),
+        experiment_artifact_dir=Path(
+            os.environ.get(
+                "EXPERIMENT_ARTIFACT_DIR",
+                str(DEFAULT_EXPERIMENT_ARTIFACT_DIR),
+            )
+        ).expanduser(),
+        experiment_name=os.environ.get(
+            "EXPERIMENT_NAME",
+            DEFAULT_EXPERIMENT_NAME,
+        ),
+        experiment_protocol_path=Path(
+            os.environ.get(
+                "EXPERIMENT_PROTOCOL_PATH",
+                str(DEFAULT_EXPERIMENT_PROTOCOL_PATH),
+            )
+        ).expanduser(),
+        chunk_ingestion_config_path=Path(
+            os.environ.get(
+                "CHUNK_INGESTION_CONFIG_PATH",
+                str(DEFAULT_CHUNK_INGESTION_CONFIG_PATH),
+            )
+        ).expanduser(),
     )
 
 

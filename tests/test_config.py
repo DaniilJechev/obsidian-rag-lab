@@ -8,11 +8,15 @@ def test_load_config_reads_vault_root_from_environment(
 ) -> None:
     monkeypatch.setenv("OBSIDIAN_VAULT_ROOT", "~/obsidianNotes")
     monkeypatch.setenv("ALLOWED_CORPUS_DIRECTORIES", "DLS1, DLS2")
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", "http://localhost:5050")
+    monkeypatch.setenv("EXPERIMENT_NAME", "test-experiments")
 
     config = config_module.load_config()
 
     assert config.vault_root.name == "obsidianNotes"
     assert config.allowed_corpus_directories == ("DLS1", "DLS2")
+    assert config.mlflow_tracking_uri == "http://localhost:5050"
+    assert config.experiment_name == "test-experiments"
 
 
 def test_load_config_requires_vault_root(
@@ -30,7 +34,8 @@ def test_load_chunking_policy_from_yaml() -> None:
 
     assert policy.name == "policy-chunking-512"
     assert policy.chunk_size == 512
-    assert policy.chunk_overlap == 0
+    assert policy.chunk_overlap == 30
+    assert policy.chunking_version == "sprint9-policy-512-v2"
     assert policy.include_heading_context is True
 
 

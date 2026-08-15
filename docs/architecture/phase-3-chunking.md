@@ -234,20 +234,19 @@ metrics collector + artifact writers
     ↓
 MLflow parameters/metrics/artifacts
     ↓
-MLflow UI + PNG/HTML charts + Markdown report
+MLflow Tracking Server + UI + Markdown/JSON/CSV artifacts
     ↓
 baseline selection → versioned chunk → embedding handoff
 ```
 
-MLflow is the primary local tracking and comparison UI. During implementation
-the user will manually start MLflow UI against the agreed local tracking
-location, open it in a browser and verify that candidate runs, parameters,
-metrics and artifacts are visible. The exact command depends on the selected
-tracking location and must be recorded in Sprint 9 validation evidence. pandas
-may prepare summary DataFrames, but visual evidence is also stored as generated
-PNG/HTML charts and Markdown reports. TensorBoard is intentionally out of
-scope because this sprint does not train a model or produce epoch-based
-learning curves.
+MLflow Tracking Server is the primary local tracking and comparison interface.
+The user will manually start it with SQLite metadata storage and a local
+artifact root, open the UI in a browser and verify that candidate runs,
+parameters, metrics and artifacts are visible. The experiment CLI connects to
+the server through its HTTP tracking URI. JSON/CSV/Markdown files remain
+reproducible local artifacts; pyplot and a separate HTML visualization stack
+are out of scope. TensorBoard is intentionally out of scope because this sprint
+does not train a model or produce epoch-based learning curves.
 
 Minimum experiment metrics:
 
@@ -263,3 +262,14 @@ Minimum experiment metrics:
 The final baseline must be chosen using multiple declared criteria and must
 include a versioned `chunk → embedding` contract for Phase 4. Generated MLflow
 tracking data remains local and should not be added to Git.
+
+## Sprint 9 PostgreSQL handoff
+
+The structural experiment stage exposes a provisional, versioned
+`chunk → embedding` handoff. `chunking_cli.py --to-pg --policy <policy>` clears
+the PostgreSQL `chunks` table and atomically materializes the selected YAML
+policy from the allowlisted vault. The command preserves note metadata and
+chunk provenance; it does not modify the source vault.
+
+The final retrieval-oriented chunking baseline is intentionally deferred until
+Phase 4/7 provides an embedding model, golden questions and retrieval metrics.

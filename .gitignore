@@ -5,4 +5,7 @@ __pycache__/
 .pytest-tmp/
 .ruff_cache/
 artifacts/
+mlruns/
+mlflow.db
+mlflow.db-*
 .cursor/

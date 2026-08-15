@@ -1,0 +1,20 @@
+name: sprint-9-chunking-experiments
+protocol_version: sprint9-protocol-v1
+
+# A chunk is short when its estimated token length is strictly below
+# chunk_size * short_chunk_fraction.
+short_chunk_fraction: 0.25
+
+# Candidate policies are executed in deterministic path order.
+policies:
+  - ../chunking/policy_chunking_256.yaml
+  - ../chunking/policy_chunking_512.yaml
+  - ../chunking/policy_chunking_1024.yaml
+
+# The runner must process only these read-only corpus directories.
+allowed_corpus_directories:
+  - DLS1
+  - DLS2
+
+deterministic_ordering: true
+selective_overlap_for_oversized_sections: true
