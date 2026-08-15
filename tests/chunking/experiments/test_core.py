@@ -7,6 +7,7 @@ import rag_based_on_obsidian.chunking.experiments.mlflow_tracking as tracking_mo
 from rag_based_on_obsidian.chunking.experiments import (
     ExperimentConfig,
     load_experiment_config,
+    load_experiment_protocol,
     run_experiment,
     write_experiment_artifacts,
 )
@@ -58,6 +59,31 @@ def test_load_experiment_config_preserves_version_and_hash(tmp_path: Path) -> No
 
     assert config.chunking_version == "sprint9-test-v1"
     assert len(config.config_sha256) == 64
+
+
+def test_load_experiment_protocol_resolves_policies_and_metric_rule(
+    tmp_path: Path,
+) -> None:
+    policy = tmp_path / "policy.yaml"
+    policy.write_text("name: policy\nchunk_size: 10\nchunk_overlap: 0\nseparators: [' ']\n")
+    protocol = tmp_path / "protocol.yaml"
+    protocol.write_text(
+        """name: test-protocol
+protocol_version: test-v1
+short_chunk_fraction: 0.5
+policies:
+  - policy.yaml
+allowed_corpus_directories:
+  - DLS1
+""",
+        encoding="utf-8",
+    )
+
+    loaded = load_experiment_protocol(protocol)
+
+    assert loaded.name == "test-protocol"
+    assert loaded.short_chunk_fraction == 0.5
+    assert loaded.policy_paths == (policy.resolve(),)
 
 
 def test_run_experiment_is_deterministic_and_collects_contract_metrics(
@@ -141,6 +167,7 @@ def test_log_experiment_to_mlflow_logs_run_contract(
     run_id = tracking_module.log_experiment_to_mlflow(
         result,
         tmp_path / "artifacts",
+        tracking_uri="http://test-mlflow",
     )
 
     assert run_id == "run-123"

@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
-from rag_based_on_obsidian.chunking.experiments.core import DEFAULT_ARTIFACT_DIR
 from rag_based_on_obsidian.chunking.experiments.runner import (
     build_tree_sources,
+    load_protocol,
     run_policy_matrix,
 )
-from rag_based_on_obsidian.config import CHUNKING_CONFIG_DIR
+from rag_based_on_obsidian.config import CHUNKING_CONFIG_DIR, load_config
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -20,7 +20,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run deterministic chunking policies and log them to MLflow."
     )
-    parser.add_argument("--vault-root", type=Path, required=True)
+    parser.add_argument(
+        "--vault-root",
+        type=Path,
+        help="Override OBSIDIAN_VAULT_ROOT from .env.",
+    )
     parser.add_argument(
         "--allowed-directory",
         action="append",
@@ -32,13 +36,19 @@ def build_parser() -> argparse.ArgumentParser:
     policy_group.add_argument("--all-policies", action="store_true")
     parser.add_argument(
         "--tracking-uri",
-        default="http://127.0.0.1:5000",
+        default=None,
         help="MLflow Tracking Server URI.",
     )
     parser.add_argument(
         "--artifact-dir",
         type=Path,
-        default=DEFAULT_ARTIFACT_DIR,
+        default=None,
+    )
+    parser.add_argument("--experiment-name", default=None)
+    parser.add_argument(
+        "--protocol",
+        type=Path,
+        help="Override EXPERIMENT_PROTOCOL_PATH from .env.",
     )
     parser.add_argument("--dry-run", action="store_true")
     return parser
@@ -47,9 +57,25 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Validate arguments, build the corpus and run the requested matrix."""
     args = build_parser().parse_args(argv)
-    allowed_directories = tuple(args.allowed_directories or ("DLS1", "DLS2"))
-    policy_paths = _resolve_policy_paths(args.policies, args.all_policies)
-    tree_sources = build_tree_sources(args.vault_root, allowed_directories)
+    app_config = load_config(vault_root_override=args.vault_root)
+    protocol = load_protocol(
+        args.protocol or app_config.experiment_protocol_path
+    )
+    allowed_directories = tuple(
+        args.allowed_directories or app_config.allowed_corpus_directories
+    )
+    vault_root = app_config.vault_root
+    tracking_uri = args.tracking_uri or app_config.mlflow_tracking_uri
+    artifact_dir = args.artifact_dir or app_config.experiment_artifact_dir
+    experiment_name = args.experiment_name or app_config.experiment_name
+    policy_paths = _resolve_policy_paths(
+        args.policies,
+        args.all_policies,
+        protocol.policy_paths,
+    )
+    if not args.allowed_directories:
+        allowed_directories = protocol.allowed_corpus_directories
+    tree_sources = build_tree_sources(vault_root, allowed_directories)
 
     if args.dry_run:
         print(f"Discovered source trees: {len(tree_sources)}")
@@ -60,8 +86,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     results = run_policy_matrix(
         policy_paths,
         tree_sources,
-        artifact_root=args.artifact_dir,
-        tracking_uri=args.tracking_uri,
+        artifact_root=artifact_dir,
+        tracking_uri=tracking_uri,
+        experiment_name=experiment_name,
+        short_chunk_fraction=protocol.short_chunk_fraction,
     )
     for result in results:
         print(
@@ -74,9 +102,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 def _resolve_policy_paths(
     policy_values: list[str] | None,
     all_policies: bool,
+    protocol_policy_paths: tuple[Path, ...],
 ) -> tuple[Path, ...]:
     if all_policies:
-        return tuple(sorted(CHUNKING_CONFIG_DIR.glob("policy_chunking_*.yaml")))
+        return tuple(
+            sorted(protocol_policy_paths, key=lambda path: path.as_posix())
+        )
     if not policy_values:
         raise ValueError("at least one policy is required")
     paths: list[Path] = []

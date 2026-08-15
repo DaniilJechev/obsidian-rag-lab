@@ -9,15 +9,13 @@ import mlflow
 
 from rag_based_on_obsidian.chunking.experiments.core import ExperimentResult
 
-DEFAULT_MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
-
 
 def log_experiment_to_mlflow(
     result: ExperimentResult,
     artifact_dir: Path,
     *,
     experiment_name: str = "sprint-9-chunking-experiments",
-    tracking_uri: str = DEFAULT_MLFLOW_TRACKING_URI,
+    tracking_uri: str,
 ) -> str:
     """Log one result through the MLflow Tracking Server HTTP API."""
     mlflow.set_tracking_uri(tracking_uri)
@@ -27,6 +25,7 @@ def log_experiment_to_mlflow(
         "chunking_version": result.config.chunking_version,
         "chunk_size": result.config.policy.chunk_size,
         "chunk_overlap": result.config.policy.chunk_overlap,
+        "short_chunk_fraction": result.short_chunk_fraction,
         "config_sha256": result.config.config_sha256,
         "git_commit": _git_commit(),
     }

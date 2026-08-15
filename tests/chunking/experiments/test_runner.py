@@ -73,6 +73,8 @@ def test_run_policy_matrix_executes_candidates_in_sorted_order(
         (policy_512, policy_256),
         tree_sources,
         artifact_root=tmp_path / "artifacts",
+        tracking_uri="http://test-mlflow",
+        experiment_name="test-experiments",
     )
 
     assert [item.config.policy.name for item in results] == [

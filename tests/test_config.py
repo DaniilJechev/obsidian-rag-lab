@@ -8,11 +8,15 @@ def test_load_config_reads_vault_root_from_environment(
 ) -> None:
     monkeypatch.setenv("OBSIDIAN_VAULT_ROOT", "~/obsidianNotes")
     monkeypatch.setenv("ALLOWED_CORPUS_DIRECTORIES", "DLS1, DLS2")
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", "http://localhost:5050")
+    monkeypatch.setenv("EXPERIMENT_NAME", "test-experiments")
 
     config = config_module.load_config()
 
     assert config.vault_root.name == "obsidianNotes"
     assert config.allowed_corpus_directories == ("DLS1", "DLS2")
+    assert config.mlflow_tracking_uri == "http://localhost:5050"
+    assert config.experiment_name == "test-experiments"
 
 
 def test_load_config_requires_vault_root(

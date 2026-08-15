@@ -9,6 +9,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
+from typing import Any
 
 import yaml
 
@@ -18,8 +19,6 @@ from rag_based_on_obsidian.chunking.recursive import chunk_section_tree
 from rag_based_on_obsidian.chunking.section_tree import SectionTree
 
 TreeSource = tuple[SectionTree, str]
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-DEFAULT_ARTIFACT_DIR = PROJECT_ROOT / "artifacts" / "chunking"
 SHORT_CHUNK_FRACTION = 0.25
 
 
@@ -37,12 +36,65 @@ class ExperimentConfig:
 
 
 @dataclass(frozen=True)
+class ExperimentProtocol:
+    """Versioned matrix and metric rules for one experiment campaign."""
+
+    name: str
+    protocol_version: str
+    short_chunk_fraction: float
+    policy_paths: tuple[Path, ...]
+    allowed_corpus_directories: tuple[str, ...]
+    deterministic_ordering: bool
+    selective_overlap_for_oversized_sections: bool
+
+
+@dataclass(frozen=True)
 class ExperimentResult:
     """Chunk outputs and scalar metrics for one candidate policy."""
 
     config: ExperimentConfig
     metrics: dict[str, float | int]
     chunks: tuple[ChunkRecord, ...]
+    short_chunk_fraction: float
+
+
+def load_experiment_protocol(path: Path) -> ExperimentProtocol:
+    """Load a versioned experiment protocol and resolve its policy paths."""
+    resolved_path = path.expanduser().resolve(strict=True)
+    raw_config = yaml.safe_load(resolved_path.read_text(encoding="utf-8"))
+    if not isinstance(raw_config, dict):
+        raise TypeError("experiment protocol YAML must contain a mapping")
+    policy_values = raw_config.get("policies")
+    allowed_directories = raw_config.get("allowed_corpus_directories")
+    if not isinstance(policy_values, list) or not policy_values:
+        raise ValueError("experiment protocol must define policies")
+    if not isinstance(allowed_directories, list) or not allowed_directories:
+        raise ValueError(
+            "experiment protocol must define allowed_corpus_directories"
+        )
+    fraction = raw_config.get("short_chunk_fraction", SHORT_CHUNK_FRACTION)
+    if not isinstance(fraction, (float, int)) or not 0 < fraction < 1:
+        raise ValueError("short_chunk_fraction must be between 0 and 1")
+    policy_paths = tuple(
+        (resolved_path.parent / str(policy_value)).resolve(strict=True)
+        for policy_value in policy_values
+    )
+    return ExperimentProtocol(
+        name=_required_protocol_string(raw_config, "name"),
+        protocol_version=_required_protocol_string(
+            raw_config,
+            "protocol_version",
+        ),
+        short_chunk_fraction=float(fraction),
+        policy_paths=policy_paths,
+        allowed_corpus_directories=tuple(
+            str(directory) for directory in allowed_directories
+        ),
+        deterministic_ordering=bool(raw_config.get("deterministic_ordering", True)),
+        selective_overlap_for_oversized_sections=bool(
+            raw_config.get("selective_overlap_for_oversized_sections", True)
+        ),
+    )
 
 
 def load_experiment_config(path: Path) -> ExperimentConfig:
@@ -63,6 +115,8 @@ def load_experiment_config(path: Path) -> ExperimentConfig:
 def run_experiment(
     config: ExperimentConfig,
     tree_sources: tuple[TreeSource, ...],
+    *,
+    short_chunk_fraction: float = SHORT_CHUNK_FRACTION,
 ) -> ExperimentResult:
     """Run one policy deterministically over already parsed note sources."""
     started = perf_counter()
@@ -87,9 +141,15 @@ def run_experiment(
         tree_sources=tree_sources,
         policy=config.policy,
         oversized_sections=oversized_sections,
+        short_chunk_fraction=short_chunk_fraction,
         generation_latency_seconds=perf_counter() - started,
     )
-    return ExperimentResult(config=config, metrics=metrics, chunks=tuple(chunks))
+    return ExperimentResult(
+        config=config,
+        metrics=metrics,
+        chunks=tuple(chunks),
+        short_chunk_fraction=short_chunk_fraction,
+    )
 
 
 def collect_metrics(
@@ -99,14 +159,12 @@ def collect_metrics(
     policy: ChunkingPolicy,
     oversized_sections: int,
     generation_latency_seconds: float,
+    short_chunk_fraction: float = SHORT_CHUNK_FRACTION,
 ) -> dict[str, float | int]:
     """Calculate deterministic structural, provenance and cost metrics."""
     token_lengths = sorted(chunk.token_count for chunk in chunks)
     # A short chunk uses strictly less than 25% of the configured token budget.
-    short_chunk_threshold = max(
-        1,
-        int(policy.chunk_size * SHORT_CHUNK_FRACTION),
-    )
+    short_chunk_threshold = max(1, int(policy.chunk_size * short_chunk_fraction))
     metadata_fields = (
         "section_id",
         "section_path",
@@ -158,7 +216,7 @@ def collect_metrics(
 
 def write_experiment_artifacts(
     result: ExperimentResult,
-    output_dir: Path = DEFAULT_ARTIFACT_DIR,
+    output_dir: Path,
 ) -> Path:
     """Write reviewable JSON/CSV/Markdown/YAML artifacts."""
     run_dir = output_dir / result.config.policy.name
@@ -172,6 +230,7 @@ def write_experiment_artifacts(
             "chunking_version": result.config.chunking_version,
             "chunk_size": result.config.policy.chunk_size,
             "chunk_overlap": result.config.policy.chunk_overlap,
+            "short_chunk_fraction": result.short_chunk_fraction,
             "config_sha256": result.config.config_sha256,
         },
         "metrics": result.metrics,
@@ -204,3 +263,10 @@ def _percentile(values: list[int], quantile: float) -> int:
         return 0
     index = min(len(values) - 1, round((len(values) - 1) * quantile))
     return values[index]
+
+
+def _required_protocol_string(config: dict[str, Any], key: str) -> str:
+    value = config.get(key)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"experiment protocol requires non-empty {key}")
+    return value
