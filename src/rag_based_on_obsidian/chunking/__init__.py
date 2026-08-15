@@ -6,12 +6,17 @@ from rag_based_on_obsidian.chunking.blocks import (
 )
 from rag_based_on_obsidian.chunking.documents import section_to_document
 from rag_based_on_obsidian.chunking.experiments import (
+    DEFAULT_MLFLOW_TRACKING_URI,
     ExperimentConfig,
     ExperimentResult,
+    build_corpus_inputs,
+    build_tree_sources,
     collect_metrics,
     load_experiment_config,
     log_experiment_to_mlflow,
     run_experiment,
+    run_policy_experiment,
+    run_policy_matrix,
     write_experiment_artifacts,
 )
 from rag_based_on_obsidian.chunking.persistence import ChunkRepository
@@ -36,12 +41,15 @@ __all__ = [
     "ChunkRecord",
     "ChunkRepository",
     "ChunkingPolicy",
+    "DEFAULT_MLFLOW_TRACKING_URI",
     "ExperimentConfig",
     "ExperimentResult",
     "MarkdownBlock",
     "SectionNode",
     "SectionTree",
     "build_section_tree",
+    "build_corpus_inputs",
+    "build_tree_sources",
     "chunk_section",
     "chunk_section_tree",
     "collect_metrics",
@@ -49,6 +57,8 @@ __all__ = [
     "load_experiment_config",
     "log_experiment_to_mlflow",
     "run_experiment",
+    "run_policy_experiment",
+    "run_policy_matrix",
     "section_to_document",
     "word_count",
     "write_experiment_artifacts",

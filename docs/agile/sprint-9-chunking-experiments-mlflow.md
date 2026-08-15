@@ -78,13 +78,13 @@ embeddings и RAGAS появятся позже, когда будет гото�
 ## Expected Artifacts
 
 - `configs/chunking/*.yaml` — candidate experiment policies.
-- `src/rag_based_on_obsidian/chunking/experiments.py` — experiment contracts,
-  runner, metrics и MLflow boundary.
-- `tests/test_chunking_experiments.py` — config/metric reproducibility tests.
+- `src/rag_based_on_obsidian/chunking/experiments/` — experiment contracts,
+  corpus runner, matrix runner, CLI и MLflow boundary.
+- `tests/chunking/experiments/` — config, runner, CLI и MLflow tests.
 - `artifacts/chunking/<policy-name>/` — JSON, CSV, Markdown reports и config
   snapshots для каждого candidate run.
-- `mlruns/` или согласованный local MLflow tracking location — только если
-  tracking storage не включён в Git.
+- `mlflow.db` — SQLite metadata backend, не включать в Git.
+- `artifacts/mlflow/` — MLflow artifact store, не включать в Git.
 - Локальный MLflow UI — визуальное сравнение runs `256/512/1024`, overlap
   policies, metrics и artifacts.
 - `docs/architecture/phase-3-chunking.md` — выбранный baseline и handoff contract.
@@ -126,6 +126,7 @@ embeddings и RAGAS появятся позже, когда будет гото�
 | 2026-08-13 | Sprint document created from approved Phase 3 plan | Sprint 9 scope defined; experiments not started |
 | 2026-08-14 | Planning refinement | Ordered protocol, runner, metrics, MLflow UI and visualization artifacts defined; implementation not started |
 | 2026-08-14 | Implementation items 1–8 | Added versioned YAML candidates, experiment contracts, deterministic runner, metric collector, per-policy JSON/CSV/Markdown artifacts under `artifacts/chunking/`, MLflow adapter and focused tests |
+| 2026-08-15 | Experiment package split and orchestration | Moved code to `chunking/experiments/`, added corpus/matrix runner, SQLite-backed MLflow server contract and `experiments_cli.py`; validation pending environment recovery |
 
 ## Validation Evidence
 
@@ -133,15 +134,18 @@ embeddings и RAGAS появятся позже, когда будет гото�
 
 ```text
 uv run ruff check .
-uv run pytest tests/test_chunking_experiments.py -q
+uv run pytest tests/chunking/experiments -q
 uv run pytest -q
+uv run mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root .\artifacts\mlflow --host 127.0.0.1 --port 5000
+uv run experiments-cli --vault-root C:\Users\gigachaDick\obsidianNotes --all-policies --tracking-uri http://127.0.0.1:5000
 ```
 
 ### Test and Lint Results
 
-- Tests: `4 passed` (focused Sprint 9 tests)
-- Tests: `58 passed, 1 skipped, 15 deselected` (full suite)
-- Lint: `All checks passed` (`uv run ruff check .`)
+- Tests: `NOT VERIFIED after package split; uv blocked while resolving hatchling`
+- Previous baseline before package split: `58 passed, 1 skipped, 15 deselected`
+- Lint: `NOT VERIFIED after package split; uv blocked while resolving hatchling`
+- IDE lints: `no errors`
 - CI: `не запускался`
 
 ### Metrics

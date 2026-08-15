@@ -18,6 +18,9 @@ dependencies = [
     "tqdm>=4.70.0",
 ]
 
+[project.scripts]
+experiments-cli = "rag_based_on_obsidian.chunking.experiments.experiments_cli:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

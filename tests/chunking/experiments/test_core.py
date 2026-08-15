@@ -3,11 +3,10 @@ from __future__ import annotations
 from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 
-import rag_based_on_obsidian.chunking.experiments as experiments_module
+import rag_based_on_obsidian.chunking.experiments.mlflow_tracking as tracking_module
 from rag_based_on_obsidian.chunking.experiments import (
     ExperimentConfig,
     load_experiment_config,
-    log_experiment_to_mlflow,
     run_experiment,
     write_experiment_artifacts,
 )
@@ -118,10 +117,11 @@ def test_log_experiment_to_mlflow_logs_run_contract(
             calls.append(("run", run_name)) or FakeRun()
         ),
         log_params=lambda params: calls.append(("params", params)),
+        set_tags=lambda tags: calls.append(("tags", tags)),
         log_metrics=lambda metrics: calls.append(("metrics", metrics)),
         log_artifacts=lambda path: calls.append(("artifacts", path)),
     )
-    monkeypatch.setattr(experiments_module, "mlflow", fake_mlflow)
+    monkeypatch.setattr(tracking_module, "mlflow", fake_mlflow)
 
     policy = ChunkingPolicy(
         name="test",
@@ -138,7 +138,12 @@ def test_log_experiment_to_mlflow_logs_run_contract(
     tree, source = _fixture_source(tmp_path)
     result = run_experiment(config, ((tree, source),))
 
-    assert log_experiment_to_mlflow(result, tmp_path / "artifacts") == "run-123"
+    run_id = tracking_module.log_experiment_to_mlflow(
+        result,
+        tmp_path / "artifacts",
+    )
+
+    assert run_id == "run-123"
     assert any(name == "tracking_uri" for name, _ in calls)
     assert ("experiment", "sprint-9-chunking-experiments") in calls
     assert any(name == "params" for name, _ in calls)
