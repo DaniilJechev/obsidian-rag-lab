@@ -67,8 +67,9 @@ Backlog не является жёстким расписанием. Приор�
 | CHUNK-003 | P1 | done | 3 | Спроектировать SectionTree и typed Markdown blocks | Контракт, hierarchy, section paths, offsets и focused tests реализованы; Sprint 7 merged в `main` |
 | CHUNK-004 | P1 | done | 3 | Определить LangChain Document и ChunkingPolicy contracts | Document adapter, metadata propagation, strict YAML policy и tests реализованы; Sprint 7 merged в `main` |
 | CHUNK-005 | P1 | done | 3 | Добавить YAML validation и sectionization evidence | MLflow sectionization evidence, structural metrics, artifacts и GitHub CI подтверждены |
-| EMB-001 | P1 | idea | 4 | Подключить бесплатную локальную embedding-модель на CPU | `EmbeddingProvider` возвращает vectors нужной размерности |
-| EMB-002 | P2 | idea | 4 | Сравнить batching и ограниченную concurrency | Throughput, latency и ошибки измерены |
+| EMB-001 | P1 | ready | 4 | Создать `EmbeddingProvider` и подключить локальную CPU-модель | Documents/queries получают валидные vectors; model, version, dimension, device и normalization проверены |
+| EMB-002 | P2 | ready | 4 | Реализовать batch embedding pipeline | Versioned chunks обрабатываются batches с progress, retries, failure accounting и temporary JSON manifest |
+| EMB-003 | P1 | ready | 4 | Сравнить local embedding models и подготовить Qdrant handoff | Operational benchmark, MLflow runs, provisional model baseline и versioned Qdrant payload contract документированы |
 | RET-001 | P1 | idea | 5 | Создать Qdrant collection и dense retrieval | Search, payload и metadata filters работают |
 | RET-002 | P1 | idea | 5 | Добавить BM25 и RRF hybrid retrieval | Dense и lexical результаты объединяются воспроизводимо |
 | EVAL-001 | P0 | idea | 7 | Создать gold eval-набор | Вопросы и relevant note/chunk IDs проверены вручную |
@@ -113,5 +114,5 @@ production-like test drive. Sprint 7, Sprint 8 и structural implementation Spri
    gold questions.
 
 Embeddings, retrieval и изменения в `obsidianNotes` остаются вне Phase 3 согласно
-sprint-документам и roadmap. LangGraph относится к более поздней фазе. Все три sprint-а относятся к
-общей GitHub milestone [Phase 3 — LangChain-first Chunking](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/5).
+sprint-документам и roadmap. LangGraph относится к более поздней фазе. Следующий
+фокус — три planned sprint-а Phase 4: `EMB-001`, `EMB-002`, `EMB-003`.
