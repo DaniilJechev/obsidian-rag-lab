@@ -34,7 +34,8 @@ def test_load_chunking_policy_from_yaml() -> None:
 
     assert policy.name == "policy-chunking-512"
     assert policy.chunk_size == 512
-    assert policy.chunk_overlap == 0
+    assert policy.chunk_overlap == 30
+    assert policy.chunking_version == "sprint9-policy-512-v2"
     assert policy.include_heading_context is True
 
 

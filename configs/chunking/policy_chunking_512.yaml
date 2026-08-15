@@ -1,7 +1,7 @@
 name: policy-chunking-512
-chunking_version: sprint9-policy-512-v1
+chunking_version: sprint9-policy-512-v2
 chunk_size: 512
-chunk_overlap: 0
+chunk_overlap: 30
 separators:
   - "\n\n"
   - "\n"

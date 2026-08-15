@@ -18,6 +18,9 @@ DEFAULT_EXPERIMENT_NAME = "sprint-9-chunking-experiments"
 DEFAULT_EXPERIMENT_PROTOCOL_PATH = (
     PROJECT_ROOT / "configs" / "experiments" / "sprint9_chunking.yaml"
 )
+DEFAULT_CHUNK_INGESTION_CONFIG_PATH = (
+    PROJECT_ROOT / "configs" / "ingestion" / "chunk_ingestion.yaml"
+)
 from rag_based_on_obsidian.chunking.policy import ChunkingPolicy
 
 
@@ -38,6 +41,7 @@ class AppConfig:
     experiment_artifact_dir: Path = DEFAULT_EXPERIMENT_ARTIFACT_DIR
     experiment_name: str = DEFAULT_EXPERIMENT_NAME
     experiment_protocol_path: Path = DEFAULT_EXPERIMENT_PROTOCOL_PATH
+    chunk_ingestion_config_path: Path = DEFAULT_CHUNK_INGESTION_CONFIG_PATH
 
 
 def load_config(*, vault_root_override: Path | None = None) -> AppConfig:
@@ -100,6 +104,12 @@ def load_config(*, vault_root_override: Path | None = None) -> AppConfig:
             os.environ.get(
                 "EXPERIMENT_PROTOCOL_PATH",
                 str(DEFAULT_EXPERIMENT_PROTOCOL_PATH),
+            )
+        ).expanduser(),
+        chunk_ingestion_config_path=Path(
+            os.environ.get(
+                "CHUNK_INGESTION_CONFIG_PATH",
+                str(DEFAULT_CHUNK_INGESTION_CONFIG_PATH),
             )
         ).expanduser(),
     )

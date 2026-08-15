@@ -79,7 +79,9 @@ embeddings и RAGAS появятся позже, когда будет гото�
 
 - `configs/chunking/*.yaml` — candidate experiment policies.
 - `src/rag_based_on_obsidian/chunking/experiments/` — experiment contracts,
-  corpus runner, matrix runner, CLI и MLflow boundary.
+  corpus runner, matrix runner и MLflow boundary.
+- `src/rag_based_on_obsidian/chunking/chunking_cli.py` —
+  CLI для experiments и полной materialization выбранной policy в PostgreSQL.
 - `tests/chunking/experiments/` — config, runner, CLI и MLflow tests.
 - `artifacts/chunking/<policy-name>/` — JSON, CSV, Markdown reports и config
   snapshots для каждого candidate run.
@@ -126,7 +128,8 @@ embeddings и RAGAS появятся позже, когда будет гото�
 | 2026-08-13 | Sprint document created from approved Phase 3 plan | Sprint 9 scope defined; experiments not started |
 | 2026-08-14 | Planning refinement | Ordered protocol, runner, metrics, MLflow UI and visualization artifacts defined; implementation not started |
 | 2026-08-14 | Implementation items 1–8 | Added versioned YAML candidates, experiment contracts, deterministic runner, metric collector, per-policy JSON/CSV/Markdown artifacts under `artifacts/chunking/`, MLflow adapter and focused tests |
-| 2026-08-15 | Experiment package split and orchestration | Moved code to `chunking/experiments/`, added corpus/matrix runner, SQLite-backed MLflow server contract and `experiments_cli.py`; validation pending environment recovery |
+| 2026-08-15 | Experiment package split and orchestration | Moved experiment internals to `chunking/experiments/`, added corpus/matrix runner, SQLite-backed MLflow server contract and `chunking_cli.py`; validation pending environment recovery |
+| 2026-08-15 | PostgreSQL chunk materialization | Added `--to-pg`; the command clears `chunks` and rebuilds it atomically from one explicit YAML policy; real-vault run and PostgreSQL checks confirmed by owner |
 
 ## Validation Evidence
 
@@ -137,22 +140,30 @@ uv run ruff check .
 uv run pytest tests/chunking/experiments -q
 uv run pytest -q
 uv run mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root .\artifacts\mlflow --host 127.0.0.1 --port 5000
-uv run experiments-cli --vault-root C:\Users\gigachaDick\obsidianNotes --all-policies --tracking-uri http://127.0.0.1:5000
+uv run chunking-cli --vault-root C:\Users\gigachaDick\obsidianNotes --all-policies --tracking-uri http://127.0.0.1:5000
+uv run alembic upgrade head
+uv run chunking-cli --vault-root C:\Users\gigachaDick\obsidianNotes --policy policy_chunking_512 --to-pg
 ```
 
 ### Test and Lint Results
 
-- Tests: `NOT VERIFIED after package split; uv blocked while resolving hatchling`
-- Previous baseline before package split: `58 passed, 1 skipped, 15 deselected`
-- Lint: `NOT VERIFIED after package split; uv blocked while resolving hatchling`
+- Tests: `62 passed, 1 skipped, 15 deselected`
+- Focused CLI/config and full suite passed after the CLI move and PostgreSQL
+  full-refresh path.
+- Lint: `uv run ruff check .` — `All checks passed`
 - IDE lints: `no errors`
-- CI: `не запускался`
+- CI: `не запускался локально; remote CI не является частью текущего commit/push шага`
+- PostgreSQL migration: owner confirmed `uv run alembic upgrade head`
+- PostgreSQL materialization: owner confirmed successful real-vault execution,
+  row-count, `chunking_version`, stale-row, `note_id`, offset and metadata checks
+- Manual PostgreSQL integration test: owner confirmed passed
 
 ### Metrics
 
-До запуска не фиксируются значения chunk count, length percentiles, rates,
-latency или storage. Sprint должен сохранить фактические значения и контекст
-каждого run в MLflow и generated reports.
+Фактические per-policy metrics сохраняются в generated reports и MLflow.
+PostgreSQL materialization использует одну явно выбранную policy; перед записью
+таблица `chunks` полностью очищается, поэтому в базе остаётся только актуальная
+generation.
 
 ## Review
 
@@ -167,8 +178,11 @@ latency или storage. Sprint должен сохранить фактичес�
 
 ### Not Completed
 
-- Full-corpus YAML runs, local MLflow UI verification, candidate comparison и
-  baseline selection ещё не выполнялись.
+- Retrieval-based semantic baseline selection отложен до Phase 4/7, когда будут
+  embeddings и gold questions.
+- Полный audit trail через `index_versions`, `ingestion_runs` и
+  `ingestion_states` для нового `--to-pg` path остаётся отдельным production
+  hardening item; он не блокирует chunking → PostgreSQL handoff.
 
 ### Changed Decisions
 
@@ -199,14 +213,15 @@ latency или storage. Sprint должен сохранить фактичес�
 
 ## Completion
 
-- [ ] Definition of Done проверен.
+- [ ] Definition of Done проверен полностью; implementation и structural
+  validation завершены, semantic baseline отложен до embeddings/evaluation.
 - [ ] Review проведён.
 - [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
+- [ ] Commit/push выполнены; PR/merge выполняются отдельным closeout workflow.
 - [ ] Backlog обновлён.
-- [x] Следующий sprint выбран или запланирован: Sprint 9 planned; implementation
-  ещё не начата.
+- [x] Следующий sprint выбран или запланирован: Phase 4 embeddings/evaluation
+  handoff подготовлен.
 
-**Итоговый статус:** `implementation-in-progress`
+**Итоговый статус:** `ready-for-closeout`
 
-**Дата завершения:** `не завершён`
+**Дата завершения:** `2026-08-15`

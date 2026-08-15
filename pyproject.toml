@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-experiments-cli = "rag_based_on_obsidian.chunking.experiments.experiments_cli:main"
+chunking-cli = "rag_based_on_obsidian.chunking.chunking_cli:main"
 
 [build-system]
 requires = ["hatchling"]

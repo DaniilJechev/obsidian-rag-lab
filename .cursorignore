@@ -18,6 +18,8 @@ __pycache__/
 artifacts/*
 !artifacts/eda/
 !artifacts/eda/**
+!artifacts/chunking/
+!artifacts/chunking/**
 *.db
 *.sqlite
 *.sqlite3

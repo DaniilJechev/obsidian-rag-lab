@@ -25,6 +25,11 @@ class ChunkRepository:
             self._insert_generation(records)
         return len(records)
 
+    def clear_all(self) -> int:
+        """Delete every stored chunk before a full corpus materialization."""
+        result = self.connection.execute(delete(chunks))
+        return result.rowcount or 0
+
     def replace_generation(self, records: Sequence[ChunkRecord]) -> int:
         """Atomically regenerate one version without leaving stale rows."""
         if not records:

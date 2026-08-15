@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from rag_based_on_obsidian.chunking.experiments.experiments_cli import main
+from rag_based_on_obsidian.chunking.chunking_cli import main
 
 
 def test_cli_dry_run_discovers_corpus_without_tracking(tmp_path: Path, capsys) -> None:

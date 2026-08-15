@@ -1,0 +1,4 @@
+# Defaults for fully replacing the PostgreSQL chunks table.
+allowed_corpus_directories:
+  - DLS1
+  - DLS2
