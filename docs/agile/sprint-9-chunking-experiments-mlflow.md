@@ -1,6 +1,6 @@
 # Sprint 9 — Chunking Experiments and MLflow Baseline
 
-> Статус: `ready-for-closeout`
+> Статус: `completed`
 >
 > Ветка реализации: `sprint/9-chunking-experiments-mlflow`
 >
@@ -33,32 +33,32 @@ embeddings и RAGAS появятся позже, когда будет гото�
 
 ## Scope
 
-- [ ] Зафиксировать experiment protocol: полный allowlisted corpus `DLS1 + DLS2`,
+- [x] Зафиксировать experiment protocol: полный allowlisted corpus `DLS1 + DLS2`,
   deterministic ordering, parser/chunking versions, Git commit и критерии
   baseline.
-- [ ] Определить typed experiment/result contracts: config identity, run
+- [x] Определить typed experiment/result contracts: config identity, run
   identity, `chunking_version`, metric schema и output manifest.
-- [ ] Подготовить YAML candidate policies `256`, `512` и `1024` через
+- [x] Подготовить YAML candidate policies `256`, `512` и `1024` через
   deterministic `estimated_token_count`.
-- [ ] Зафиксировать в каждой YAML separators, selective-overlap policy,
+- [x] Зафиксировать в каждой YAML separators, selective-overlap policy,
   structural-block preservation rules и `chunking_version`.
-- [ ] Реализовать deterministic experiment runner поверх `ChunkingPolicy` и
+- [x] Реализовать deterministic experiment runner поверх `ChunkingPolicy` и
   `chunk_section_tree`.
-- [ ] Собрать metrics: chunk count, median/mean/p95 length, rate of chunks
+- [x] Собрать metrics: chunk count, median/mean/p95 length, rate of chunks
   strictly below 25% of the configured token budget, explicit short-chunk
   threshold, oversized-section count, overlap usage, boundary violations,
   duplicate hashes, metadata completeness, storage size и generation latency.
-- [ ] Сгенерировать JSON summary, CSV comparison data, Markdown report и
+- [x] Сгенерировать JSON summary, CSV comparison data, Markdown report и
   YAML/config snapshots в `artifacts/chunking/<policy-name>/`; визуальное
   сравнение выполнять через MLflow UI.
-- [ ] Логировать каждый run в локальный MLflow: parameters, metrics, tags,
+- [x] Логировать каждый run в локальный MLflow: parameters, metrics, tags,
   Git commit, config snapshot и artifacts.
-- [ ] Подключить локальный MLflow UI к tracking location, открыть его в
+- [x] Подключить локальный MLflow UI к tracking location, открыть его в
   браузере и проверить отображение runs, параметров, metrics и artifacts для
   всех candidate policies.
-- [ ] Добавить reproducibility tests для config, deterministic rerun, metrics,
+- [x] Добавить reproducibility tests для config, deterministic rerun, metrics,
   artifacts и selective overlap.
-- [ ] Выполнить controlled matrix: `256/512/1024` с no-overlap baseline и
+- [x] Выполнить controlled matrix: `256/512/1024` с no-overlap baseline и
   selective overlap только для oversized text sections.
 - [x] Сравнить structural properties runs в MLflow UI и сохранить provisional
   candidate set по нескольким заранее объявленным критериям.
@@ -95,22 +95,22 @@ embeddings и RAGAS появятся позже, когда будет гото�
 
 ## Acceptance Criteria
 
-- [ ] Каждый experiment run однозначно связан с YAML config и chunking version.
-- [ ] Повторный запуск той же конфигурации даёт сопоставимые deterministic metrics.
-- [ ] MLflow содержит параметры, метрики и artifacts фактически выполненных runs.
-- [ ] Локальный MLflow UI запускается с согласованным tracking location и
+- [x] Каждый experiment run однозначно связан с YAML config и chunking version.
+- [x] Повторный запуск той же конфигурации даёт сопоставимые deterministic metrics.
+- [x] MLflow содержит параметры, метрики и artifacts фактически выполненных runs.
+- [x] Локальный MLflow UI запускается с согласованным tracking location и
   показывает все фактически выполненные runs без потери parameters, metrics и
   artifacts.
-- [ ] Reports позволяют сравнить кандидатов без чтения внутреннего кода.
-- [ ] Отдельно видны oversized sections и влияние selective overlap.
-- [ ] Boundary violations и metadata completeness измеряются, а не оцениваются субъективно.
+- [x] Reports позволяют сравнить кандидатов без чтения внутреннего кода.
+- [x] Отдельно видны oversized sections и влияние selective overlap.
+- [x] Boundary violations и metadata completeness измеряются, а не оцениваются субъективно.
 - [x] Structural candidate set и критерии сравнения зафиксированы; semantic
   baseline selection явно deferred до Phase 4/7.
-- [ ] MLflow UI показывает сравнение runs по размерам и overlap policy;
+- [x] MLflow UI показывает сравнение runs по размерам и overlap policy;
   JSON/CSV/Markdown artifacts сохраняют воспроизводимые результаты без
   обязательного plotting stack.
-- [ ] Phase 4 получает versioned contract с chunk text, metadata и source identity.
-- [ ] Generated tracking data и секреты не попадают в Git.
+- [x] Phase 4 получает versioned contract с chunk text, metadata и source identity.
+- [x] Generated tracking data и секреты не попадают в Git.
 
 ## Definition of Done
 
@@ -119,7 +119,7 @@ embeddings и RAGAS появятся позже, когда будет гото�
   явно перенесён в Phase 4/7.
 - [x] Тесты добавлены или обновлены и проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит: PR #26 required check `Lint and test` завершился `SUCCESS`.
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
 - [x] Provisional baseline, ограничения и Phase 4 handoff записаны в этот
@@ -135,6 +135,7 @@ embeddings и RAGAS появятся позже, когда будет гото�
 | 2026-08-14 | Implementation items 1–8 | Added versioned YAML candidates, experiment contracts, deterministic runner, metric collector, per-policy JSON/CSV/Markdown artifacts under `artifacts/chunking/`, MLflow adapter and focused tests |
 | 2026-08-15 | Experiment package split and orchestration | Moved experiment internals to `chunking/experiments/`, added corpus/matrix runner, SQLite-backed MLflow server contract and `chunking_cli.py`; validation pending environment recovery |
 | 2026-08-15 | PostgreSQL chunk materialization | Added `--to-pg`; the command clears `chunks` and rebuilds it atomically from one explicit YAML policy; real-vault run and PostgreSQL checks confirmed by owner |
+| 2026-08-15 | PR and merge closeout | PR [#26](https://github.com/DaniilJechev/obsidian-rag-lab/pull/26) merged into `main` as `60259d9`; CI passed; independent review was waived by owner |
 
 ## Validation Evidence
 
@@ -180,6 +181,15 @@ generation.
   параметрами сравнения.
 - MLflow выбран основным tracking/UI; JSON/CSV artifacts используются для
   воспроизводимых данных, Markdown report — для review.
+- PR [#26](https://github.com/DaniilJechev/obsidian-rag-lab/pull/26) merged в
+  `main` commit `60259d9`; required CI check passed.
+
+### Review waiver
+
+- Независимое review не проводилось: `reviews = []`.
+- Владелец репозитория осознанно выполнил merge без review и отдельно разрешил
+  завершить cleanup ветки.
+- Это зафиксировано как review waiver, а не как выполненное independent review.
 
 ### Not Completed
 
@@ -225,15 +235,15 @@ generation.
 
 ## Completion
 
-- [ ] Definition of Done проверен полностью; implementation и structural
-  validation завершены, CI и review ожидают Pull Request.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/push выполнены; PR/merge выполняются отдельным closeout workflow.
+- [x] Definition of Done проверен с documented review waiver; implementation,
+  structural validation и CI завершены.
+- [x] Review waiver зафиксирован; independent review не проводился.
+- [x] Retrospective заполнена.
+- [x] Commit/push/PR/merge выполнены.
 - [x] Backlog обновлён.
 - [x] Следующий sprint выбран или запланирован: Phase 4 embeddings/evaluation
   handoff подготовлен.
 
-**Итоговый статус:** `ready-for-closeout`
+**Итоговый статус:** `completed`
 
 **Дата завершения:** `2026-08-15`
