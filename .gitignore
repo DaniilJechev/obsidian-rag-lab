@@ -9,3 +9,6 @@ mlruns/
 mlflow.db
 mlflow.db-*
 .cursor/
+
+# Keep intentional directory placeholders tracked.
+!.gitkeep
