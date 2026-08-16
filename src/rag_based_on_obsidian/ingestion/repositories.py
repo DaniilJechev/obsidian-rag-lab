@@ -2,15 +2,18 @@
 
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from pathlib import PurePosixPath
 from typing import Any
 
-from sqlalchemy import Connection, insert, select, text, update
+from sqlalchemy import Connection, delete, insert, select, text, update
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 
+from rag_based_on_obsidian.corpus.markdown_entities import Wikilink
 from rag_based_on_obsidian.db.schema import (
     index_versions,
     ingestion_runs,
     ingestion_states,
+    note_links,
     notes,
 )
 from rag_based_on_obsidian.ingestion.contracts import (
@@ -109,6 +112,60 @@ class NoteRepository:
             )
             for row in rows
         ]
+
+
+class NoteLinkRepository:
+    """Synchronize and resolve persisted Obsidian note links."""
+
+    def __init__(self, connection: Connection) -> None:
+        self.connection = connection
+
+    def replace_for_source(
+        self,
+        source_note_id: int,
+        wikilinks: tuple[Wikilink, ...],
+    ) -> None:
+        """Replace one source's links while preserving unresolved targets."""
+        self.connection.execute(
+            delete(note_links).where(note_links.c.source_note_id == source_note_id)
+        )
+        values = _link_values(source_note_id, wikilinks)
+        if values:
+            self.connection.execute(insert(note_links), values)
+
+    def resolve_targets(self) -> None:
+        """Resolve targets deterministically after all notes are upserted."""
+        note_rows = self.connection.execute(
+            select(
+                notes.c.note_id,
+                notes.c.relative_path,
+                notes.c.title,
+            )
+        ).mappings()
+        path_index: dict[str, list[int]] = {}
+        title_index: dict[str, list[int]] = {}
+        for row in note_rows:
+            path_key = _normalize_note_path(row["relative_path"])
+            title_key = row["title"].casefold()
+            path_index.setdefault(path_key, []).append(row["note_id"])
+            title_index.setdefault(title_key, []).append(row["note_id"])
+
+        links = self.connection.execute(
+            select(note_links.c.link_id, note_links.c.target_reference).where(
+                note_links.c.link_type == "wikilink"
+            )
+        ).mappings()
+        for link in links:
+            target_id = _resolve_target_id(
+                link["target_reference"],
+                path_index=path_index,
+                title_index=title_index,
+            )
+            self.connection.execute(
+                update(note_links)
+                .where(note_links.c.link_id == link["link_id"])
+                .values(target_note_id=target_id)
+            )
 
 
 class IndexVersionRepository:
@@ -275,3 +332,63 @@ def _note_values(incoming: IncomingNote) -> dict[str, Any]:
         "parser_version": incoming.parser_version,
         "updated_at": datetime.now(UTC),
     }
+
+
+def _link_values(
+    source_note_id: int,
+    wikilinks: tuple[Wikilink, ...],
+) -> list[dict[str, Any]]:
+    """Convert links to rows and remove duplicates rejected by the DB key."""
+    values: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for wikilink in wikilinks:
+        identity = (wikilink.target, "wikilink")
+        if identity in seen:
+            continue
+        seen.add(identity)
+        values.append(
+            {
+                "source_note_id": source_note_id,
+                "target_note_id": None,
+                "target_reference": wikilink.target,
+                "display_text": wikilink.alias,
+                "link_type": "wikilink",
+            }
+        )
+    return values
+
+
+def _normalize_note_path(relative_path: str) -> str:
+    """Normalize a vault-relative Markdown path for case-insensitive matching."""
+    path = PurePosixPath(relative_path).as_posix()
+    return path[:-3].casefold() if path.casefold().endswith(".md") else path.casefold()
+
+
+def _base_target_reference(target_reference: str) -> str:
+    """Drop heading/block selectors while retaining the original DB value."""
+    selector_positions = [
+        position
+        for position in (target_reference.find("#"), target_reference.find("^"))
+        if position >= 0
+    ]
+    base = (
+        target_reference[: min(selector_positions)]
+        if selector_positions
+        else target_reference
+    )
+    return base.strip().removeprefix("./").removesuffix(".md")
+
+
+def _resolve_target_id(
+    target_reference: str,
+    *,
+    path_index: dict[str, list[int]],
+    title_index: dict[str, list[int]],
+) -> int | None:
+    """Resolve an Obsidian target only when its identity is unambiguous."""
+    base = _base_target_reference(target_reference)
+    path_matches = path_index.get(base.casefold(), [])
+    if len(path_matches) == 1:
+        return path_matches[0]
+    title_matches = title_index.get(PurePosixPath(base).name.casefold(), [])
+    return title_matches[0] if len(title_matches) == 1 else None

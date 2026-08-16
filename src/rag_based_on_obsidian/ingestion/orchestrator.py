@@ -22,6 +22,7 @@ from rag_based_on_obsidian.ingestion.repositories import (
     IndexVersionRepository,
     IngestionRunRepository,
     IngestionStateRepository,
+    NoteLinkRepository,
     NoteRepository,
     acquire_ingestion_lock,
 )
@@ -48,6 +49,7 @@ def run_ingestion(
     run_repository = IngestionRunRepository(connection)
     state_repository = IngestionStateRepository(connection)
     index_repository = IndexVersionRepository(connection)
+    link_repository = NoteLinkRepository(connection)
 
     transaction_context = (
         connection.begin()
@@ -85,6 +87,7 @@ def run_ingestion(
                         note_id = note_repository.upsert(incoming)
                     else:
                         note_id = previous.note_id
+                    link_repository.replace_for_source(note_id, incoming.wikilinks)
                     state_repository.record(
                         note_id=note_id,
                         run_id=run_id,
@@ -133,6 +136,7 @@ def run_ingestion(
                 status=IngestionDecision.STALE.value,
             )
 
+        link_repository.resolve_targets()
         run_status = (
             "failed"
             if counters.total > 0 and counters.failed == counters.total
@@ -176,6 +180,7 @@ def _build_incoming_note(
     return IncomingNote.from_statistics(
         statistics,
         parser_version=parser_version,
+        wikilinks=parsed_document.wikilinks,
     )
 
 

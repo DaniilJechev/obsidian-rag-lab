@@ -9,6 +9,7 @@ from typing import Any
 from rag_based_on_obsidian.corpus.inventory_entities import (
     DocumentStatistics,
 )
+from rag_based_on_obsidian.corpus.markdown_entities import Wikilink
 
 
 class IngestionDecision(StrEnum):
@@ -48,6 +49,7 @@ class IncomingNote:
     anomalies: list[str]
     parser_version: str
     source_mtime: datetime | None = None
+    wikilinks: tuple[Wikilink, ...] = ()
 
     @classmethod
     def from_statistics(
@@ -55,6 +57,7 @@ class IncomingNote:
         statistics: DocumentStatistics,
         *,
         parser_version: str,
+        wikilinks: tuple[Wikilink, ...] = (),
     ) -> "IncomingNote":
         """Convert the existing inventory contract into a DB write contract."""
         if statistics.content_hash is None:
@@ -83,6 +86,7 @@ class IncomingNote:
             },
             anomalies=list(statistics.anomalies),
             parser_version=parser_version,
+            wikilinks=wikilinks,
         )
 
 
