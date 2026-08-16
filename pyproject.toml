@@ -15,11 +15,14 @@ dependencies = [
     "pyyaml>=6.0.3",
     "seaborn>=0.13.2",
     "sqlalchemy>=2.0.52",
+    "torch>=2.13.0",
     "tqdm>=4.70.0",
+    "transformers>=5.15.0",
 ]
 
 [project.scripts]
 chunking-cli = "rag_based_on_obsidian.chunking.chunking_cli:main"
+embedding-smoke = "rag_based_on_obsidian.embeddings.smoke:main"
 
 [build-system]
 requires = ["hatchling"]

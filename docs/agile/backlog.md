@@ -67,7 +67,7 @@ Backlog не является жёстким расписанием. Приор�
 | CHUNK-003 | P1 | done | 3 | Спроектировать SectionTree и typed Markdown blocks | Контракт, hierarchy, section paths, offsets и focused tests реализованы; Sprint 7 merged в `main` |
 | CHUNK-004 | P1 | done | 3 | Определить LangChain Document и ChunkingPolicy contracts | Document adapter, metadata propagation, strict YAML policy и tests реализованы; Sprint 7 merged в `main` |
 | CHUNK-005 | P1 | done | 3 | Добавить YAML validation и sectionization evidence | MLflow sectionization evidence, structural metrics, artifacts и GitHub CI подтверждены |
-| EMB-001 | P1 | ready | 4 | Создать `EmbeddingProvider` и подключить локальную CPU-модель | Documents/queries получают валидные vectors; model, version, dimension, device и normalization проверены |
+| EMB-001 | P1 | done | 4 | Создать `EmbeddingProvider` и подключить локальную CPU-модель | Contract, `multilingual-e5-small` CPU provider, pooling, normalization, vector validation, tests и MLflow smoke run `a023f4a528314856b36eafdb9ec5794c` подтверждены в Sprint 10 |
 | EMB-002 | P2 | ready | 4 | Реализовать batch embedding pipeline | Versioned chunks обрабатываются batches с progress, retries, failure accounting и temporary JSON manifest |
 | EMB-003 | P1 | ready | 4 | Сравнить local embedding models и подготовить Qdrant handoff | Operational benchmark, MLflow runs, provisional model baseline и versioned Qdrant payload contract документированы |
 | RET-001 | P1 | idea | 5 | Создать Qdrant collection и dense retrieval | Search, payload и metadata filters работают |
@@ -112,6 +112,10 @@ production-like test drive. Sprint 7, Sprint 8 и structural implementation Spri
    (`CHUNK-002`; GitHub [#21](https://github.com/DaniilJechev/obsidian-rag-lab/issues/21))
    — structural scope done; semantic baseline selection deferred до embeddings и
    gold questions.
+4. Sprint 10: local CPU `EmbeddingProvider`, multilingual E5 smoke inference и
+   MLflow operational tracking (`EMB-001`; GitHub
+   [#28](https://github.com/DaniilJechev/obsidian-rag-lab/issues/28))
+   — implementation complete; remote closeout pending.
 
 Embeddings, retrieval и изменения в `obsidianNotes` остаются вне Phase 3 согласно
 sprint-документам и roadmap. LangGraph относится к более поздней фазе. Следующий
