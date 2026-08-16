@@ -69,9 +69,9 @@ Backlog не является жёстким расписанием. Приор�
 | CHUNK-005 | P1 | done | 3 | Добавить YAML validation и sectionization evidence | MLflow sectionization evidence, structural metrics, artifacts и GitHub CI подтверждены |
 | EMB-001 | P1 | done | 4 | Создать `EmbeddingProvider` и подключить локальную CPU-модель | Contract, `multilingual-e5-small` CPU provider, pooling, normalization, vector validation, tests и MLflow smoke run `a023f4a528314856b36eafdb9ec5794c` подтверждены в Sprint 10 |
 | EMB-002 | P2 | done | 4 | Реализовать batch embedding pipeline | Versioned chunks обрабатываются batches с progress, retries, failure accounting и temporary JSON manifest; Sprint 11 merged in PR [#35](https://github.com/DaniilJechev/obsidian-rag-lab/pull/35), merge commit `60324d7`, CI passed |
-| EMB-003 | P1 | ready | 4 | Сравнить local embedding models и подготовить Qdrant handoff | Operational benchmark, MLflow runs, provisional model baseline и versioned Qdrant payload contract документированы |
-| RET-001 | P1 | idea | 5 | Создать Qdrant collection и dense retrieval | Search, payload и metadata filters работают |
-| RET-002 | P1 | idea | 5 | Добавить BM25 и RRF hybrid retrieval | Dense и lexical результаты объединяются воспроизводимо |
+| EMB-003 | P1 | deferred | 4 | Сравнить local embedding models и подготовить Qdrant handoff | Отложено до появления evaluation-ready этапа; `multilingual-e5-small` используется как provisional baseline, а Qdrant handoff реализуется отдельно в Phase 5 |
+| RET-001 | P1 | ready | 5 | Создать Qdrant collection и dense retrieval | Sprint 14: direct batch upsert, versioned collection/payload, idempotency, consistency verification, dense search foundation |
+| RET-002 | P1 | ready | 5 | Добавить BM25 и RRF hybrid retrieval | Sprint 15: `LexicalIndex`, BM25, RRF fusion, retrieval contract и synthetic smoke search |
 | EVAL-001 | P0 | idea | 7 | Создать gold eval-набор | Вопросы и relevant note/chunk IDs проверены вручную |
 | EVAL-002 | P0 | idea | 7 | Реализовать nDCG@k и MRR@k | Метрики считаются тестами на фиксированном наборе |
 | API-001 | P1 | idea | 8 | Создать FastAPI retriever service | `/health`, `/ingest`, `/search` имеют контракты и тесты |
@@ -99,7 +99,9 @@ Backlog не является жёстким расписанием. Приор�
 
 Фазы 1 и 2 завершены; Phase 2 закрыта после Sprint 6 и полного DLS1+DLS2
 production-like test drive. Sprint 7, Sprint 8 и structural implementation Sprint 9
-завершены. Следующая готовая работа относится к Phase 4:
+завершены. Технический scope Phase 4 завершён в Sprint 10 и Sprint 11;
+сравнение embedding-моделей (`EMB-003`) сознательно отложено до
+evaluation-ready этапа. Следующая готовая работа относится к Phase 5:
 
 1. Sprint 7: SectionTree, typed blocks, LangChain Documents и policy contracts
    (`CHUNK-003`, `CHUNK-004`, `CHUNK-005`; GitHub [#19](https://github.com/DaniilJechev/obsidian-rag-lab/issues/19)).
@@ -122,8 +124,18 @@ production-like test drive. Sprint 7, Sprint 8 и structural implementation Spri
    operational tracking (`EMB-002`; GitHub
    [#30](https://github.com/DaniilJechev/obsidian-rag-lab/issues/30))
    — completed; PR [#35](https://github.com/DaniilJechev/obsidian-rag-lab/pull/35)
-   merged. Следующий фокус — Sprint 12 (`EMB-003`).
+   merged. `EMB-003` deferred; JSON остаётся только историческим временным
+   handoff Sprint 11 и будет удалён из runtime в Phase 5.
 
-Embeddings, retrieval и изменения в `obsidianNotes` остаются вне Phase 3 согласно
-sprint-документам и roadmap. LangGraph относится к более поздней фазе. Следующий
-фокус — три planned sprint-а Phase 4: `EMB-001`, `EMB-002`, `EMB-003`.
+6. Sprint 14: direct Qdrant vector storage и versioned handoff
+   (`RET-001`; planning document:
+   `docs/agile/sprint-14-qdrant-vector-storage.md`).
+
+7. Sprint 15: dense search, BM25, RRF и retrieval contracts
+   (`RET-002`; planning document:
+   `docs/agile/sprint-15-retrieval-foundation.md`).
+
+Semantic evaluation, gold questions и RAGAS остаются в Phase 7, а OpenRouter
+generation — в Phase 9. LangGraph относится к более поздней фазе. Sprint 14 и
+Sprint 15 создают только технический vector/retrieval foundation; они не
+утверждают качество embeddings или retrieval.
