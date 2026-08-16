@@ -1,6 +1,6 @@
 # Sprint 11 — Batch Embedding Pipeline and Temporary Artifacts
 
-> Статус: `planned`
+> Статус: `ready-for-closeout`
 >
 > Ветка: `sprint/11-batch-embedding-pipeline`
 >
@@ -24,13 +24,13 @@ production vector store и будет удалён после Qdrant handoff в 
 
 ## Scope
 
-- [ ] Читать chunks из PostgreSQL по явной `chunking_version`.
-- [ ] Реализовать stable ordering и configurable batch size.
-- [ ] Добавить progress reporting, bounded memory и recoverable retries.
-- [ ] Валидировать dimensions, NaN/Inf и normalization каждого batch.
-- [ ] Сохранять temporary `embeddings.json`, `manifest.json` и `metrics.json`.
-- [ ] Логировать model, chunking и processing metadata в MLflow.
-- [ ] Покрыть pipeline deterministic, failure и rerun tests.
+- [x] Читать chunks из PostgreSQL по явной `chunking_version`.
+- [x] Реализовать stable ordering и configurable batch size.
+- [x] Добавить progress reporting, bounded database batches и recoverable retries.
+- [x] Валидировать dimensions, NaN/Inf и normalization каждого batch.
+- [x] Сохранять temporary `embeddings.json`, `manifest.json` и `metrics.json`.
+- [x] Логировать model, chunking и processing metadata в MLflow.
+- [x] Покрыть pipeline deterministic, failure и rerun tests.
 
 ## Out of Scope
 
@@ -49,30 +49,34 @@ production vector store и будет удалён после Qdrant handoff в 
 
 ## Acceptance Criteria
 
-- [ ] Весь выбранный набор chunks обрабатывается batch pipeline.
-- [ ] Каждый vector однозначно сопоставлен с `chunk_id`.
-- [ ] Все vectors имеют одинаковую dimension.
-- [ ] Failed embeddings видны отдельно и не маскируются.
-- [ ] Повторный запуск контролируем и version-aware.
-- [ ] Manifest содержит model, version, dimension, chunking version и count.
-- [ ] Temporary JSON можно использовать как вход для будущего Qdrant loader.
+- [x] Весь выбранный набор chunks обрабатывается batch pipeline.
+- [x] Каждый vector однозначно сопоставлен с `chunk_id`.
+- [x] Все vectors имеют одинаковую dimension.
+- [x] Failed embeddings видны отдельно и не маскируются.
+- [x] Повторный запуск контролируем и version-aware.
+- [x] Manifest содержит model, version, dimension, chunking version и count.
+- [x] Temporary JSON можно использовать как вход для будущего Qdrant loader.
 
 ## Definition of Done
 
-- [ ] Scope выполнен или явно перенесён в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Tests проходят.
-- [ ] Ruff/lint проходит.
+- [x] Scope выполнен или явно перенесён в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Tests проходят.
+- [x] Ruff/lint проходит.
 - [ ] CI проходит, если изменения отправлены в remote.
-- [ ] Vault не изменён и секреты не добавлены.
-- [ ] Документация и конфигурация обновлены.
-- [ ] Пользователь подтвердил завершение sprint.
+- [x] Vault не изменён и секреты не добавлены.
+- [x] Документация и конфигурация обновлены.
+- [x] Пользователь подтвердил завершение implementation run.
 
 ## Execution Log
 
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | planned | Sprint created | Implementation not started |
+| 2026-08-16 | Batch pipeline implementation | PostgreSQL streaming reader, retries, validation, JSON artifacts and MLflow adapter implemented |
+| 2026-08-16 | Local validation | Ruff passed; 80 passed, 1 skipped, 17 deselected |
+| 2026-08-16 | Full embedding run | 733 chunks processed; 733 vectors succeeded; 0 failures; 23 batches |
+| 2026-08-16 | Rerun verification | User confirmed repeated runs produce the same result and no duplicate artifact entries |
 
 ## Validation Evidence
 
@@ -80,30 +84,45 @@ production vector store и будет удалён после Qdrant handoff в 
 
 ```text
 uv run ruff check .
-uv run pytest tests/embeddings -q
+uv run pytest -q
+uv run rag-cli embed --model-config configs/embeddings/embedder_model_config_e5_small.yaml --batch-config configs/embeddings/pipeline_embedder_config.yaml
 ```
 
 ### Test and Lint Results
 
-- Tests: `NOT VERIFIED — sprint not started`
-- Lint: `NOT VERIFIED — sprint not started`
-- CI: `NOT VERIFIED — no implementation push`
+- Tests: `PASS — 80 passed, 1 skipped, 17 deselected`
+- Lint: `PASS — uv run ruff check .`
+- Full embedding run: `PASS — 733/733 embeddings, 0 failures`
+- Rerun: `PASS — user confirmed identical idempotent result`
+- MLflow: `PASS — metrics observed in MLflow UI; run ID was not captured in the provided output`
+- CI: `NOT VERIFIED — closeout branch not pushed yet`
 
 ### Metrics
 
-Будут измеряться после реализации: processed chunks, success rate, failed
-embeddings, batch throughput, total duration, memory failures и artifact size.
+| Metric | Value | Context |
+|---|---:|---|
+| chunks_total | 733 | Selected `sprint9-policy-512-v2` PostgreSQL generation |
+| embeddings_succeeded | 733 | Full selected dataset run |
+| embeddings_failed | 0 | Full selected dataset run |
+| batches_total | 23 | Pipeline batch size 32 |
+| attempts_total | 23 | No retries required |
+| duration_seconds | 229.3164251 | User-observed MLflow run |
+| embeddings_per_second | 3.196456 | User-observed MLflow run |
+| failure_rate | 0 | User-observed MLflow run |
 
 ## Review
 
 ### Not Completed
 
-- Batch pipeline and temporary artifact contract are not implemented.
+- CI, PR review and merge are not completed yet.
+- Sprint closeout and remote Issue update are not completed yet.
 
 ### Technical Debt
 
 - Full audit integration with `index_versions`, `ingestion_runs` и
   `ingestion_states` remains a separate hardening item.
+- Successful vectors are accumulated in memory until final JSON write; streaming
+  artifact writing is a future memory-hardening improvement.
 
 ## Completion
 
@@ -114,6 +133,6 @@ embeddings, batch throughput, total duration, memory failures и artifact size.
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `ready-for-closeout`
 
-**Дата завершения:** `не завершён`
+**Дата завершения:** `implementation complete; remote closeout pending`

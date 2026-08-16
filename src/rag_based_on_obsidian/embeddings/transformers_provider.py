@@ -62,7 +62,7 @@ class TransformersEmbeddingProvider(EmbeddingProvider):
         return self._embed_texts(
             texts,
             prefix=self._config.document_prefix,
-            show_progress=True,
+            show_progress=self._config.show_progress,
         )
 
     def embed_query(self, text: str) -> EmbeddingVector:

@@ -1,0 +1,10 @@
+name: sprint11-batch-multilingual-e5-small
+chunking_version: sprint9-policy-512-v2
+artifact_dir: artifacts/embeddings/multilingual-e5-small
+batch_size: 32
+max_retries: 2
+retry_backoff_seconds: 1.0
+tracking_uri: http://127.0.0.1:5000
+experiment_name: sprint-11-batch-embedding
+run_name: multilingual-e5-small-batch
+show_progress: true
