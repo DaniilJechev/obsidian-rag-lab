@@ -1,6 +1,6 @@
 # Sprint 11 — Batch Embedding Pipeline and Temporary Artifacts
 
-> Статус: `ready-for-closeout`
+> Статус: `completed`
 >
 > Ветка: `sprint/11-batch-embedding-pipeline`
 >
@@ -63,7 +63,7 @@ production vector store и будет удалён после Qdrant handoff в 
 - [x] Acceptance Criteria проверены.
 - [x] Tests проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлены в remote.
+- [x] CI проходит, если изменения отправлены в remote.
 - [x] Vault не изменён и секреты не добавлены.
 - [x] Документация и конфигурация обновлены.
 - [x] Пользователь подтвердил завершение implementation run.
@@ -77,6 +77,7 @@ production vector store и будет удалён после Qdrant handoff в 
 | 2026-08-16 | Local validation | Ruff passed; 80 passed, 1 skipped, 17 deselected |
 | 2026-08-16 | Full embedding run | 733 chunks processed; 733 vectors succeeded; 0 failures; 23 batches |
 | 2026-08-16 | Rerun verification | User confirmed repeated runs produce the same result and no duplicate artifact entries |
+| 2026-08-16 | PR #35 merged | Merge commit `60324d7`; GitHub CI passed; Issue #30 closed automatically |
 
 ## Validation Evidence
 
@@ -95,7 +96,8 @@ uv run rag-cli embed --model-config configs/embeddings/embedder_model_config_e5_
 - Full embedding run: `PASS — 733/733 embeddings, 0 failures`
 - Rerun: `PASS — user confirmed identical idempotent result`
 - MLflow: `PASS — metrics observed in MLflow UI; run ID was not captured in the provided output`
-- CI: `NOT VERIFIED — closeout branch not pushed yet`
+- CI: `PASS — GitHub Actions `Lint and test` completed successfully in PR #35`
+- Merge: `PASS — PR #35 merged into `main` as `60324d7`
 
 ### Metrics
 
@@ -112,10 +114,37 @@ uv run rag-cli embed --model-config configs/embeddings/embedder_model_config_e5_
 
 ## Review
 
-### Not Completed
+### Completed
 
-- CI, PR review and merge are not completed yet.
-- Sprint closeout and remote Issue update are not completed yet.
+- Owner review and merge completed under the project self-review waiver; GitHub
+  does not allow the PR author to submit a formal approval review.
+- CI and merge evidence are recorded above.
+
+### Retrospective
+
+#### What went well
+
+- Stable PostgreSQL ordering, bounded batches, retry accounting and vector
+  validation are covered by tests.
+- The full selected dataset completed with 733 successful vectors and no
+  failures.
+- Reruns produced the same result, confirming the intended artifact-level
+  idempotency.
+
+#### Difficulties
+
+- CPU inference is slow for the full corpus.
+- One run completed locally while MLflow server availability caused a
+  connection error; the artifacts and MLflow UI evidence were checked
+  separately.
+- Formal GitHub self-approval was unavailable because the PR author cannot
+  approve their own PR.
+
+#### Follow-up
+
+- Sprint 12 will benchmark embedding models and define the Qdrant handoff.
+- Streaming artifact writing and stronger experiment/run identity capture
+  remain technical debt.
 
 ### Technical Debt
 
@@ -126,13 +155,13 @@ uv run rag-cli embed --model-config configs/embeddings/embedder_model_config_e5_
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран.
+- [x] Definition of Done проверен.
+- [x] Review проведён с owner self-review waiver.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены.
+- [x] Backlog обновлён.
+- [x] Следующий sprint выбран: Sprint 12 планируется как следующий Phase 4 sprint.
 
-**Итоговый статус:** `ready-for-closeout`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** `implementation complete; remote closeout pending`
+**Дата завершения:** `2026-08-16`

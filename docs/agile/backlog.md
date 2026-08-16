@@ -68,7 +68,7 @@ Backlog не является жёстким расписанием. Приор�
 | CHUNK-004 | P1 | done | 3 | Определить LangChain Document и ChunkingPolicy contracts | Document adapter, metadata propagation, strict YAML policy и tests реализованы; Sprint 7 merged в `main` |
 | CHUNK-005 | P1 | done | 3 | Добавить YAML validation и sectionization evidence | MLflow sectionization evidence, structural metrics, artifacts и GitHub CI подтверждены |
 | EMB-001 | P1 | done | 4 | Создать `EmbeddingProvider` и подключить локальную CPU-модель | Contract, `multilingual-e5-small` CPU provider, pooling, normalization, vector validation, tests и MLflow smoke run `a023f4a528314856b36eafdb9ec5794c` подтверждены в Sprint 10 |
-| EMB-002 | P2 | ready | 4 | Реализовать batch embedding pipeline | Versioned chunks обрабатываются batches с progress, retries, failure accounting и temporary JSON manifest |
+| EMB-002 | P2 | done | 4 | Реализовать batch embedding pipeline | Versioned chunks обрабатываются batches с progress, retries, failure accounting и temporary JSON manifest; Sprint 11 merged in PR [#35](https://github.com/DaniilJechev/obsidian-rag-lab/pull/35), merge commit `60324d7`, CI passed |
 | EMB-003 | P1 | ready | 4 | Сравнить local embedding models и подготовить Qdrant handoff | Operational benchmark, MLflow runs, provisional model baseline и versioned Qdrant payload contract документированы |
 | RET-001 | P1 | idea | 5 | Создать Qdrant collection и dense retrieval | Search, payload и metadata filters работают |
 | RET-002 | P1 | idea | 5 | Добавить BM25 и RRF hybrid retrieval | Dense и lexical результаты объединяются воспроизводимо |
@@ -116,7 +116,13 @@ production-like test drive. Sprint 7, Sprint 8 и structural implementation Spri
    MLflow operational tracking (`EMB-001`; GitHub
    [#28](https://github.com/DaniilJechev/obsidian-rag-lab/issues/28))
    — completed; PR [#31](https://github.com/DaniilJechev/obsidian-rag-lab/pull/31)
-   merged. Следующий фокус — Sprint 11 (`EMB-002`).
+   merged.
+
+5. Sprint 11: version-aware batch embeddings, temporary JSON artifacts и MLflow
+   operational tracking (`EMB-002`; GitHub
+   [#30](https://github.com/DaniilJechev/obsidian-rag-lab/issues/30))
+   — completed; PR [#35](https://github.com/DaniilJechev/obsidian-rag-lab/pull/35)
+   merged. Следующий фокус — Sprint 12 (`EMB-003`).
 
 Embeddings, retrieval и изменения в `obsidianNotes` остаются вне Phase 3 согласно
 sprint-документам и roadmap. LangGraph относится к более поздней фазе. Следующий
