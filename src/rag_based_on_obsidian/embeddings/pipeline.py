@@ -3,7 +3,7 @@
 import json
 import math
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from time import perf_counter, sleep
 from typing import Any, Protocol
@@ -67,6 +67,7 @@ class BatchEmbeddingResult:
     batches_succeeded: int
     attempts_total: int
     duration_seconds: float
+    mlflow_run_id: str | None = None
 
     @property
     def metrics(self) -> dict[str, float]:
@@ -191,12 +192,12 @@ class BatchEmbeddingPipeline:
         result = self.run(repository)
         writer = artifact_writer or JsonArtifactWriter()
         writer.write(result, provider=self.provider, config=self.config)
-        log_batch_embedding_run(
+        run_id = log_batch_embedding_run(
             provider=self.provider,
             config=self.config,
             metrics=result.metrics,
         )
-        return result
+        return replace(result, mlflow_run_id=run_id)
 
     def _run_batches(
         self,
