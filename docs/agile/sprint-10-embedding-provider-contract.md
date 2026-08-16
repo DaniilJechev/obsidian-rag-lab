@@ -77,6 +77,7 @@ Phase 3 подготовила versioned chunks, но embedding model нельз
 | 2026-08-16 | Implemented provider slice | Contract, multilingual E5 CPU provider, pooling, normalization and MLflow tracking completed |
 | 2026-08-16 | Local validation | Ruff passed; 70 passed, 1 skipped, 16 deselected |
 | 2026-08-16 | CPU/MLflow smoke | Run `a023f4a528314856b36eafdb9ec5794c`; RAM and throughput evidence captured |
+| 2026-08-16 | PR and merge | [PR #31](https://github.com/DaniilJechev/obsidian-rag-lab/pull/31) merged with CI success; merge commit `3fab49856c66b0d1b9e266f28ee0d0a6c13e8c56` |
 
 ## Validation Evidence
 
@@ -93,7 +94,7 @@ uv run pytest tests/embeddings -q
 - Lint: `PASS — uv run ruff check .`
 - CPU smoke: `PASS — multilingual-e5-small, CPU, 2 documents`
 - MLflow: `PASS — run a023f4a528314856b36eafdb9ec5794c`
-- CI: `N/A until sprint branch is published`
+- CI: `PASS — [Lint and test](https://github.com/DaniilJechev/obsidian-rag-lab/actions/runs/31950381824/job/95172830561)`
 
 ### Metrics
 
@@ -110,9 +111,17 @@ uv run pytest tests/embeddings -q
 
 ## Review
 
+### Review Decision
+
+- PR [#31](https://github.com/DaniilJechev/obsidian-rag-lab/pull/31) was merged
+  by the owner.
+- Independent review was not performed; the owner explicitly accepted a
+  self-merge/review waiver for this sprint.
+- CI required check `Lint and test` passed.
+
 ### Not Completed
 
-- Implementation completed; final model comparison remains deferred to Sprint 12.
+- Final model comparison remains deferred to Sprint 12.
 
 ### Technical Debt
 
@@ -120,16 +129,50 @@ uv run pytest tests/embeddings -q
   before a long-lived production deployment.
 - Tokenizer-aware splitting for chunks over the model limit belongs to the
   follow-up embedding pipeline hardening.
+- Full-corpus batch embedding, retries and temporary JSON manifest belong to
+  Sprint 11.
+- Wikilink persistence into PostgreSQL `note_links` remains a separate
+  ingestion follow-up.
+
+## Retrospective
+
+### What Went Well
+
+- The provider contract isolated pipeline code from Transformers/PyTorch details.
+- A real multilingual CPU inference and MLflow run were completed.
+- Vector normalization, process RSS, throughput and vector norm metrics became
+  visible evidence rather than assumptions.
+- The full local suite remained green throughout the implementation.
+
+### Difficulties
+
+- An inherited `socks4://` proxy environment variable initially blocked the
+  Hugging Face Hub client.
+- The first Windows RSS measurement returned zero because the WinAPI ctypes
+  signature and error handling were incomplete; this was corrected and a new
+  run recorded non-zero memory metrics.
+- The current smoke CLI intentionally processes only two sample documents; it
+  is not yet a full-corpus embedding pipeline.
+
+### Follow-up Actions
+
+- Start Sprint 11 for PostgreSQL chunk loading, batching, retries and manifests.
+- Pin the Hugging Face model revision and add tokenizer-aware overflow handling.
+- Keep Sprint 12 for model comparison and provisional baseline selection.
 
 ## Completion
 
 - [x] Definition of Done проверен локально.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [x] Implementation commits выполнены.
+- [x] Review decision recorded, including the owner self-merge waiver.
+- [x] Retrospective заполнена.
+- [x] Implementation and closeout commits выполнены.
+- [x] PR created and merged.
 - [x] Backlog обновлён.
-- [ ] Следующий sprint выбран.
+- [x] Следующий sprint выбран: Sprint 11.
 
-**Итоговый статус:** `ready-for-closeout`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** `2026-08-16 — implementation complete; remote closeout pending`
+**Дата завершения:** `2026-08-16`
+
+**Phase 4 note:** Milestone [Phase 4 — Local Embeddings](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/6)
+remains open because Sprint 11 and Sprint 12 issues are still open.
