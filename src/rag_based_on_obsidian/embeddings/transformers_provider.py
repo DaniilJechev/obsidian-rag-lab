@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from typing import Any
 
 import torch
+from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 
 from rag_based_on_obsidian.embeddings.contracts import (
@@ -61,6 +62,7 @@ class TransformersEmbeddingProvider(EmbeddingProvider):
         return self._embed_texts(
             texts,
             prefix=self._config.document_prefix,
+            show_progress=True,
         )
 
     def embed_query(self, text: str) -> EmbeddingVector:
@@ -68,6 +70,7 @@ class TransformersEmbeddingProvider(EmbeddingProvider):
         vectors = self._embed_texts(
             [text],
             prefix=self._config.query_prefix,
+            show_progress=False,
         )
         return vectors[0]
 
@@ -76,11 +79,19 @@ class TransformersEmbeddingProvider(EmbeddingProvider):
         texts: Sequence[str],
         *,
         prefix: str,
+        show_progress: bool,
     ) -> list[EmbeddingVector]:
         if any(not text.strip() for text in texts):
             raise ValueError("embedding texts must not be empty")
         vectors: list[EmbeddingVector] = []
-        for start in range(0, len(texts), self._config.batch_size):
+        batch_starts = range(0, len(texts), self._config.batch_size)
+        if show_progress and self._config.show_progress:
+            batch_starts = tqdm(
+                batch_starts,
+                desc="Embedding document batches",
+                unit="batch",
+            )
+        for start in batch_starts:
             batch_texts = [
                 f"{prefix}{text}"
                 for text in texts[start : start + self._config.batch_size]

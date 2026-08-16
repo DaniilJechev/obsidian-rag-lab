@@ -7,3 +7,4 @@ batch_size: 8
 normalized: true
 document_prefix: "passage: "
 query_prefix: "query: "
+show_progress: true

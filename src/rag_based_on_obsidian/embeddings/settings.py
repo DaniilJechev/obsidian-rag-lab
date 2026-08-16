@@ -20,6 +20,7 @@ class EmbeddingModelConfig:
     normalized: bool
     document_prefix: str
     query_prefix: str
+    show_progress: bool = True
 
     def __post_init__(self) -> None:
         """Reject invalid inference settings before model loading."""
