@@ -1,0 +1,9 @@
+name: multilingual-e5-small
+model_name: intfloat/multilingual-e5-small
+model_revision: main
+device: cpu
+max_length: 512
+batch_size: 8
+normalized: true
+document_prefix: "passage: "
+query_prefix: "query: "

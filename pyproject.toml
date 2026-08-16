@@ -22,6 +22,7 @@ dependencies = [
 
 [project.scripts]
 chunking-cli = "rag_based_on_obsidian.chunking.chunking_cli:main"
+embedding-smoke = "rag_based_on_obsidian.embeddings.smoke:main"
 
 [build-system]
 requires = ["hatchling"]

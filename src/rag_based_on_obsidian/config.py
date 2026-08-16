@@ -10,11 +10,15 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ENV_FILE = PROJECT_ROOT / ".env"
 CHUNKING_CONFIG_DIR = PROJECT_ROOT / "configs" / "chunking"
+DEFAULT_EMBEDDING_MODEL_CONFIG_PATH = (
+    PROJECT_ROOT / "configs" / "embeddings" / "multilingual_e5_small.yaml"
+)
 DEFAULT_MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
 DEFAULT_MLFLOW_BACKEND_STORE_URI = "sqlite:///mlflow.db"
 DEFAULT_MLFLOW_ARTIFACT_ROOT = Path("artifacts") / "mlflow"
 DEFAULT_EXPERIMENT_ARTIFACT_DIR = Path("artifacts") / "chunking"
 DEFAULT_EXPERIMENT_NAME = "sprint-9-chunking-experiments"
+DEFAULT_EMBEDDING_EXPERIMENT_NAME = "sprint-10-embedding-smoke"
 DEFAULT_EXPERIMENT_PROTOCOL_PATH = (
     PROJECT_ROOT / "configs" / "experiments" / "sprint9_chunking.yaml"
 )
@@ -42,6 +46,8 @@ class AppConfig:
     experiment_name: str = DEFAULT_EXPERIMENT_NAME
     experiment_protocol_path: Path = DEFAULT_EXPERIMENT_PROTOCOL_PATH
     chunk_ingestion_config_path: Path = DEFAULT_CHUNK_INGESTION_CONFIG_PATH
+    embedding_model_config_path: Path = DEFAULT_EMBEDDING_MODEL_CONFIG_PATH
+    embedding_experiment_name: str = DEFAULT_EMBEDDING_EXPERIMENT_NAME
 
 
 def load_config(*, vault_root_override: Path | None = None) -> AppConfig:
@@ -112,6 +118,16 @@ def load_config(*, vault_root_override: Path | None = None) -> AppConfig:
                 str(DEFAULT_CHUNK_INGESTION_CONFIG_PATH),
             )
         ).expanduser(),
+        embedding_model_config_path=Path(
+            os.environ.get(
+                "EMBEDDING_MODEL_CONFIG_PATH",
+                str(DEFAULT_EMBEDDING_MODEL_CONFIG_PATH),
+            )
+        ).expanduser(),
+        embedding_experiment_name=os.environ.get(
+            "EMBEDDING_EXPERIMENT_NAME",
+            DEFAULT_EMBEDDING_EXPERIMENT_NAME,
+        ),
     )
 
 
