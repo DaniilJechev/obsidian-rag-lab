@@ -138,6 +138,62 @@ def test_note_links_reject_unknown_source(database_connection) -> None:
         )
 
 
+def test_ingestion_persists_and_resolves_wikilinks(
+    database_connection,
+    tmp_path: Path,
+) -> None:
+    """Ingestion stores aliases, resolves targets and remains idempotent."""
+    source_path = tmp_path / "source.md"
+    target_path = tmp_path / "target.md"
+    source_path.write_text(
+        "# Source\n[[DLS2/target#Section|Target note]] [[target]] [[Missing note]]",
+        encoding="utf-8",
+    )
+    target_path.write_text("# Target\nContent.", encoding="utf-8")
+    discovered = [
+        DiscoveredFile(source_path, PurePosixPath("DLS2/source.md")),
+        DiscoveredFile(target_path, PurePosixPath("DLS2/target.md")),
+    ]
+
+    first = run_ingestion(
+        database_connection,
+        discovered,
+        corpus_scope="DLS2",
+    )
+    second = run_ingestion(
+        database_connection,
+        discovered,
+        corpus_scope="DLS2",
+    )
+
+    assert first.new == 2
+    assert second.unchanged == 2
+    target_id = database_connection.scalar(
+        select(notes.c.note_id).where(notes.c.relative_path == "DLS2/target.md")
+    )
+    rows = database_connection.execute(
+        select(
+            note_links.c.target_reference,
+            note_links.c.target_note_id,
+            note_links.c.display_text,
+        )
+        .join(notes, note_links.c.source_note_id == notes.c.note_id)
+        .where(notes.c.relative_path == "DLS2/source.md")
+        .order_by(note_links.c.target_reference)
+    ).all()
+    assert rows == [
+        ("DLS2/target#Section", target_id, "Target note"),
+        ("Missing note", None, None),
+        ("target", target_id, None),
+    ]
+    assert database_connection.scalar(
+        select(func.count())
+        .select_from(note_links)
+        .join(notes, note_links.c.source_note_id == notes.c.note_id)
+        .where(notes.c.relative_path == "DLS2/source.md")
+    ) == 3
+
+
 def test_ingestion_states_require_valid_status_and_relationships(
     database_connection,
 ) -> None:
