@@ -1,6 +1,6 @@
 """PostgreSQL persistence for versioned ChunkRecord generations."""
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 
 from sqlalchemy import Connection, delete, select
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
@@ -79,6 +79,34 @@ class ChunkRepository:
             .order_by(chunks.c.chunk_index)
         ).mappings()
         return [dict(row) for row in rows]
+
+    def iter_by_version(
+        self,
+        *,
+        chunking_version: str,
+        batch_size: int,
+    ) -> Iterator[list[dict[str, object]]]:
+        """Stream one explicit chunking version in stable bounded batches."""
+        if not chunking_version.strip():
+            raise ValueError("chunking_version must not be empty")
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive")
+
+        result = self.connection.execution_options(stream_results=True).execute(
+            select(chunks)
+            .where(chunks.c.chunking_version == chunking_version)
+            .order_by(
+                chunks.c.note_id,
+                chunks.c.chunk_index,
+                chunks.c.chunk_id,
+            )
+        )
+        mapping_result = result.mappings()
+        try:
+            while rows := mapping_result.fetchmany(batch_size):
+                yield [dict(row) for row in rows]
+        finally:
+            result.close()
 
     def delete_generation(self, *, note_id: int, chunking_version: str) -> int:
         """Delete one generation explicitly; callers must opt into this action."""

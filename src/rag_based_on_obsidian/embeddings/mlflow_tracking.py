@@ -4,7 +4,7 @@ import ctypes
 import math
 import os
 import subprocess
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from ctypes import wintypes
 from time import perf_counter
 
@@ -16,7 +16,10 @@ if os.name != "nt":
 from rag_based_on_obsidian.embeddings.contracts import (
     EmbeddingVector,
 )
-from rag_based_on_obsidian.embeddings.settings import EmbeddingModelConfig
+from rag_based_on_obsidian.embeddings.settings import (
+    BatchEmbeddingConfig,
+    EmbeddingModelConfig,
+)
 from rag_based_on_obsidian.embeddings.transformers_provider import (
     TransformersEmbeddingProvider,
 )
@@ -24,6 +27,10 @@ from rag_based_on_obsidian.embeddings.transformers_provider import (
 SMOKE_CHECK_EXPERIMENT_DESCRIPTION = (
     "Sprint 10 CPU embedding experiments tracking model identity, "
     "inference throughput, vector shape, normalization, and runtime memory."
+)
+BATCH_EXPERIMENT_DESCRIPTION = (
+    "Sprint 11 batch embedding experiments tracking versioned PostgreSQL "
+    "chunks, retry behavior, throughput, failures and temporary JSON handoff."
 )
 
 
@@ -76,6 +83,43 @@ def log_embedding_smoke_run(
         return run.info.run_id
 
 
+def log_batch_embedding_run(
+    provider: TransformersEmbeddingProvider,
+    config: BatchEmbeddingConfig,
+    metrics: Mapping[str, float],
+) -> str:
+    """Log one completed batch run and upload its temporary artifacts."""
+    mlflow.set_tracking_uri(config.tracking_uri)
+    _configure_batch_experiment(config.experiment_name)
+    with mlflow.start_run(run_name=config.run_name) as run:
+        mlflow.log_params(
+            {
+                "model_name": provider.metadata.model_name,
+                "model_revision": provider.metadata.model_revision,
+                "device": provider.metadata.device,
+                "dimension": provider.metadata.dimension,
+                "normalized": provider.metadata.normalized,
+                "chunking_version": config.chunking_version,
+                "pipeline_batch_size": config.batch_size,
+                "max_retries": config.max_retries,
+                "retry_backoff_seconds": config.retry_backoff_seconds,
+            }
+        )
+        mlflow.set_tags(
+            {
+                "embedding_model": provider.metadata.model_name,
+                "git_commit": _git_commit(),
+                "phase": "4",
+                "sprint": "11",
+                "task": "EMB-002",
+                "experiment_type": "batch-embedding",
+            }
+        )
+        mlflow.log_metrics(dict(metrics))
+        mlflow.log_artifacts(str(config.artifact_dir))
+        return run.info.run_id
+
+
 def _configure_experiment(experiment_name: str) -> None:
     """Create and describe an experiment before starting its first run."""
     experiment_tags = {
@@ -84,6 +128,23 @@ def _configure_experiment(experiment_name: str) -> None:
         "sprint": "10",
         "task": "EMB-001",
         "experiment_type": "embedding-smoke",
+    }
+    experiment = mlflow.get_experiment_by_name(experiment_name)
+    if experiment is None:
+        mlflow.create_experiment(experiment_name, tags=experiment_tags)
+    mlflow.set_experiment(experiment_name)
+    for key, value in experiment_tags.items():
+        mlflow.set_experiment_tag(key, value)
+
+
+def _configure_batch_experiment(experiment_name: str) -> None:
+    """Create and describe the Sprint 11 experiment before a run."""
+    experiment_tags = {
+        "mlflow.note.content": BATCH_EXPERIMENT_DESCRIPTION,
+        "phase": "4",
+        "sprint": "11",
+        "task": "EMB-002",
+        "experiment_type": "batch-embedding",
     }
     experiment = mlflow.get_experiment_by_name(experiment_name)
     if experiment is None:
