@@ -101,7 +101,7 @@ def test_provider_embeds_documents_and_query_with_normalization() -> None:
 
 
 def test_model_config_loads_from_yaml() -> None:
-    config_path = Path("configs/embeddings/multilingual_e5_small.yaml")
+    config_path = Path("configs/embeddings/embedder_model_config_e5_small.yaml")
 
     config = load_embedding_model_config(config_path)
 
@@ -114,7 +114,7 @@ def test_model_config_loads_from_yaml() -> None:
 def test_real_cpu_embedding_smoke() -> None:
     """Download the configured model and run a real CPU inference smoke test."""
     config = load_embedding_model_config(
-        Path("configs/embeddings/multilingual_e5_small.yaml")
+        Path("configs/embeddings/embedder_model_config_e5_small.yaml")
     )
     provider = TransformersEmbeddingProvider(config)
 

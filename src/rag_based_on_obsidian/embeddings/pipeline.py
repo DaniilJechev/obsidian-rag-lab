@@ -26,6 +26,9 @@ type ChunkRow = Mapping[str, object]
 class ChunkBatchReader(Protocol):
     """Minimal repository contract required by the batch pipeline."""
 
+    def count_by_version(self, *, chunking_version: str) -> int:
+        """Return the total number of chunks for one version."""
+
     def iter_by_version(
         self,
         *,
@@ -155,19 +158,29 @@ class BatchEmbeddingPipeline:
         *,
         progress_factory: Callable[..., Any] = tqdm,
         sleep_fn: Callable[[float], None] = sleep,
+        stage_logger: Callable[[str], None] | None = None,
     ) -> None:
         self.provider = provider
         self.config = config
         self._progress_factory = progress_factory
         self._sleep = sleep_fn
+        self._stage_logger = stage_logger
 
     def run(self, repository: ChunkBatchReader) -> BatchEmbeddingResult:
         """Read and embed one explicit chunking version from PostgreSQL."""
+        total_chunks = repository.count_by_version(
+            chunking_version=self.config.chunking_version
+        )
+        self._log_stage(
+            f"Loaded chunk count from PostgreSQL: {total_chunks} "
+            f"({self.config.chunking_version})"
+        )
         return self._run_batches(
             repository.iter_by_version(
                 chunking_version=self.config.chunking_version,
                 batch_size=self.config.batch_size,
-            )
+            ),
+            total_chunks=total_chunks,
         )
 
     def run_chunks(self, chunks: Sequence[ChunkRow]) -> BatchEmbeddingResult:
@@ -180,7 +193,10 @@ class BatchEmbeddingPipeline:
                 _required_int(chunk, "chunk_id"),
             ),
         )
-        return self._run_batches(_split_batches(ordered, self.config.batch_size))
+        return self._run_batches(
+            _split_batches(ordered, self.config.batch_size),
+            total_chunks=len(ordered),
+        )
 
     def execute(
         self,
@@ -191,7 +207,9 @@ class BatchEmbeddingPipeline:
         """Run, persist temporary artifacts and log the completed MLflow run."""
         result = self.run(repository)
         writer = artifact_writer or JsonArtifactWriter()
+        self._log_stage("Writing temporary JSON artifacts")
         writer.write(result, provider=self.provider, config=self.config)
+        self._log_stage("Logging batch metrics and artifacts to MLflow")
         run_id = log_batch_embedding_run(
             provider=self.provider,
             config=self.config,
@@ -202,6 +220,8 @@ class BatchEmbeddingPipeline:
     def _run_batches(
         self,
         batches: Iterable[Sequence[ChunkRow]],
+        *,
+        total_chunks: int | None = None,
     ) -> BatchEmbeddingResult:
         started_at = perf_counter()
         embeddings: list[EmbeddedChunk] = []
@@ -210,9 +230,11 @@ class BatchEmbeddingPipeline:
         batches_total = 0
         batches_succeeded = 0
         attempts_total = 0
+        self._log_stage("Starting embedding inference")
         progress = self._progress_factory(
-            desc="Embedding chunk batches",
-            unit="batch",
+            desc="Embedding chunks",
+            total=total_chunks,
+            unit="chunk",
             disable=not self.config.show_progress,
         )
         try:
@@ -231,7 +253,7 @@ class BatchEmbeddingPipeline:
                 else:
                     batches_succeeded += 1
                     embeddings.extend(batch_embeddings)
-                progress.update(1)
+                progress.update(len(normalized_batch))
         finally:
             progress.close()
 
@@ -244,6 +266,10 @@ class BatchEmbeddingPipeline:
             attempts_total=attempts_total,
             duration_seconds=perf_counter() - started_at,
         )
+
+    def _log_stage(self, message: str) -> None:
+        if self._stage_logger is not None:
+            self._stage_logger(message)
 
     def _embed_batch(
         self,

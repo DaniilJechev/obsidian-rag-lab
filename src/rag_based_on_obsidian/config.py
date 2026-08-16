@@ -11,10 +11,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ENV_FILE = PROJECT_ROOT / ".env"
 CHUNKING_CONFIG_DIR = PROJECT_ROOT / "configs" / "chunking"
 DEFAULT_EMBEDDING_MODEL_CONFIG_PATH = (
-    PROJECT_ROOT / "configs" / "embeddings" / "multilingual_e5_small.yaml"
+    PROJECT_ROOT / "configs" / "embeddings" / "embedder_model_config_e5_small.yaml"
 )
 DEFAULT_BATCH_EMBEDDING_CONFIG_PATH = (
-    PROJECT_ROOT / "configs" / "embeddings" / "sprint11_batch.yaml"
+    PROJECT_ROOT / "configs" / "embeddings" / "pipeline_embedder_config.yaml"
 )
 DEFAULT_MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
 DEFAULT_MLFLOW_BACKEND_STORE_URI = "sqlite:///mlflow.db"

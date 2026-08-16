@@ -49,6 +49,7 @@ def run_batch_embedding(
     run_name: str | None = None,
 ) -> BatchEmbeddingResult:
     """Load configs, connect PostgreSQL and execute the batch pipeline."""
+    print("[1/5] Loading embedding configuration")
     model_config = load_embedding_model_config(model_config_path)
     batch_config = load_batch_embedding_config(batch_config_path)
     batch_config = _override_batch_config(
@@ -57,12 +58,21 @@ def run_batch_embedding(
         experiment_name=experiment_name,
         run_name=run_name,
     )
-    provider = TransformersEmbeddingProvider(model_config)
+    print("[2/5] Loading embedding model")
+    provider = TransformersEmbeddingProvider(
+        replace(model_config, show_progress=False)
+    )
+    print("[3/5] Connecting to PostgreSQL")
     engine = create_engine(load_database_url())
     try:
         with engine.connect() as connection:
             repository = ChunkRepository(connection)
-            pipeline = BatchEmbeddingPipeline(provider, batch_config)
+            print("[4/5] Starting batch embedding")
+            pipeline = BatchEmbeddingPipeline(
+                provider,
+                batch_config,
+                stage_logger=print,
+            )
             return pipeline.execute(repository)
     finally:
         engine.dispose()

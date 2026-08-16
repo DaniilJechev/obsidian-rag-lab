@@ -2,7 +2,7 @@
 
 from collections.abc import Iterator, Sequence
 
-from sqlalchemy import Connection, delete, select
+from sqlalchemy import Connection, delete, func, select
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 
 from rag_based_on_obsidian.chunking.records import ChunkRecord
@@ -107,6 +107,19 @@ class ChunkRepository:
                 yield [dict(row) for row in rows]
         finally:
             result.close()
+
+    def count_by_version(self, *, chunking_version: str) -> int:
+        """Count chunks for one explicit version before starting inference."""
+        if not chunking_version.strip():
+            raise ValueError("chunking_version must not be empty")
+        return int(
+            self.connection.scalar(
+                select(func.count())
+                .select_from(chunks)
+                .where(chunks.c.chunking_version == chunking_version)
+            )
+            or 0
+        )
 
     def delete_generation(self, *, note_id: int, chunking_version: str) -> int:
         """Delete one generation explicitly; callers must opt into this action."""
