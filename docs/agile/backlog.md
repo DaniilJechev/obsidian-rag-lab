@@ -115,7 +115,8 @@ production-like test drive. Sprint 7, Sprint 8 и structural implementation Spri
 4. Sprint 10: local CPU `EmbeddingProvider`, multilingual E5 smoke inference и
    MLflow operational tracking (`EMB-001`; GitHub
    [#28](https://github.com/DaniilJechev/obsidian-rag-lab/issues/28))
-   — implementation complete; remote closeout pending.
+   — completed; PR [#31](https://github.com/DaniilJechev/obsidian-rag-lab/pull/31)
+   merged. Следующий фокус — Sprint 11 (`EMB-002`).
 
 Embeddings, retrieval и изменения в `obsidianNotes` остаются вне Phase 3 согласно
 sprint-документам и roadmap. LangGraph относится к более поздней фазе. Следующий
