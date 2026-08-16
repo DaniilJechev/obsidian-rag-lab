@@ -1,11 +1,17 @@
 """MLflow tracking for embedding smoke experiments."""
 
+import ctypes
 import math
+import os
 import subprocess
 from collections.abc import Sequence
+from ctypes import wintypes
 from time import perf_counter
 
 import mlflow
+
+if os.name != "nt":
+    import resource
 
 from rag_based_on_obsidian.embeddings.contracts import (
     EmbeddingVector,
@@ -13,6 +19,11 @@ from rag_based_on_obsidian.embeddings.contracts import (
 from rag_based_on_obsidian.embeddings.settings import EmbeddingModelConfig
 from rag_based_on_obsidian.embeddings.transformers_provider import (
     TransformersEmbeddingProvider,
+)
+
+SMOKE_CHECK_EXPERIMENT_DESCRIPTION = (
+    "Sprint 10 CPU embedding experiments tracking model identity, "
+    "inference throughput, vector shape, normalization, and runtime memory."
 )
 
 
@@ -26,13 +37,20 @@ def log_embedding_smoke_run(
     config: EmbeddingModelConfig,
 ) -> str:
     """Run one embedding smoke sample and log operational evidence."""
+    mlflow.set_tracking_uri(tracking_uri)
+    _configure_experiment(experiment_name)
+    ram_before_mb = process_rss_mb()
     started_at = perf_counter()
     vectors = provider.embed_documents(texts)
     duration_seconds = perf_counter() - started_at
     metrics = embedding_metrics(vectors, duration_seconds)
-
-    mlflow.set_tracking_uri(tracking_uri)
-    mlflow.set_experiment(experiment_name)
+    ram_after_mb = process_rss_mb()
+    metrics.update(
+        {
+            "ram_usage_mb": ram_after_mb,
+            "ram_delta_mb": ram_after_mb - ram_before_mb,
+        }
+    )
     with mlflow.start_run(run_name=run_name) as run:
         mlflow.log_params(
             {
@@ -45,6 +63,7 @@ def log_embedding_smoke_run(
                 "batch_size": config.batch_size,
                 "document_prefix": config.document_prefix,
                 "query_prefix": config.query_prefix,
+                "show_progress": config.show_progress,
             }
         )
         mlflow.set_tags(
@@ -55,6 +74,71 @@ def log_embedding_smoke_run(
         )
         mlflow.log_metrics(metrics)
         return run.info.run_id
+
+
+def _configure_experiment(experiment_name: str) -> None:
+    """Create and describe an experiment before starting its first run."""
+    experiment_tags = {
+        "mlflow.note.content": SMOKE_CHECK_EXPERIMENT_DESCRIPTION,
+        "phase": "4",
+        "sprint": "10",
+        "task": "EMB-001",
+        "experiment_type": "embedding-smoke",
+    }
+    experiment = mlflow.get_experiment_by_name(experiment_name)
+    if experiment is None:
+        mlflow.create_experiment(experiment_name, tags=experiment_tags)
+    mlflow.set_experiment(experiment_name)
+    for key, value in experiment_tags.items():
+        mlflow.set_experiment_tag(key, value)
+
+
+def process_rss_mb() -> float:
+    """Return the current process resident memory in megabytes."""
+    if os.name == "nt":
+        return _windows_process_rss_mb()
+    usage = resource.getrusage(resource.RUSAGE_SELF)
+    return float(usage.ru_maxrss) / (1024 * 1024)
+
+
+def _windows_process_rss_mb() -> float:
+    """Read Windows process working-set size without extra dependencies."""
+    class ProcessMemoryCounters(ctypes.Structure):
+        _fields_ = [
+            ("cb", ctypes.c_ulong),
+            ("PageFaultCount", ctypes.c_ulong),
+            ("PeakWorkingSetSize", ctypes.c_size_t),
+            ("WorkingSetSize", ctypes.c_size_t),
+            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+            ("PagefileUsage", ctypes.c_size_t),
+            ("PeakPagefileUsage", ctypes.c_size_t),
+        ]
+
+    counters = ProcessMemoryCounters()
+    counters.cb = ctypes.sizeof(ProcessMemoryCounters)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    psapi = ctypes.WinDLL("psapi", use_last_error=True)
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    get_process_memory_info = psapi.GetProcessMemoryInfo
+    get_process_memory_info.argtypes = [
+        wintypes.HANDLE,
+        ctypes.POINTER(ProcessMemoryCounters),
+        wintypes.DWORD,
+    ]
+    get_process_memory_info.restype = wintypes.BOOL
+    process = kernel32.GetCurrentProcess()
+    success = get_process_memory_info(
+        process,
+        ctypes.byref(counters),
+        counters.cb,
+    )
+    if not success:
+        error_code = ctypes.get_last_error()
+        raise OSError(error_code, "GetProcessMemoryInfo failed")
+    return float(counters.WorkingSetSize) / (1024 * 1024)
 
 
 def embedding_metrics(
