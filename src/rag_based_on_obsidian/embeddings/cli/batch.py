@@ -26,6 +26,7 @@ from rag_based_on_obsidian.embeddings.settings import (
 from rag_based_on_obsidian.embeddings.transformers_provider import (
     TransformersEmbeddingProvider,
 )
+from rag_based_on_obsidian.vector_store.settings import load_qdrant_config
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,11 +34,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Embed PostgreSQL chunks for one explicit chunking version and "
-            "write temporary JSON artifacts."
+            "upsert validated vectors into Qdrant."
         )
     )
     parser.add_argument("--model-config", type=Path, default=None)
     parser.add_argument("--batch-config", type=Path, default=None)
+    parser.add_argument("--qdrant-config", type=Path, default=None)
     parser.add_argument("--tracking-uri", default=None)
     parser.add_argument("--experiment-name", default=None)
     parser.add_argument("--run-name", default=None)
@@ -48,6 +50,7 @@ def run_batch_embedding(
     *,
     model_config_path: Path,
     batch_config_path: Path,
+    qdrant_config_path: Path,
     tracking_uri: str | None = None,
     experiment_name: str | None = None,
     run_name: str | None = None,
@@ -56,6 +59,7 @@ def run_batch_embedding(
     print("[1/5] Loading embedding configuration")
     model_config = load_embedding_model_config(model_config_path)
     batch_config = load_batch_embedding_config(batch_config_path)
+    qdrant_config = load_qdrant_config(qdrant_config_path)
     batch_config = _override_batch_config(
         batch_config,
         tracking_uri=tracking_uri,
@@ -72,14 +76,16 @@ def run_batch_embedding(
         with engine.connect() as connection:
             repository = ChunkRepository(connection)
             collection_name = versioned_collection_name(
-                batch_config.qdrant_collection,
+                qdrant_config.collection,
                 batch_config.chunking_version,
             )
             print(f"[4/5] Connecting to Qdrant collection {collection_name}")
             sink = QdrantVectorSink.from_url(
-                batch_config.qdrant_url,
+                qdrant_config.url,
                 collection_name=collection_name,
                 vector_size=provider.metadata.dimension,
+                max_retries=qdrant_config.max_retries,
+                retry_backoff_seconds=qdrant_config.retry_backoff_seconds,
             )
             print("[5/5] Starting direct batch embedding to Qdrant")
             pipeline = BatchEmbeddingPipeline(
@@ -100,6 +106,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         model_config_path=args.model_config or app_config.embedding_model_config_path,
         batch_config_path=(
             args.batch_config or app_config.batch_embedding_config_path
+        ),
+        qdrant_config_path=(
+            args.qdrant_config or app_config.qdrant_config_path
         ),
         tracking_uri=args.tracking_uri,
         experiment_name=args.experiment_name,

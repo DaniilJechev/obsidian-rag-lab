@@ -8,5 +8,3 @@ tracking_uri: http://127.0.0.1:5000
 experiment_name: sprint-11-batch-embedding
 run_name: multilingual-e5-small-batch
 show_progress: true
-qdrant_url: http://localhost:6333
-qdrant_collection: rag_chunks

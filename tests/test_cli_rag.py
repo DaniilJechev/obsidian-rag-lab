@@ -31,6 +31,21 @@ def test_rag_cli_dispatches_chunk_arguments(monkeypatch: pytest.MonkeyPatch) -> 
     assert received == ["--policy", "policy.yaml"]
 
 
+def test_rag_cli_dispatches_vector_store_arguments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    received: list[str] = []
+
+    def fake_vector_store_main(arguments: list[str]) -> int:
+        received.extend(arguments)
+        return 5
+
+    monkeypatch.setattr(cli_rag, "vector_store_main", fake_vector_store_main)
+
+    assert cli_rag.main(["vector-store", "verify"]) == 5
+    assert received == ["verify"]
+
+
 def test_rag_cli_rejects_unknown_command() -> None:
     with pytest.raises(SystemExit):
         cli_rag.main(["unknown"])

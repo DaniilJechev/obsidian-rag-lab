@@ -11,7 +11,8 @@ from rag_based_on_obsidian.embeddings.pipeline import (
     BatchEmbeddingResult,
     EmbeddedChunk,
     EmbeddingFailure,
-    JsonArtifactWriter,
+    SinkWriteError,
+    SinkWriteResult,
     validate_embedding_batch,
 )
 from rag_based_on_obsidian.embeddings.settings import (
@@ -34,7 +35,8 @@ __all__ = [
     "EmbeddingModelConfig",
     "EmbeddingProvider",
     "EmbeddingVector",
-    "JsonArtifactWriter",
+    "SinkWriteError",
+    "SinkWriteResult",
     "TransformersEmbeddingProvider",
     "load_batch_embedding_config",
     "load_embedding_model_config",

@@ -6,7 +6,7 @@ from sqlalchemy import Connection, delete, func, select
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 
 from rag_based_on_obsidian.chunking.records import ChunkRecord
-from rag_based_on_obsidian.db.schema import chunks
+from rag_based_on_obsidian.db.schema import chunks, notes
 
 
 class ChunkRepository:
@@ -93,7 +93,11 @@ class ChunkRepository:
             raise ValueError("batch_size must be positive")
 
         result = self.connection.execution_options(stream_results=True).execute(
-            select(chunks)
+            select(
+                chunks,
+                notes.c.relative_path.label("source_path"),
+            )
+            .select_from(chunks.join(notes, chunks.c.note_id == notes.c.note_id))
             .where(chunks.c.chunking_version == chunking_version)
             .order_by(
                 chunks.c.note_id,

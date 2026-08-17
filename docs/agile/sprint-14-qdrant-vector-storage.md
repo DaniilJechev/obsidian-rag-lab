@@ -1,6 +1,6 @@
 # Sprint 14 — Direct Qdrant Vector Storage
 
-> Статус: `planned`
+> Статус: `in-progress`
 >
 > Ветка: `sprint/14-qdrant-vector-storage`
 >
@@ -24,16 +24,17 @@ Phase 5 должна заменить временный JSON handoff на по�
 ## Scope
 
 - [ ] Подключить локальный Qdrant service, configuration и health smoke test.
-- [ ] Ввести `VectorSink` contract и `QdrantVectorSink` implementation.
-- [ ] Выполнять idempotent Qdrant upsert сразу после validation каждого batch.
-- [ ] Зафиксировать collection dimension, distance metric, embedding version и
+- [x] Ввести `VectorSink` contract и `QdrantVectorSink` implementation.
+- [x] Выполнять idempotent Qdrant upsert сразу после validation каждого batch.
+- [x] Зафиксировать collection dimension, distance metric, embedding version и
   payload schema.
-- [ ] Использовать стабильный point ID, связанный с `chunk_id` и index version.
-- [ ] Добавить collection creation, version checks, batch-upsert metrics и
+- [x] Использовать стабильный point ID из source identity и index version;
+  `chunk_id` сохраняется в payload.
+- [x] Добавить collection creation, version checks, batch-upsert metrics и
   partial-failure handling.
-- [ ] Удалить `embeddings.json` и JSON vector writer из runtime pipeline.
-- [ ] Добавить CLI-операции для create, embed и verify vector storage.
-- [ ] Проверять consistency между PostgreSQL chunks и Qdrant points.
+- [x] Удалить `embeddings.json` и JSON vector writer из runtime pipeline.
+- [x] Добавить CLI-операции для create, embed и verify vector storage.
+- [x] Проверять consistency между PostgreSQL chunks и Qdrant points.
 
 ## Out of Scope
 
@@ -85,6 +86,8 @@ Phase 5 должна заменить временный JSON handoff на по�
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | planned | Sprint created | Implementation not started |
+| in-progress | Direct sink slice | Validated batches write directly to versioned Qdrant collections |
+| in-progress | Storage hardening | Retries, MLflow upsert metrics and PostgreSQL/Qdrant consistency verifier added |
 
 ## Validation Evidence
 
@@ -100,10 +103,10 @@ uv run rag-cli vector-store verify
 
 ### Test and Lint Results
 
-- Tests: `NOT VERIFIED — sprint not started`
-- Lint: `NOT VERIFIED — sprint not started`
+- Tests: `PASS — 89 passed, 1 skipped, 18 deselected`
+- Lint: `PASS — uv run ruff check .`
 - Qdrant smoke: `NOT VERIFIED — sprint not started`
-- CI: `NOT VERIFIED — implementation not started`
+- CI: `NOT VERIFIED — no remote implementation push yet`
 
 ### Metrics
 
@@ -115,10 +118,15 @@ rate, consistency mismatches, collection point count и process memory.
 ### Completed
 
 - Planning scope согласован как direct Qdrant handoff без JSON vector storage.
+- Initial direct Qdrant sink and consistency implementation added.
+- Commit `b6f695b` records the initial vertical slice.
+- Current working tree adds Qdrant retries, metrics, consistency verification,
+  vector-store configuration, CLI operations and architecture documentation.
 
 ### Not Completed
 
-- Qdrant adapter и direct upsert ещё не реализованы.
+- Real local Qdrant health/storage smoke test.
+- Final CI evidence and sprint closeout.
 
 ### Changed Decisions
 
@@ -148,6 +156,6 @@ rate, consistency mismatches, collection point count и process memory.
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `in-progress`
 
 **Дата завершения:** `не завершён`

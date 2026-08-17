@@ -23,6 +23,7 @@ from rag_based_on_obsidian.embeddings.settings import (
 from rag_based_on_obsidian.embeddings.transformers_provider import (
     TransformersEmbeddingProvider,
 )
+from rag_based_on_obsidian.vector_store.consistency import ConsistencyReport
 
 SMOKE_CHECK_EXPERIMENT_DESCRIPTION = (
     "Sprint 10 CPU embedding experiments tracking model identity, "
@@ -87,10 +88,8 @@ def log_batch_embedding_run(
     provider: TransformersEmbeddingProvider,
     config: BatchEmbeddingConfig,
     metrics: Mapping[str, float],
-    *,
-    upload_artifacts: bool = True,
 ) -> str:
-    """Log one completed batch run and upload available local artifacts."""
+    """Log one completed batch run without vector-file artifacts."""
     mlflow.set_tracking_uri(config.tracking_uri)
     _configure_batch_experiment(config.experiment_name)
     with mlflow.start_run(run_name=config.run_name) as run:
@@ -118,8 +117,41 @@ def log_batch_embedding_run(
             }
         )
         mlflow.log_metrics(dict(metrics))
-        if upload_artifacts and config.artifact_dir.exists():
-            mlflow.log_artifacts(str(config.artifact_dir))
+        return run.info.run_id
+
+
+def log_qdrant_consistency_run(
+    *,
+    config: BatchEmbeddingConfig,
+    collection_name: str,
+    report: ConsistencyReport,
+) -> str:
+    """Log PostgreSQL/Qdrant consistency evidence as an MLflow run."""
+    mlflow.set_tracking_uri(config.tracking_uri)
+    _configure_batch_experiment(config.experiment_name)
+    with mlflow.start_run(run_name=f"{config.run_name}-consistency") as run:
+        mlflow.log_params(
+            {
+                "chunking_version": config.chunking_version,
+                "collection_name": collection_name,
+            }
+        )
+        mlflow.set_tags(
+            {
+                "task": "RET-001",
+                "experiment_type": "qdrant-consistency",
+            }
+        )
+        mlflow.log_metrics(
+            {
+                "postgres_points": report.postgres_points,
+                "qdrant_points": report.qdrant_points,
+                "missing_points": len(report.missing_point_keys),
+                "extra_points": len(report.extra_point_keys),
+                "metadata_mismatches": len(report.metadata_mismatches),
+                "consistency_mismatches": report.mismatch_count,
+            }
+        )
         return run.info.run_id
 
 
