@@ -6,6 +6,7 @@ from collections.abc import Sequence
 
 from rag_based_on_obsidian.chunking.chunking_cli import main as chunking_main
 from rag_based_on_obsidian.embeddings.cli.batch import main as embedding_main
+from rag_based_on_obsidian.vector_store.cli import main as vector_store_main
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -23,6 +24,10 @@ def build_parser() -> argparse.ArgumentParser:
         "embed",
         help="Run the batch embedding pipeline over PostgreSQL chunks.",
     )
+    subparsers.add_parser(
+        "vector-store",
+        help="Create, embed and verify Qdrant vector storage.",
+    )
     return parser
 
 
@@ -38,6 +43,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return chunking_main(command_arguments)
     if command == "embed":
         return embedding_main(command_arguments)
+    if command == "vector-store":
+        return vector_store_main(command_arguments)
 
     build_parser().error(f"unknown command: {command}")
     return 2

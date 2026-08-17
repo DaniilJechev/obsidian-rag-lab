@@ -1,6 +1,5 @@
-"""Unit tests for the Sprint 11 batch embedding pipeline."""
+"""Unit tests for the batch embedding pipeline."""
 
-import json
 import math
 from pathlib import Path
 
@@ -9,7 +8,8 @@ import pytest
 from rag_based_on_obsidian.embeddings.contracts import EmbeddingMetadata
 from rag_based_on_obsidian.embeddings.pipeline import (
     BatchEmbeddingPipeline,
-    JsonArtifactWriter,
+    EmbeddedChunk,
+    SinkWriteError,
     validate_embedding_batch,
 )
 from rag_based_on_obsidian.embeddings.settings import BatchEmbeddingConfig
@@ -141,6 +141,72 @@ def test_pipeline_retries_transient_batch_failure(tmp_path: Path) -> None:
     assert result.metrics["failure_rate"] == 0.0
 
 
+def test_pipeline_can_upsert_batches_without_retaining_vectors(
+    tmp_path: Path,
+) -> None:
+    class RecordingSink:
+        def __init__(self) -> None:
+            self.batches: list[tuple[list[EmbeddedChunk], list[dict]]] = []
+
+        def upsert_batch(
+            self,
+            embeddings: list[EmbeddedChunk],
+            chunks: list[dict],
+        ) -> None:
+            self.batches.append((embeddings, chunks))
+
+    provider = FakeProvider()
+    pipeline = _pipeline(tmp_path, provider)
+    sink = RecordingSink()
+    chunks = [_chunk(1, 1, 0, "direct"), _chunk(2, 1, 1, "qdrant")]
+
+    result = pipeline._run_batches(
+        [chunks],
+        sink=sink,
+        retain_embeddings=False,
+    )
+
+    assert result.embeddings == ()
+    assert result.embeddings_succeeded == 2
+    assert [item.chunk_id for item in sink.batches[0][0]] == [1, 2]
+    assert result.metrics["embeddings_succeeded"] == 2.0
+
+
+def test_pipeline_records_qdrant_partial_failure_and_continues(
+    tmp_path: Path,
+) -> None:
+    class PartiallyFailingSink:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def upsert_batch(
+            self,
+            embeddings: list[EmbeddedChunk],
+            chunks: list[dict],
+        ) -> None:
+            del embeddings
+            self.calls += 1
+            if _required_chunk_id_for_test(chunks[0]) == 1:
+                raise SinkWriteError("qdrant unavailable", attempts=2)
+
+    provider = FakeProvider()
+    pipeline = _pipeline(tmp_path, provider, batch_size=1)
+    sink = PartiallyFailingSink()
+    chunks = [_chunk(1, 1, 0, "bad sink"), _chunk(2, 1, 1, "good sink")]
+
+    result = pipeline._run_batches(
+        [[chunks[0]], [chunks[1]]],
+        sink=sink,
+        retain_embeddings=False,
+    )
+
+    assert sink.calls == 2
+    assert result.embeddings_succeeded == 1
+    assert [failure.chunk_id for failure in result.failures] == [1]
+    assert result.qdrant_errors == 2
+    assert result.metrics["consistency_mismatches"] == 0.0
+
+
 def test_pipeline_records_partial_failure_and_continues(
     tmp_path: Path,
 ) -> None:
@@ -168,24 +234,7 @@ def test_pipeline_records_partial_failure_and_continues(
     assert result.attempts_total == 3
 
 
-def test_pipeline_rerun_replaces_json_artifacts_without_duplicates(
-    tmp_path: Path,
-) -> None:
-    provider = FakeProvider()
-    pipeline = _pipeline(tmp_path, provider)
-    chunks = [_chunk(1, 1, 0, "same input")]
-    writer = JsonArtifactWriter()
+def _required_chunk_id_for_test(chunk: dict) -> int:
+    return chunk["chunk_id"]
 
-    first = pipeline.run_chunks(chunks)
-    writer.write(first, provider=provider, config=pipeline.config)
-    second = pipeline.run_chunks(chunks)
-    writer.write(second, provider=provider, config=pipeline.config)
 
-    payload = json.loads(
-        (pipeline.config.artifact_dir / "embeddings.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    assert first.embeddings == second.embeddings
-    assert len(payload) == 1
-    assert payload[0]["chunk_id"] == 1

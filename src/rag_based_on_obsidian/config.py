@@ -16,6 +16,9 @@ DEFAULT_EMBEDDING_MODEL_CONFIG_PATH = (
 DEFAULT_BATCH_EMBEDDING_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "embeddings" / "pipeline_embedder_config.yaml"
 )
+DEFAULT_QDRANT_CONFIG_PATH = (
+    PROJECT_ROOT / "configs" / "vector_store" / "qdrant.yaml"
+)
 DEFAULT_MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
 DEFAULT_MLFLOW_BACKEND_STORE_URI = "sqlite:///mlflow.db"
 DEFAULT_MLFLOW_ARTIFACT_ROOT = Path("artifacts") / "mlflow"
@@ -52,6 +55,7 @@ class AppConfig:
     embedding_model_config_path: Path = DEFAULT_EMBEDDING_MODEL_CONFIG_PATH
     embedding_experiment_name: str = DEFAULT_EMBEDDING_EXPERIMENT_NAME
     batch_embedding_config_path: Path = DEFAULT_BATCH_EMBEDDING_CONFIG_PATH
+    qdrant_config_path: Path = DEFAULT_QDRANT_CONFIG_PATH
 
 
 def load_config(*, vault_root_override: Path | None = None) -> AppConfig:
@@ -136,6 +140,12 @@ def load_config(*, vault_root_override: Path | None = None) -> AppConfig:
             os.environ.get(
                 "BATCH_EMBEDDING_CONFIG_PATH",
                 str(DEFAULT_BATCH_EMBEDDING_CONFIG_PATH),
+            )
+        ).expanduser(),
+        qdrant_config_path=Path(
+            os.environ.get(
+                "QDRANT_CONFIG_PATH",
+                str(DEFAULT_QDRANT_CONFIG_PATH),
             )
         ).expanduser(),
     )

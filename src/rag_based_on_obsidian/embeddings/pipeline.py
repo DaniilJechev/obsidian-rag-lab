@@ -1,10 +1,8 @@
-"""Batch orchestration, validation and temporary artifact persistence."""
+"""Batch orchestration, validation and vector persistence."""
 
-import json
 import math
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import asdict, dataclass, replace
-from pathlib import Path
+from dataclasses import dataclass, replace
 from time import perf_counter, sleep
 from typing import Any, Protocol
 
@@ -39,6 +37,35 @@ class ChunkBatchReader(Protocol):
 
 
 @dataclass(frozen=True)
+class SinkWriteResult:
+    """Operational evidence returned after one durable sink write."""
+
+    points_written: int
+    duration_seconds: float
+    attempts: int
+    vector_bytes: int
+
+
+class SinkWriteError(RuntimeError):
+    """A sink failed after exhausting its own retry budget."""
+
+    def __init__(self, message: str, *, attempts: int) -> None:
+        super().__init__(message)
+        self.attempts = attempts
+
+
+class EmbeddingSink(Protocol):
+    """Persistence boundary for validated embedding batches."""
+
+    def upsert_batch(
+        self,
+        embeddings: Sequence["EmbeddedChunk"],
+        chunks: Sequence[ChunkRow],
+    ) -> SinkWriteResult:
+        """Persist one validated batch and return only after it is durable."""
+
+
+@dataclass(frozen=True)
 class EmbeddedChunk:
     """A vector paired with the immutable chunk identity it represents."""
 
@@ -64,12 +91,19 @@ class BatchEmbeddingResult:
     """Complete outcome of one deterministic batch embedding run."""
 
     embeddings: tuple[EmbeddedChunk, ...]
+    embeddings_succeeded: int
     failures: tuple[EmbeddingFailure, ...]
     chunks_total: int
     batches_total: int
     batches_succeeded: int
     attempts_total: int
     duration_seconds: float
+    upsert_batches_total: int = 0
+    upsert_points: int = 0
+    upsert_duration_seconds: float = 0.0
+    qdrant_errors: int = 0
+    qdrant_embedding_bytes: int = 0
+    consistency_mismatches: int = 0
     mlflow_run_id: str | None = None
 
     @property
@@ -77,7 +111,7 @@ class BatchEmbeddingResult:
         """Return MLflow- and JSON-compatible operational metrics."""
         return {
             "chunks_total": float(self.chunks_total),
-            "embeddings_succeeded": float(len(self.embeddings)),
+            "embeddings_succeeded": float(self.embeddings_succeeded),
             "embeddings_failed": float(len(self.failures)),
             "batches_total": float(self.batches_total),
             "batches_succeeded": float(self.batches_succeeded),
@@ -94,58 +128,21 @@ class BatchEmbeddingResult:
                 if self.chunks_total
                 else 0.0
             ),
+            "upsert_batches_total": float(self.upsert_batches_total),
+            "upsert_points": float(self.upsert_points),
+            "upsert_duration_seconds": self.upsert_duration_seconds,
+            "upsert_throughput": (
+                self.upsert_points / self.upsert_duration_seconds
+                if self.upsert_duration_seconds > 0
+                else 0.0
+            ),
+            "qdrant_errors": float(self.qdrant_errors),
+            "qdrant_embedding_bytes": float(self.qdrant_embedding_bytes),
+            "qdrant_embedding_storage_bytes": float(
+                self.qdrant_embedding_bytes
+            ),
+            "consistency_mismatches": float(self.consistency_mismatches),
         }
-
-
-class JsonArtifactWriter:
-    """Write reproducible JSON handoff files with atomic replacement."""
-
-    def write(
-        self,
-        result: BatchEmbeddingResult,
-        *,
-        provider: EmbeddingProvider,
-        config: BatchEmbeddingConfig,
-    ) -> tuple[Path, Path, Path]:
-        """Write embeddings, manifest and metrics and return their paths."""
-        config.artifact_dir.mkdir(parents=True, exist_ok=True)
-        embeddings_path = config.artifact_dir / "embeddings.json"
-        manifest_path = config.artifact_dir / "manifest.json"
-        metrics_path = config.artifact_dir / "metrics.json"
-
-        embeddings_payload = [
-            {
-                "chunk_id": item.chunk_id,
-                "note_id": item.note_id,
-                "chunk_index": item.chunk_index,
-                "chunking_version": item.chunking_version,
-                "vector": list(item.vector),
-            }
-            for item in result.embeddings
-        ]
-        manifest_payload = {
-            "artifact_format": "temporary-json-v1",
-            "pipeline_name": config.name,
-            "chunking_version": config.chunking_version,
-            "batch_size": config.batch_size,
-            "max_retries": config.max_retries,
-            "model_name": provider.metadata.model_name,
-            "model_revision": provider.metadata.model_revision,
-            "device": provider.metadata.device,
-            "dimension": provider.metadata.dimension,
-            "normalized": provider.metadata.normalized,
-            "chunks_total": result.chunks_total,
-            "embeddings_succeeded": len(result.embeddings),
-            "embeddings_failed": len(result.failures),
-        }
-        metrics_payload: dict[str, object] = {
-            **result.metrics,
-            "failed_chunks": [asdict(failure) for failure in result.failures],
-        }
-        _atomic_write_json(embeddings_path, embeddings_payload)
-        _atomic_write_json(manifest_path, manifest_payload)
-        _atomic_write_json(metrics_path, metrics_payload)
-        return embeddings_path, manifest_path, metrics_path
 
 
 class BatchEmbeddingPipeline:
@@ -202,14 +199,15 @@ class BatchEmbeddingPipeline:
         self,
         repository: ChunkBatchReader,
         *,
-        artifact_writer: JsonArtifactWriter | None = None,
+        sink: EmbeddingSink | None = None,
     ) -> BatchEmbeddingResult:
-        """Run, persist temporary artifacts and log the completed MLflow run."""
-        result = self.run(repository)
-        writer = artifact_writer or JsonArtifactWriter()
-        self._log_stage("Writing temporary JSON artifacts")
-        writer.write(result, provider=self.provider, config=self.config)
-        self._log_stage("Logging batch metrics and artifacts to MLflow")
+        """Run, persist batches and log the completed MLflow run."""
+        result = self._run_repository(
+            repository,
+            sink=sink,
+            retain_embeddings=False,
+        )
+        self._log_stage("Logging batch metrics to MLflow")
         run_id = log_batch_embedding_run(
             provider=self.provider,
             config=self.config,
@@ -217,11 +215,38 @@ class BatchEmbeddingPipeline:
         )
         return replace(result, mlflow_run_id=run_id)
 
+    def _run_repository(
+        self,
+        repository: ChunkBatchReader,
+        *,
+        sink: EmbeddingSink | None,
+        retain_embeddings: bool,
+    ) -> BatchEmbeddingResult:
+        """Run repository batches with an optional direct persistence sink."""
+        total_chunks = repository.count_by_version(
+            chunking_version=self.config.chunking_version
+        )
+        self._log_stage(
+            f"Loaded chunk count from PostgreSQL: {total_chunks} "
+            f"({self.config.chunking_version})"
+        )
+        return self._run_batches(
+            repository.iter_by_version(
+                chunking_version=self.config.chunking_version,
+                batch_size=self.config.batch_size,
+            ),
+            total_chunks=total_chunks,
+            sink=sink,
+            retain_embeddings=retain_embeddings,
+        )
+
     def _run_batches(
         self,
         batches: Iterable[Sequence[ChunkRow]],
         *,
         total_chunks: int | None = None,
+        sink: EmbeddingSink | None = None,
+        retain_embeddings: bool = True,
     ) -> BatchEmbeddingResult:
         started_at = perf_counter()
         embeddings: list[EmbeddedChunk] = []
@@ -229,10 +254,16 @@ class BatchEmbeddingPipeline:
         chunks_total = 0
         batches_total = 0
         batches_succeeded = 0
+        embeddings_succeeded = 0
         attempts_total = 0
+        upsert_batches_total = 0
+        upsert_points = 0
+        upsert_duration_seconds = 0.0
+        qdrant_errors = 0
+        qdrant_embedding_bytes = 0
         self._log_stage("Starting embedding inference")
         progress = self._progress_factory(
-            desc="Embedding chunks",
+            desc="Chunks saved to Qdrant" if sink else "Embedding chunks",
             total=total_chunks,
             unit="chunk",
             disable=not self.config.show_progress,
@@ -250,21 +281,78 @@ class BatchEmbeddingPipeline:
                 attempts_total += attempts
                 if batch_failures:
                     failures.extend(batch_failures)
+                    if sink is None:
+                        progress.update(len(normalized_batch))
+                    continue
                 else:
+                    try:
+                        if sink is not None:
+                            self._log_stage(
+                                f"Upserting batch {batches_total} "
+                                f"({len(batch_embeddings)} points)"
+                            )
+                            write_result = sink.upsert_batch(
+                                batch_embeddings,
+                                normalized_batch,
+                            )
+                        else:
+                            write_result = None
+                    except SinkWriteError as error:
+                        qdrant_errors += error.attempts
+                        failures.extend(
+                            EmbeddingFailure(
+                                chunk_id=_required_int(chunk, "chunk_id"),
+                                attempts=error.attempts,
+                                error_type=type(error).__name__,
+                                error_message=str(error),
+                            )
+                            for chunk in normalized_batch
+                        )
+                        continue
+                    except Exception as error:  # noqa: BLE001
+                        qdrant_errors += 1
+                        failures.extend(
+                            EmbeddingFailure(
+                                chunk_id=_required_int(chunk, "chunk_id"),
+                                attempts=1,
+                                error_type=type(error).__name__,
+                                error_message=str(error),
+                            )
+                            for chunk in normalized_batch
+                        )
+                        continue
+
                     batches_succeeded += 1
-                    embeddings.extend(batch_embeddings)
-                progress.update(len(normalized_batch))
+                    embeddings_succeeded += len(batch_embeddings)
+                    if retain_embeddings:
+                        embeddings.extend(batch_embeddings)
+                    if write_result is not None:
+                        upsert_batches_total += 1
+                        upsert_points += write_result.points_written
+                        upsert_duration_seconds += write_result.duration_seconds
+                        qdrant_embedding_bytes += write_result.vector_bytes
+                    progress.update(
+                        write_result.points_written
+                        if write_result is not None
+                        else len(normalized_batch)
+                    )
         finally:
             progress.close()
 
         return BatchEmbeddingResult(
             embeddings=tuple(embeddings),
+            embeddings_succeeded=embeddings_succeeded,
             failures=tuple(failures),
             chunks_total=chunks_total,
             batches_total=batches_total,
             batches_succeeded=batches_succeeded,
             attempts_total=attempts_total,
             duration_seconds=perf_counter() - started_at,
+            upsert_batches_total=upsert_batches_total,
+            upsert_points=upsert_points,
+            upsert_duration_seconds=upsert_duration_seconds,
+            qdrant_errors=qdrant_errors,
+            qdrant_embedding_bytes=qdrant_embedding_bytes,
         )
 
     def _log_stage(self, message: str) -> None:
@@ -377,12 +465,3 @@ def _required_text(chunk: ChunkRow) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError("chunk text must be a non-empty string")
     return value
-
-
-def _atomic_write_json(path: Path, payload: object) -> None:
-    temporary_path = path.with_suffix(f"{path.suffix}.tmp")
-    temporary_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True),
-        encoding="utf-8",
-    )
-    temporary_path.replace(path)

@@ -16,6 +16,8 @@ def test_batch_cli_parser_accepts_config_overrides() -> None:
             "model.yaml",
             "--batch-config",
             "batch.yaml",
+            "--qdrant-config",
+            "qdrant.yaml",
             "--tracking-uri",
             "http://localhost:5000",
             "--experiment-name",
@@ -27,6 +29,7 @@ def test_batch_cli_parser_accepts_config_overrides() -> None:
 
     assert args.model_config == Path("model.yaml")
     assert args.batch_config == Path("batch.yaml")
+    assert args.qdrant_config == Path("qdrant.yaml")
     assert args.tracking_uri == "http://localhost:5000"
     assert args.experiment_name == "experiment"
     assert args.run_name == "run"
