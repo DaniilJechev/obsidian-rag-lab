@@ -4,6 +4,7 @@ import argparse
 import json
 from collections.abc import Sequence
 from pathlib import Path
+from time import perf_counter
 
 from qdrant_client import QdrantClient
 from sqlalchemy import create_engine
@@ -156,6 +157,7 @@ def _verify_collection(args: argparse.Namespace) -> int:
     )
     client = QdrantClient(url=qdrant_config.url)
     engine = create_engine(load_database_url())
+    verification_started_at = perf_counter()
     try:
         with engine.connect() as connection:
             repository = ChunkRepository(connection)
@@ -171,6 +173,8 @@ def _verify_collection(args: argparse.Namespace) -> int:
     finally:
         engine.dispose()
         client.close()
+    verification_duration_seconds = perf_counter() - verification_started_at
+    verdict = "PASS" if report.is_consistent else "FAIL"
 
     print(
         json.dumps(
@@ -190,15 +194,33 @@ def _verify_collection(args: argparse.Namespace) -> int:
                 ],
                 "consistency_mismatches": report.mismatch_count,
                 "is_consistent": report.is_consistent,
+                "verify_duration_seconds": verification_duration_seconds,
+                "verdict": verdict,
             },
             ensure_ascii=False,
             indent=2,
         )
     )
+    if report.is_consistent:
+        print(
+            f"VERIFY VERDICT: PASS — PostgreSQL and Qdrant are consistent "
+            f"({verification_duration_seconds:.3f}s)"
+        )
+    else:
+        print(
+            f"VERIFY VERDICT: FAIL — consistency mismatches detected "
+            f"({verification_duration_seconds:.3f}s)"
+        )
+        print(
+            "ACTION: if this was a full rebuild, rerun "
+            "`uv run rag-cli vector-store run-and-verify --recreate` "
+            "to replace the target collection."
+        )
     run_id = log_qdrant_consistency_run(
         config=batch_config,
         collection_name=collection_name,
         report=report,
+        duration_seconds=verification_duration_seconds,
     )
     print(f"MLflow consistency run: {run_id}")
     return 0 if report.is_consistent else 1

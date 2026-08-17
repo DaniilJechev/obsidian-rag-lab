@@ -23,7 +23,7 @@ Phase 5 должна заменить временный JSON handoff на по�
 
 ## Scope
 
-- [ ] Подключить локальный Qdrant service, configuration и health smoke test.
+- [x] Подключить локальный Qdrant service, configuration и health smoke test.
 - [x] Ввести `VectorSink` contract и `QdrantVectorSink` implementation.
 - [x] Выполнять idempotent Qdrant upsert сразу после validation каждого batch.
 - [x] Зафиксировать collection dimension, distance metric, embedding version и
@@ -59,15 +59,15 @@ Phase 5 должна заменить временный JSON handoff на по�
 
 ## Acceptance Criteria
 
-- [ ] Каждый успешно провалидированный batch записывается непосредственно в
+- [x] Каждый успешно провалидированный batch записывается непосредственно в
   Qdrant.
-- [ ] Повторный запуск с теми же point IDs не создаёт дубликаты.
-- [ ] Collection создаётся с явными dimension, distance и version.
-- [ ] Payload восстанавливает `chunk_id`, `note_id`, `chunking_version`,
+- [x] Повторный запуск с теми же point IDs не создаёт дубликаты.
+- [x] Collection создаётся с явными dimension, distance и version.
+- [x] Payload восстанавливает `chunk_id`, `note_id`, `chunking_version`,
   source path, section path, chunk index и text.
-- [ ] Consistency verification выявляет missing, extra и mismatched points.
-- [ ] Runtime pipeline не создаёт и не читает `embeddings.json`.
-- [ ] Synthetic storage smoke test проходит на локальном Qdrant.
+- [x] Consistency verification выявляет missing, extra и mismatched points.
+- [x] Runtime pipeline не создаёт и не читает `embeddings.json`.
+- [x] Synthetic storage smoke test проходит на локальном Qdrant.
 
 ## Definition of Done
 
@@ -89,6 +89,7 @@ Phase 5 должна заменить временный JSON handoff на по�
 | planned | Sprint created | Implementation not started |
 | in-progress | Direct sink slice | Validated batches write directly to versioned Qdrant collections |
 | in-progress | Storage hardening | Retries, MLflow upsert metrics and PostgreSQL/Qdrant consistency verifier added |
+| validated | Real run and rerun | 733 chunks embedded, 733 Qdrant points, no failures or mismatches; rerun reported idempotent behavior |
 
 ## Validation Evidence
 
@@ -104,15 +105,23 @@ uv run rag-cli vector-store verify
 
 ### Test and Lint Results
 
-- Tests: `PASS — 89 passed, 1 skipped, 18 deselected`
+- Tests: `PASS — 90 passed, 1 skipped, 18 deselected`
 - Lint: `PASS — uv run ruff check .`
-- Qdrant smoke: `NOT VERIFIED — sprint not started`
+- Qdrant smoke: `PASS — user-reported local smoke test`
 - CI: `NOT VERIFIED — no remote implementation push yet`
 
 ### Metrics
 
-Будут измеряться после реализации: batch upsert duration, throughput, failure
-rate, consistency mismatches, collection point count и process memory.
+Observed real run:
+
+- chunks total: `733`
+- embeddings succeeded: `733`
+- failures: `0`
+- embedding duration: `275.626s`
+- Qdrant points: `733`
+- consistency mismatches: `0`
+- verify duration: `0.228s`
+- verdict: `PASS`
 
 ## Review
 
@@ -125,10 +134,11 @@ rate, consistency mismatches, collection point count и process memory.
   vector-store configuration, CLI operations and architecture documentation.
 - Collection identity now includes chunking version, model, revision and
   dimension; verify reports explicit PostgreSQL/Qdrant point-count equality.
+- Real embedding and verify run completed successfully; repeated run was
+  reported idempotent by the user.
 
 ### Not Completed
 
-- Real local Qdrant health/storage smoke test.
 - Final CI evidence and sprint closeout.
 
 ### Changed Decisions
@@ -152,13 +162,13 @@ rate, consistency mismatches, collection point count и process memory.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
+- [x] Definition of Done проверен локально; remote closeout gates remain.
 - [ ] Review проведён.
 - [ ] Retrospective заполнена.
 - [ ] Commit/PR/merge выполнены по согласованному Git workflow.
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `in-progress`
+**Итоговый статус:** `ready-for-closeout`
 
 **Дата завершения:** `не завершён`

@@ -125,6 +125,7 @@ def log_qdrant_consistency_run(
     config: BatchEmbeddingConfig,
     collection_name: str,
     report: ConsistencyReport,
+    duration_seconds: float,
 ) -> str:
     """Log PostgreSQL/Qdrant consistency evidence as an MLflow run."""
     mlflow.set_tracking_uri(config.tracking_uri)
@@ -151,6 +152,7 @@ def log_qdrant_consistency_run(
                 "extra_points": len(report.extra_point_keys),
                 "metadata_mismatches": len(report.metadata_mismatches),
                 "consistency_mismatches": report.mismatch_count,
+                "verify_duration_seconds": duration_seconds,
             }
         )
         return run.info.run_id
