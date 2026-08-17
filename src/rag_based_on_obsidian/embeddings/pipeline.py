@@ -1,4 +1,4 @@
-"""Batch orchestration, validation and temporary artifact persistence."""
+"""Batch orchestration, validation and vector persistence."""
 
 import json
 import math
@@ -38,6 +38,17 @@ class ChunkBatchReader(Protocol):
         """Yield stable, bounded batches for one chunking version."""
 
 
+class EmbeddingSink(Protocol):
+    """Persistence boundary for validated embedding batches."""
+
+    def upsert_batch(
+        self,
+        embeddings: Sequence["EmbeddedChunk"],
+        chunks: Sequence[ChunkRow],
+    ) -> None:
+        """Persist one validated batch and return only after it is durable."""
+
+
 @dataclass(frozen=True)
 class EmbeddedChunk:
     """A vector paired with the immutable chunk identity it represents."""
@@ -64,6 +75,7 @@ class BatchEmbeddingResult:
     """Complete outcome of one deterministic batch embedding run."""
 
     embeddings: tuple[EmbeddedChunk, ...]
+    embeddings_succeeded: int
     failures: tuple[EmbeddingFailure, ...]
     chunks_total: int
     batches_total: int
@@ -77,7 +89,7 @@ class BatchEmbeddingResult:
         """Return MLflow- and JSON-compatible operational metrics."""
         return {
             "chunks_total": float(self.chunks_total),
-            "embeddings_succeeded": float(len(self.embeddings)),
+            "embeddings_succeeded": float(self.embeddings_succeeded),
             "embeddings_failed": float(len(self.failures)),
             "batches_total": float(self.batches_total),
             "batches_succeeded": float(self.batches_succeeded),
@@ -203,25 +215,61 @@ class BatchEmbeddingPipeline:
         repository: ChunkBatchReader,
         *,
         artifact_writer: JsonArtifactWriter | None = None,
+        sink: EmbeddingSink | None = None,
     ) -> BatchEmbeddingResult:
-        """Run, persist temporary artifacts and log the completed MLflow run."""
-        result = self.run(repository)
-        writer = artifact_writer or JsonArtifactWriter()
-        self._log_stage("Writing temporary JSON artifacts")
-        writer.write(result, provider=self.provider, config=self.config)
+        """Run, persist batches and log the completed MLflow run."""
+        if sink is not None and artifact_writer is not None:
+            raise ValueError("artifact_writer and sink cannot be used together")
+        result = self._run_repository(
+            repository,
+            sink=sink,
+            retain_embeddings=sink is None,
+        )
+        if sink is None:
+            writer = artifact_writer or JsonArtifactWriter()
+            self._log_stage("Writing temporary JSON artifacts")
+            writer.write(result, provider=self.provider, config=self.config)
         self._log_stage("Logging batch metrics and artifacts to MLflow")
         run_id = log_batch_embedding_run(
             provider=self.provider,
             config=self.config,
             metrics=result.metrics,
+            upload_artifacts=sink is None,
         )
         return replace(result, mlflow_run_id=run_id)
+
+    def _run_repository(
+        self,
+        repository: ChunkBatchReader,
+        *,
+        sink: EmbeddingSink | None,
+        retain_embeddings: bool,
+    ) -> BatchEmbeddingResult:
+        """Run repository batches with an optional direct persistence sink."""
+        total_chunks = repository.count_by_version(
+            chunking_version=self.config.chunking_version
+        )
+        self._log_stage(
+            f"Loaded chunk count from PostgreSQL: {total_chunks} "
+            f"({self.config.chunking_version})"
+        )
+        return self._run_batches(
+            repository.iter_by_version(
+                chunking_version=self.config.chunking_version,
+                batch_size=self.config.batch_size,
+            ),
+            total_chunks=total_chunks,
+            sink=sink,
+            retain_embeddings=retain_embeddings,
+        )
 
     def _run_batches(
         self,
         batches: Iterable[Sequence[ChunkRow]],
         *,
         total_chunks: int | None = None,
+        sink: EmbeddingSink | None = None,
+        retain_embeddings: bool = True,
     ) -> BatchEmbeddingResult:
         started_at = perf_counter()
         embeddings: list[EmbeddedChunk] = []
@@ -229,6 +277,7 @@ class BatchEmbeddingPipeline:
         chunks_total = 0
         batches_total = 0
         batches_succeeded = 0
+        embeddings_succeeded = 0
         attempts_total = 0
         self._log_stage("Starting embedding inference")
         progress = self._progress_factory(
@@ -252,13 +301,18 @@ class BatchEmbeddingPipeline:
                     failures.extend(batch_failures)
                 else:
                     batches_succeeded += 1
-                    embeddings.extend(batch_embeddings)
+                    if sink is not None:
+                        sink.upsert_batch(batch_embeddings, normalized_batch)
+                    embeddings_succeeded += len(batch_embeddings)
+                    if retain_embeddings:
+                        embeddings.extend(batch_embeddings)
                 progress.update(len(normalized_batch))
         finally:
             progress.close()
 
         return BatchEmbeddingResult(
             embeddings=tuple(embeddings),
+            embeddings_succeeded=embeddings_succeeded,
             failures=tuple(failures),
             chunks_total=chunks_total,
             batches_total=batches_total,

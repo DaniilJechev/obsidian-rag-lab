@@ -30,7 +30,7 @@ SMOKE_CHECK_EXPERIMENT_DESCRIPTION = (
 )
 BATCH_EXPERIMENT_DESCRIPTION = (
     "Sprint 11 batch embedding experiments tracking versioned PostgreSQL "
-    "chunks, retry behavior, throughput, failures and temporary JSON handoff."
+    "chunks, retry behavior, throughput, failures and vector-store handoff."
 )
 
 
@@ -87,8 +87,10 @@ def log_batch_embedding_run(
     provider: TransformersEmbeddingProvider,
     config: BatchEmbeddingConfig,
     metrics: Mapping[str, float],
+    *,
+    upload_artifacts: bool = True,
 ) -> str:
-    """Log one completed batch run and upload its temporary artifacts."""
+    """Log one completed batch run and upload available local artifacts."""
     mlflow.set_tracking_uri(config.tracking_uri)
     _configure_batch_experiment(config.experiment_name)
     with mlflow.start_run(run_name=config.run_name) as run:
@@ -116,7 +118,8 @@ def log_batch_embedding_run(
             }
         )
         mlflow.log_metrics(dict(metrics))
-        mlflow.log_artifacts(str(config.artifact_dir))
+        if upload_artifacts and config.artifact_dir.exists():
+            mlflow.log_artifacts(str(config.artifact_dir))
         return run.info.run_id
 
 

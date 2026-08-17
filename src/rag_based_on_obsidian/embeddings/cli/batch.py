@@ -14,6 +14,10 @@ from rag_based_on_obsidian.embeddings.pipeline import (
     BatchEmbeddingPipeline,
     BatchEmbeddingResult,
 )
+from rag_based_on_obsidian.embeddings.qdrant_sink import (
+    QdrantVectorSink,
+    versioned_collection_name,
+)
 from rag_based_on_obsidian.embeddings.settings import (
     BatchEmbeddingConfig,
     load_batch_embedding_config,
@@ -67,13 +71,23 @@ def run_batch_embedding(
     try:
         with engine.connect() as connection:
             repository = ChunkRepository(connection)
-            print("[4/5] Starting batch embedding")
+            collection_name = versioned_collection_name(
+                batch_config.qdrant_collection,
+                batch_config.chunking_version,
+            )
+            print(f"[4/5] Connecting to Qdrant collection {collection_name}")
+            sink = QdrantVectorSink.from_url(
+                batch_config.qdrant_url,
+                collection_name=collection_name,
+                vector_size=provider.metadata.dimension,
+            )
+            print("[5/5] Starting direct batch embedding to Qdrant")
             pipeline = BatchEmbeddingPipeline(
                 provider,
                 batch_config,
                 stage_logger=print,
             )
-            return pipeline.execute(repository)
+            return pipeline.execute(repository, sink=sink)
     finally:
         engine.dispose()
 
@@ -92,7 +106,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         run_name=args.run_name,
     )
     print(
-        f"Embedded {len(result.embeddings)}/{result.chunks_total} chunks; "
+        f"Embedded {result.embeddings_succeeded}/{result.chunks_total} chunks; "
         f"failed={len(result.failures)}; "
         f"duration={result.duration_seconds:.3f}s; "
         f"mlflow_run_id={result.mlflow_run_id or 'unknown'}"

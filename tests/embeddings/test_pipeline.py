@@ -9,6 +9,7 @@ import pytest
 from rag_based_on_obsidian.embeddings.contracts import EmbeddingMetadata
 from rag_based_on_obsidian.embeddings.pipeline import (
     BatchEmbeddingPipeline,
+    EmbeddedChunk,
     JsonArtifactWriter,
     validate_embedding_batch,
 )
@@ -139,6 +140,37 @@ def test_pipeline_retries_transient_batch_failure(tmp_path: Path) -> None:
     assert result.failures == ()
     assert result.attempts_total == 2
     assert result.metrics["failure_rate"] == 0.0
+
+
+def test_pipeline_can_upsert_batches_without_retaining_vectors(
+    tmp_path: Path,
+) -> None:
+    class RecordingSink:
+        def __init__(self) -> None:
+            self.batches: list[tuple[list[EmbeddedChunk], list[dict]]] = []
+
+        def upsert_batch(
+            self,
+            embeddings: list[EmbeddedChunk],
+            chunks: list[dict],
+        ) -> None:
+            self.batches.append((embeddings, chunks))
+
+    provider = FakeProvider()
+    pipeline = _pipeline(tmp_path, provider)
+    sink = RecordingSink()
+    chunks = [_chunk(1, 1, 0, "direct"), _chunk(2, 1, 1, "qdrant")]
+
+    result = pipeline._run_batches(
+        [chunks],
+        sink=sink,
+        retain_embeddings=False,
+    )
+
+    assert result.embeddings == ()
+    assert result.embeddings_succeeded == 2
+    assert [item.chunk_id for item in sink.batches[0][0]] == [1, 2]
+    assert result.metrics["embeddings_succeeded"] == 2.0
 
 
 def test_pipeline_records_partial_failure_and_continues(

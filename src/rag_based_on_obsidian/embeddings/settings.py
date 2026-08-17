@@ -52,6 +52,8 @@ class BatchEmbeddingConfig:
     experiment_name: str = "sprint-11-batch-embedding"
     run_name: str = "batch-embedding"
     show_progress: bool = True
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_collection: str = "rag_chunks"
 
     def __post_init__(self) -> None:
         """Reject settings that could make a run ambiguous or unbounded."""
@@ -71,6 +73,10 @@ class BatchEmbeddingConfig:
             raise ValueError("experiment_name must not be empty")
         if not self.run_name.strip():
             raise ValueError("run_name must not be empty")
+        if not self.qdrant_url.strip():
+            raise ValueError("qdrant_url must not be empty")
+        if not self.qdrant_collection.strip():
+            raise ValueError("qdrant_collection must not be empty")
 
 
 def load_embedding_model_config(path: Path) -> EmbeddingModelConfig:
