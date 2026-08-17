@@ -1,6 +1,6 @@
 # Sprint 14 — Direct Qdrant Vector Storage
 
-> Статус: `in-progress`
+> Статус: `completed`
 >
 > Ветка: `sprint/14-qdrant-vector-storage`
 >
@@ -71,16 +71,16 @@ Phase 5 должна заменить временный JSON handoff на по�
 
 ## Definition of Done
 
-- [ ] Все задачи из Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Documentation/configuration обновлены.
-- [ ] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Все задачи из Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
+- [x] CI проходит, если изменения отправлялись в remote.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Documentation/configuration обновлены.
+- [x] Результаты и ограничения записаны в этот sprint-документ.
+- [x] Пользователь подтвердил завершение спринта.
 
 ## Execution Log
 
@@ -108,7 +108,8 @@ uv run rag-cli vector-store verify
 - Tests: `PASS — 90 passed, 1 skipped, 18 deselected`
 - Lint: `PASS — uv run ruff check .`
 - Qdrant smoke: `PASS — user-reported local smoke test`
-- CI: `NOT VERIFIED — no remote implementation push yet`
+- CI: `PASS — PR #39, GitHub Actions Lint and test`
+- Merge: `PASS — PR #39 merged into main with merge commit 363a53e9`
 
 ### Metrics
 
@@ -139,7 +140,8 @@ Observed real run:
 
 ### Not Completed
 
-- Final CI evidence and sprint closeout.
+- Sprint 15 remains open in the Phase 5 milestone; it is the next planned
+  retrieval sprint.
 
 ### Changed Decisions
 
@@ -152,23 +154,42 @@ Observed real run:
 
 ## Retrospective
 
-Будет заполнена после реализации Sprint 14.
+### What went well
+
+- Direct Qdrant upsert removed the runtime JSON vector handoff while retaining
+  bounded batches and partial-failure accounting.
+- Stable source-based point IDs, versioned collection names and explicit
+  `--recreate` made reruns safe and operationally predictable.
+- The real run and consistency verification produced `733/733` points with
+  zero failures and zero mismatches.
+
+### Difficulties
+
+- CPU embedding remained the dominant runtime cost: the observed full run took
+  `275.626s` for 733 chunks.
+- GitHub experienced a temporary web/API outage during PR access and merge
+  preparation; the remote merge succeeded after service recovery.
+
+### Follow-up
+
+- Define collection-version cleanup or archival policy.
+- Continue with Sprint 15 retrieval contracts, dense search, BM25 and RRF.
 
 ### Backlog Updates
 
-- Добавить: consistency и collection-version cleanup после первого Qdrant run.
+- Добавить: collection-version cleanup/archival policy.
 - Перенести: semantic evaluation в Phase 7.
-- Изменить приоритет: `RET-001` подготовлен к Sprint 14.
+- Закрыть: `RET-001` после merge PR #39 — выполнено.
 
 ## Completion
 
-- [x] Definition of Done проверен локально; remote closeout gates remain.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен локально и подтверждён remote evidence.
+- [x] Review проведён в формате owner-authorized review waiver.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён.
+- [x] Sprint 15 запланирован как следующий sprint.
 
-**Итоговый статус:** `ready-for-closeout`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** `не завершён`
+**Дата завершения:** `2026-08-17`
