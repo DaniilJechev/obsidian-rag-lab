@@ -21,6 +21,7 @@ class EmbeddingModelConfig:
     document_prefix: str
     query_prefix: str
     show_progress: bool = True
+    dimension: int | None = None
 
     def __post_init__(self) -> None:
         """Reject invalid inference settings before model loading."""
@@ -36,6 +37,8 @@ class EmbeddingModelConfig:
             raise ValueError("max_length must be positive")
         if self.batch_size <= 0:
             raise ValueError("batch_size must be positive")
+        if self.dimension is not None and self.dimension <= 0:
+            raise ValueError("dimension must be positive when provided")
 
 
 @dataclass(frozen=True)

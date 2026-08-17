@@ -146,6 +146,7 @@ def log_qdrant_consistency_run(
             {
                 "postgres_points": report.postgres_points,
                 "qdrant_points": report.qdrant_points,
+                "point_count_matches": int(report.point_count_matches),
                 "missing_points": len(report.missing_point_keys),
                 "extra_points": len(report.extra_point_keys),
                 "metadata_mismatches": len(report.metadata_mismatches),

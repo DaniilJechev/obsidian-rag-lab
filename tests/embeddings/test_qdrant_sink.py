@@ -50,8 +50,15 @@ class FakeQdrantClient:
 
 def test_versioned_collection_name_is_stable() -> None:
     assert (
-        versioned_collection_name("rag_chunks", "sprint9-policy-512-v2")
-        == "rag_chunks__sprint9-policy-512-v2"
+        versioned_collection_name(
+            "rag_chunks",
+            "sprint9-policy-512-v2",
+            model_name="intfloat/multilingual-e5-small",
+            model_revision="main",
+            vector_size=384,
+        )
+        == "rag_chunks__sprint9-policy-512-v2__intfloat-multilingual-e5-small"
+        "__main__384"
     )
 
 

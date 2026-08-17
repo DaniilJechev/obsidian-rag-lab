@@ -263,7 +263,7 @@ class BatchEmbeddingPipeline:
         qdrant_embedding_bytes = 0
         self._log_stage("Starting embedding inference")
         progress = self._progress_factory(
-            desc="Embedding and upserting chunks" if sink else "Embedding chunks",
+            desc="Chunks saved to Qdrant" if sink else "Embedding chunks",
             total=total_chunks,
             unit="chunk",
             disable=not self.config.show_progress,
@@ -281,6 +281,9 @@ class BatchEmbeddingPipeline:
                 attempts_total += attempts
                 if batch_failures:
                     failures.extend(batch_failures)
+                    if sink is None:
+                        progress.update(len(normalized_batch))
+                    continue
                 else:
                     try:
                         if sink is not None:
@@ -305,7 +308,6 @@ class BatchEmbeddingPipeline:
                             )
                             for chunk in normalized_batch
                         )
-                        progress.update(len(normalized_batch))
                         continue
                     except Exception as error:  # noqa: BLE001
                         qdrant_errors += 1
@@ -318,7 +320,6 @@ class BatchEmbeddingPipeline:
                             )
                             for chunk in normalized_batch
                         )
-                        progress.update(len(normalized_batch))
                         continue
 
                     batches_succeeded += 1
@@ -330,7 +331,11 @@ class BatchEmbeddingPipeline:
                         upsert_points += write_result.points_written
                         upsert_duration_seconds += write_result.duration_seconds
                         qdrant_embedding_bytes += write_result.vector_bytes
-                progress.update(len(normalized_batch))
+                    progress.update(
+                        write_result.points_written
+                        if write_result is not None
+                        else len(normalized_batch)
+                    )
         finally:
             progress.close()
 

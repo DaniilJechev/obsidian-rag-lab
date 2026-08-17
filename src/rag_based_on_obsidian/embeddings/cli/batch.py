@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
 
+from qdrant_client import QdrantClient
 from sqlalchemy import create_engine
 
 from rag_based_on_obsidian.chunking.persistence import ChunkRepository
@@ -43,6 +44,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tracking-uri", default=None)
     parser.add_argument("--experiment-name", default=None)
     parser.add_argument("--run-name", default=None)
+    parser.add_argument(
+        "--recreate",
+        action="store_true",
+        help="Delete the target Qdrant collection before embedding.",
+    )
     return parser
 
 
@@ -51,6 +57,7 @@ def run_batch_embedding(
     model_config_path: Path,
     batch_config_path: Path,
     qdrant_config_path: Path,
+    recreate: bool = False,
     tracking_uri: str | None = None,
     experiment_name: str | None = None,
     run_name: str | None = None,
@@ -78,7 +85,16 @@ def run_batch_embedding(
             collection_name = versioned_collection_name(
                 qdrant_config.collection,
                 batch_config.chunking_version,
+                model_name=provider.metadata.model_name,
+                model_revision=provider.metadata.model_revision,
+                vector_size=provider.metadata.dimension,
             )
+            if recreate:
+                _recreate_collection(
+                    qdrant_config.url,
+                    collection_name=collection_name,
+                )
+                print(f"Recreated Qdrant collection {collection_name}")
             print(f"[4/5] Connecting to Qdrant collection {collection_name}")
             sink = QdrantVectorSink.from_url(
                 qdrant_config.url,
@@ -110,6 +126,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         qdrant_config_path=(
             args.qdrant_config or app_config.qdrant_config_path
         ),
+        recreate=args.recreate,
         tracking_uri=args.tracking_uri,
         experiment_name=args.experiment_name,
         run_name=args.run_name,
@@ -141,3 +158,13 @@ def _override_batch_config(
         if value is not None
     }
     return replace(config, **overrides)
+
+
+def _recreate_collection(url: str, *, collection_name: str) -> None:
+    """Explicitly delete one target collection before a full rebuild."""
+    client = QdrantClient(url=url)
+    try:
+        if client.collection_exists(collection_name=collection_name):
+            client.delete_collection(collection_name=collection_name)
+    finally:
+        client.close()

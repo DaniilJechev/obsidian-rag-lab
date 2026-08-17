@@ -148,11 +148,25 @@ class QdrantVectorSink:
         )
 
 
-def versioned_collection_name(base_name: str, version: str) -> str:
-    """Return a stable Qdrant collection name for one index generation."""
+def versioned_collection_name(
+    base_name: str,
+    chunking_version: str,
+    *,
+    model_name: str,
+    model_revision: str,
+    vector_size: int,
+) -> str:
+    """Return a collection name for one complete embedding index generation."""
+    if vector_size <= 0:
+        raise ValueError("vector_size must be positive")
     normalized_base = _normalize_name(base_name)
-    normalized_version = _normalize_name(version)
-    return f"{normalized_base}__{normalized_version}"
+    normalized_chunking = _normalize_name(chunking_version)
+    normalized_model = _normalize_name(model_name)
+    normalized_revision = _normalize_name(model_revision)
+    return (
+        f"{normalized_base}__{normalized_chunking}__{normalized_model}"
+        f"__{normalized_revision}__{vector_size}"
+    )
 
 
 def _payload_for_chunk(

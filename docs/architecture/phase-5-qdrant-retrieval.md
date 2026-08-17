@@ -21,11 +21,12 @@ upserts with stable point IDs derived from source identity and index version.
 The mutable PostgreSQL `chunk_id` remains in payload for provenance but is not
 used as the deduplication key.
 
-Collections are versioned by the configured base collection and
-`chunking_version`, for example:
+Collections are versioned by the configured base collection,
+`chunking_version`, embedding model, model revision and vector dimension, for
+example:
 
 ```text
-rag_chunks__sprint9-policy-512-v2
+rag_chunks__sprint9-policy-512-v2__intfloat-multilingual-e5-small__main__384
 ```
 
 The Qdrant payload contains the chunk identity, text, section provenance,
@@ -42,6 +43,13 @@ source path and character offsets needed to reconstruct retrieval results.
 - MLflow records upsert duration, throughput, errors, point count and the raw
   float32 vector storage estimate.
 - The runtime pipeline does not create or read `embeddings.json`.
+
+## Rebuild modes
+
+The default `run-and-verify` mode creates or updates the target generation and
+does not delete older collections. The explicit `--recreate` mode deletes only
+that target collection before rebuilding it. The destructive mode is never
+implicit.
 
 ## Consistency verification
 

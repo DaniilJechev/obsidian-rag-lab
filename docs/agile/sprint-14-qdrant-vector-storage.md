@@ -30,6 +30,7 @@ Phase 5 должна заменить временный JSON handoff на по�
   payload schema.
 - [x] Использовать стабильный point ID из source identity и index version;
   `chunk_id` сохраняется в payload.
+- [x] Разделить безопасный versioned rebuild и явный `--recreate` режим.
 - [x] Добавить collection creation, version checks, batch-upsert metrics и
   partial-failure handling.
 - [x] Удалить `embeddings.json` и JSON vector writer из runtime pipeline.
@@ -122,6 +123,8 @@ rate, consistency mismatches, collection point count и process memory.
 - Commit `b6f695b` records the initial vertical slice.
 - Current working tree adds Qdrant retries, metrics, consistency verification,
   vector-store configuration, CLI operations and architecture documentation.
+- Collection identity now includes chunking version, model, revision and
+  dimension; verify reports explicit PostgreSQL/Qdrant point-count equality.
 
 ### Not Completed
 

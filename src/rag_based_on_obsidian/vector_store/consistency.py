@@ -51,6 +51,11 @@ class ConsistencyReport:
         )
 
     @property
+    def point_count_matches(self) -> bool:
+        """Return whether PostgreSQL and Qdrant contain equal point counts."""
+        return self.postgres_points == self.qdrant_points
+
+    @property
     def is_consistent(self) -> bool:
         """Return whether both stores describe the same point set and payload."""
         return self.mismatch_count == 0
