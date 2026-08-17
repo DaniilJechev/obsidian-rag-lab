@@ -70,7 +70,7 @@ Backlog не является жёстким расписанием. Приор�
 | EMB-001 | P1 | done | 4 | Создать `EmbeddingProvider` и подключить локальную CPU-модель | Contract, `multilingual-e5-small` CPU provider, pooling, normalization, vector validation, tests и MLflow smoke run `a023f4a528314856b36eafdb9ec5794c` подтверждены в Sprint 10 |
 | EMB-002 | P2 | done | 4 | Реализовать batch embedding pipeline | Versioned chunks обрабатываются batches с progress, retries, failure accounting и temporary JSON manifest; Sprint 11 merged in PR [#35](https://github.com/DaniilJechev/obsidian-rag-lab/pull/35), merge commit `60324d7`, CI passed |
 | EMB-003 | P1 | deferred | 4 | Сравнить local embedding models и подготовить Qdrant handoff | Отложено до появления evaluation-ready этапа; `multilingual-e5-small` используется как provisional baseline, а Qdrant handoff реализуется отдельно в Phase 5 |
-| RET-001 | P1 | ready | 5 | Создать Qdrant collection и dense retrieval | Sprint 14: direct batch upsert, versioned collection/payload, idempotency, consistency verification, dense search foundation |
+| RET-001 | P1 | done | 5 | Создать Qdrant collection и dense retrieval | Sprint 14 completed: direct batch upsert, versioned collection/payload, idempotency, consistency verification; PR [#39](https://github.com/DaniilJechev/obsidian-rag-lab/pull/39) merged with CI passed |
 | RET-002 | P1 | ready | 5 | Добавить BM25 и RRF hybrid retrieval | Sprint 15: `LexicalIndex`, BM25, RRF fusion, retrieval contract и synthetic smoke search |
 | EVAL-001 | P0 | idea | 7 | Создать gold eval-набор | Вопросы и relevant note/chunk IDs проверены вручную |
 | EVAL-002 | P0 | idea | 7 | Реализовать nDCG@k и MRR@k | Метрики считаются тестами на фиксированном наборе |
