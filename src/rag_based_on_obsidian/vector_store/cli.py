@@ -36,7 +36,7 @@ from rag_based_on_obsidian.vector_store.settings import load_qdrant_config
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build create, embed and verify vector-store commands."""
+    """Build create, upsert-dense-sparse and verify vector-store commands."""
     parser = argparse.ArgumentParser(
         prog="rag-cli vector-store",
         description="Create, populate and verify Qdrant vector storage.",
@@ -61,12 +61,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     create.add_argument("--vector-size", type=int, default=None)
 
-    embed = subparsers.add_parser("embed")
-    embed.add_argument("embedding_args", nargs=argparse.REMAINDER)
+    upsert = subparsers.add_parser(
+        "upsert-dense-sparse",
+        help=(
+            "Embed PostgreSQL chunks and upsert dense cosine plus BM25 sparse "
+            "vectors into one Qdrant collection."
+        ),
+    )
+    _add_embedding_arguments(upsert)
 
     run_and_verify = subparsers.add_parser(
         "run-and-verify",
-        help="Embed chunks into Qdrant and verify storage consistency.",
+        help="Embed chunks into Qdrant as dense plus BM25 sparse points, then verify.",
     )
     _add_embedding_arguments(run_and_verify)
 
@@ -78,8 +84,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Execute one vector-store operation."""
     args = build_parser().parse_args(argv)
-    if args.operation == "embed":
-        return embedding_main(args.embedding_args)
+    if args.operation == "upsert-dense-sparse":
+        return embedding_main(_embedding_arguments(args))
     if args.operation == "create":
         return _create_collection(args)
     if args.operation == "run-and-verify":
@@ -133,6 +139,8 @@ def _create_collection(args: argparse.Namespace) -> int:
         vector_size=vector_size,
         max_retries=qdrant_config.max_retries,
         retry_backoff_seconds=qdrant_config.retry_backoff_seconds,
+        bm25_avg_len=qdrant_config.bm25_avg_len,
+        bm25_model=qdrant_config.bm25_model,
     )
     print(
         f"Qdrant collection ready: {collection_name} "
@@ -255,7 +263,7 @@ def _add_embedding_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--recreate",
         action="store_true",
-        help="Delete the target collection before embedding.",
+        help="Delete the target collection before upserting dense and BM25 vectors.",
     )
 
 

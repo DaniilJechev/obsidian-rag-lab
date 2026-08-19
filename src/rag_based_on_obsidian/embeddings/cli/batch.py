@@ -35,7 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Embed PostgreSQL chunks for one explicit chunking version and "
-            "upsert validated vectors into Qdrant."
+            "upsert dense cosine plus BM25 sparse vectors into Qdrant."
         )
     )
     parser.add_argument("--model-config", type=Path, default=None)
@@ -47,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--recreate",
         action="store_true",
-        help="Delete the target Qdrant collection before embedding.",
+        help="Delete the target Qdrant collection before dense and BM25 upsert.",
     )
     return parser
 
@@ -102,6 +102,8 @@ def run_batch_embedding(
                 vector_size=provider.metadata.dimension,
                 max_retries=qdrant_config.max_retries,
                 retry_backoff_seconds=qdrant_config.retry_backoff_seconds,
+                bm25_avg_len=qdrant_config.bm25_avg_len,
+                bm25_model=qdrant_config.bm25_model,
             )
             print("[5/5] Starting direct batch embedding to Qdrant")
             pipeline = BatchEmbeddingPipeline(

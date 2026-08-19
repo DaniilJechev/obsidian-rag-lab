@@ -5,7 +5,7 @@ import pytest
 from rag_based_on_obsidian import cli_rag
 
 
-def test_rag_cli_dispatches_embed_arguments(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_rag_cli_dispatches_upsert_dense_sparse_arguments(monkeypatch: pytest.MonkeyPatch) -> None:
     received: list[str] = []
 
     def fake_embedding_main(arguments: list[str]) -> int:
@@ -14,7 +14,7 @@ def test_rag_cli_dispatches_embed_arguments(monkeypatch: pytest.MonkeyPatch) -> 
 
     monkeypatch.setattr(cli_rag, "embedding_main", fake_embedding_main)
 
-    assert cli_rag.main(["embed", "--batch-config", "batch.yaml"]) == 7
+    assert cli_rag.main(["upsert-dense-sparse", "--batch-config", "batch.yaml"]) == 7
     assert received == ["--batch-config", "batch.yaml"]
 
 
@@ -44,6 +44,21 @@ def test_rag_cli_dispatches_vector_store_arguments(
 
     assert cli_rag.main(["vector-store", "verify"]) == 5
     assert received == ["verify"]
+
+
+def test_rag_cli_dispatches_search_arguments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    received: list[str] = []
+
+    def fake_retrieval_main(arguments: list[str]) -> int:
+        received.extend(arguments)
+        return 6
+
+    monkeypatch.setattr(cli_rag, "retrieval_main", fake_retrieval_main)
+
+    assert cli_rag.main(["search", "hybrid", "--query", "RAG"]) == 6
+    assert received == ["hybrid", "--query", "RAG"]
 
 
 def test_rag_cli_rejects_unknown_command() -> None:

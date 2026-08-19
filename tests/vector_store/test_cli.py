@@ -52,3 +52,16 @@ def test_run_and_verify_runs_verification_after_embedding(
     assert verification_arguments[0].batch_config == Path("batch.yaml")
     assert verification_arguments[0].qdrant_config == Path("qdrant.yaml")
     assert "Verify started" in capsys.readouterr().out
+
+
+def test_upsert_dense_sparse_forwards_remainder_arguments(monkeypatch) -> None:
+    received: list[str] = []
+
+    def fake_embedding_main(arguments: list[str]) -> int:
+        received.extend(arguments)
+        return 0
+
+    monkeypatch.setattr(cli, "embedding_main", fake_embedding_main)
+
+    assert cli.main(["upsert-dense-sparse", "--recreate"]) == 0
+    assert received == ["--recreate"]

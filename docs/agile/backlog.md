@@ -71,7 +71,8 @@ Backlog не является жёстким расписанием. Приор�
 | EMB-002 | P2 | done | 4 | Реализовать batch embedding pipeline | Versioned chunks обрабатываются batches с progress, retries, failure accounting и temporary JSON manifest; Sprint 11 merged in PR [#35](https://github.com/DaniilJechev/obsidian-rag-lab/pull/35), merge commit `60324d7`, CI passed |
 | EMB-003 | P1 | deferred | 4 | Сравнить local embedding models и подготовить Qdrant handoff | Отложено до появления evaluation-ready этапа; `multilingual-e5-small` используется как provisional baseline, а Qdrant handoff реализуется отдельно в Phase 5 |
 | RET-001 | P1 | done | 5 | Создать Qdrant collection и dense retrieval | Sprint 14 completed: direct batch upsert, versioned collection/payload, idempotency, consistency verification; PR [#39](https://github.com/DaniilJechev/obsidian-rag-lab/pull/39) merged with CI passed |
-| RET-002 | P1 | ready | 5 | Добавить BM25 и RRF hybrid retrieval | Sprint 15: `LexicalIndex`, BM25, RRF fusion, retrieval contract и synthetic smoke search |
+| RET-002 | P1 | in-progress | 5 | Добавить BM25 и RRF hybrid retrieval | Sprint 15: Qdrant sparse BM25, RRF fusion, retrieval contract и live hybrid smoke; `done` только после PR/CI/merge |
+| RET-003 | P2 | in-progress | 5 | Удалить неиспользуемый `rank-bm25` | Dependency убрана из `pyproject.toml`/`uv.lock` в Sprint 15 PR; `done` после merge |
 | EVAL-001 | P0 | idea | 7 | Создать gold eval-набор | Вопросы и relevant note/chunk IDs проверены вручную |
 | EVAL-002 | P0 | idea | 7 | Реализовать nDCG@k и MRR@k | Метрики считаются тестами на фиксированном наборе |
 | API-001 | P1 | idea | 8 | Создать FastAPI retriever service | `/health`, `/ingest`, `/search` имеют контракты и тесты |
@@ -94,6 +95,8 @@ Backlog не является жёстким расписанием. Приор�
 - Добавить Telegram integration через `asyncio`.
 - Проверить необходимость typed configuration loader.
 - Документировать ограничения custom Qdrant image с `wget`.
+- Держать embedding model в долгоживущем процессе: CLI `rag-cli search`
+  сейчас каждый раз заново загружает e5, и это доминирует над Qdrant latency.
 
 ## Текущий фокус
 
