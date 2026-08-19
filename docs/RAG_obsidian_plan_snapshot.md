@@ -162,6 +162,10 @@ GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 **Стек:**
 - **Вариант A:** `PostGreSQL` + `pgvectors` + BM25
 - **Вариант B:** `Qdrant` + Postgres для метаданных/логов
+- Выбранный Phase 5 путь: `Qdrant` для dense cosine/HNSW retrieval, BM25
+  (`rank-bm25`) по versioned PostgreSQL chunks и RRF для hybrid fusion.
+- `asyncio` + `asyncio.to_thread` используются в retrieval pipeline для
+  параллельного запуска синхронных dense и BM25 веток после query embedding.
 
 Также: `Python`, `Docker`, `SQL || PostGreSQL`
 

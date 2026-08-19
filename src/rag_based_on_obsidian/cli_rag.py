@@ -6,6 +6,7 @@ from collections.abc import Sequence
 
 from rag_based_on_obsidian.chunking.chunking_cli import main as chunking_main
 from rag_based_on_obsidian.embeddings.cli.batch import main as embedding_main
+from rag_based_on_obsidian.retrieval.cli import main as retrieval_main
 from rag_based_on_obsidian.vector_store.cli import main as vector_store_main
 
 
@@ -28,6 +29,10 @@ def build_parser() -> argparse.ArgumentParser:
         "vector-store",
         help="Create, embed and verify Qdrant vector storage.",
     )
+    subparsers.add_parser(
+        "search",
+        help="Run dense, BM25 or hybrid retrieval.",
+    )
     return parser
 
 
@@ -45,6 +50,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return embedding_main(command_arguments)
     if command == "vector-store":
         return vector_store_main(command_arguments)
+    if command == "search":
+        return retrieval_main(command_arguments)
 
     build_parser().error(f"unknown command: {command}")
     return 2

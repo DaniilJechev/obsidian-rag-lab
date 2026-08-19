@@ -77,6 +77,26 @@ uv run rag-cli vector-store verify
 
 ## Retrieval boundary
 
-Sprint 15 will add query embeddings, dense Qdrant search, BM25 over versioned
-PostgreSQL chunks and RRF fusion. Phase 5 smoke tests verify technical
-correctness only; semantic quality metrics and gold questions belong to Phase 7.
+Sprint 15 adds a backend-independent `RetrievedChunk` contract over three
+retrieval stages:
+
+```text
+query
+  → one query embedding
+  → asyncio.to_thread(dense Qdrant search)
+  → asyncio.to_thread(BM25 search)
+  → rank-based RRF fusion
+  → deterministic top-k RetrievedChunk results
+```
+
+Dense search uses Qdrant cosine/HNSW retrieval against the collection whose
+model, revision, dimension and chunking version match the query provider.
+BM25 uses `rank-bm25` over one explicit version of PostgreSQL chunks. The BM25
+index is an in-memory process structure: PostgreSQL remains its source of truth,
+and the index is rebuilt after process restart or version change.
+
+Dense and BM25 raw scores are not added directly because their scales differ.
+RRF combines their rank positions, removes duplicate stable chunk identities
+and preserves dense/BM25 scores as diagnostic fields. Phase 5 smoke tests
+verify technical correctness only; semantic quality metrics and gold questions
+belong to Phase 7.

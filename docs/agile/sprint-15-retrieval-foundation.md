@@ -1,6 +1,6 @@
 # Sprint 15 — Dense, BM25 and Retrieval Contract
 
-> Статус: `planned`
+> Статус: `in-progress`
 >
 > Ветка: `sprint/15-retrieval-foundation`
 >
@@ -23,18 +23,18 @@ claims о semantic quality.
 
 ## Scope
 
-- [ ] Создать `RetrievedChunk` contract с `chunk_id`, text, scores, metadata,
+- [x] Создать `RetrievedChunk` contract с `chunk_id`, text, scores, metadata,
   retrieval method и version fields.
-- [ ] Реализовать query embedding через тот же versioned
+- [x] Реализовать query embedding через тот же versioned
   `EmbeddingProvider`, что используется для document vectors.
-- [ ] Реализовать dense Qdrant search с `top_k` и metadata filters.
-- [ ] Создать `LexicalIndex` contract и первую реализацию на `rank_bm25` из
+- [x] Реализовать dense Qdrant search с `top_k` и metadata filters.
+- [x] Создать lexical index contract boundary и первую реализацию на `rank_bm25` из
   explicit versioned PostgreSQL chunks.
-- [ ] Реализовать BM25 lexical search с теми же `chunk_id` и metadata.
-- [ ] Реализовать RRF fusion dense и BM25 результатов с устранением дублей.
-- [ ] Добавить CLI для synthetic dense и hybrid search.
-- [ ] Добавить deterministic retrieval smoke tests и понятный console output.
-- [ ] Зафиксировать Phase 5 retrieval architecture и границы до Phase 7/9.
+- [x] Реализовать BM25 lexical search с теми же `chunk_id` и metadata.
+- [x] Реализовать RRF fusion dense и BM25 результатов с устранением дублей.
+- [x] Добавить CLI для synthetic dense и hybrid search.
+- [x] Добавить deterministic retrieval unit tests и понятный JSON console output.
+- [x] Зафиксировать Phase 5 retrieval architecture и границы до Phase 7/9.
 
 ## Out of Scope
 
@@ -85,7 +85,9 @@ claims о semantic quality.
 
 | Дата | Действие / решение | Результат |
 |---|---|---|
-| planned | Sprint created | Implementation not started |
+| implementation | Added retrieval contracts, Qdrant dense adapter, versioned in-memory BM25, RRF and async hybrid pipeline | First retrieval vertical slice implemented |
+| implementation | Added `rag-cli search dense|bm25|hybrid` and `configs/retrieval/retrieval.yaml` | CLI and configuration boundary implemented |
+| validation | Focused Ruff and pytest checks | Ruff passed; 11 focused tests passed |
 
 ## Validation Evidence
 
@@ -100,8 +102,8 @@ uv run rag-cli search hybrid --query "synthetic retrieval query"
 
 ### Test and Lint Results
 
-- Tests: `NOT VERIFIED — sprint not started`
-- Lint: `NOT VERIFIED — sprint not started`
+- Tests: `PASS — uv run pytest tests/retrieval tests/test_cli_rag.py -q` (11 passed)
+- Lint: `PASS — uv run ruff check src/rag_based_on_obsidian/retrieval src/rag_based_on_obsidian/cli_rag.py src/rag_based_on_obsidian/config.py tests/retrieval tests/test_cli_rag.py`
 - Retrieval smoke: `NOT VERIFIED — sprint not started`
 - CI: `NOT VERIFIED — implementation not started`
 
@@ -118,7 +120,8 @@ latency, BM25 latency, RRF latency, top-k result count и retrieval errors.
 
 ### Not Completed
 
-- Dense search, BM25, RRF и retrieval contracts ещё не реализованы.
+- Manual dense/hybrid smoke against running PostgreSQL, Qdrant and MLflow is still
+  pending; no semantic-quality claim is made.
 
 ### Changed Decisions
 
@@ -127,8 +130,9 @@ latency, BM25 latency, RRF latency, top-k result count и retrieval errors.
 
 ### Technical Debt
 
-- BM25 index пока строится из PostgreSQL chunks; его persistent/refresh strategy
-  потребует отдельного operational hardening после первого baseline.
+- BM25 index пока строится из PostgreSQL chunks в памяти процесса; его
+  persistent/refresh strategy потребует отдельного operational hardening после
+  первого baseline.
 
 ## Retrospective
 
@@ -149,6 +153,6 @@ latency, BM25 latency, RRF latency, top-k result count и retrieval errors.
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `in-progress`
 
 **Дата завершения:** `не завершён`

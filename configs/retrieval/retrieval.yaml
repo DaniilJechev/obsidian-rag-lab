@@ -1,0 +1,7 @@
+name: sprint15-retrieval
+chunking_version: sprint9-policy-512-v2
+top_k: 5
+candidate_k: 20
+rrf_k: 60
+postgres_batch_size: 256
+show_scores: true

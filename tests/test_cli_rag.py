@@ -46,6 +46,21 @@ def test_rag_cli_dispatches_vector_store_arguments(
     assert received == ["verify"]
 
 
+def test_rag_cli_dispatches_search_arguments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    received: list[str] = []
+
+    def fake_retrieval_main(arguments: list[str]) -> int:
+        received.extend(arguments)
+        return 6
+
+    monkeypatch.setattr(cli_rag, "retrieval_main", fake_retrieval_main)
+
+    assert cli_rag.main(["search", "hybrid", "--query", "RAG"]) == 6
+    assert received == ["hybrid", "--query", "RAG"]
+
+
 def test_rag_cli_rejects_unknown_command() -> None:
     with pytest.raises(SystemExit):
         cli_rag.main(["unknown"])
