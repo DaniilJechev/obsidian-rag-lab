@@ -92,6 +92,7 @@ claims о semantic quality.
 | implementation | Added `rag-cli search dense/bm25/hybrid` and `configs/retrieval/retrieval.yaml` | CLI and configuration boundary implemented |
 | implementation | Replaced in-memory `rank-bm25` with Qdrant named sparse `bm25` on the same points as dense; Python RRF stays in-process | Search CLI no longer loads PostgreSQL chunks at query time |
 | implementation | Renamed ingest CLI from `embed` to `upsert-dense-sparse` | Command name states dense cosine plus BM25 sparse upsert |
+| implementation | Removed unused `rank-bm25` dependency (`RET-003`) | Lexical search uses only Qdrant sparse `bm25` |
 | validation | Live hybrid search against `rag_chunks_dense_sparse__sprint9-policy-512-v2__intfloat-multilingual-e5-small__main__384` | JSON top-5 with `retrieval_method=hybrid`, both `dense_score` and `bm25_score`, payload provenance |
 | validation | Full Ruff and pytest | Ruff passed; `104 passed, 1 skipped, 18 deselected` |
 
@@ -140,11 +141,11 @@ Observed on live hybrid smoke: `result_count=5`, both `dense_score` and `bm25_sc
 
 ### Technical Debt
 
-- `rank-bm25` remains in `pyproject.toml` but is unused at runtime.
 - `postgres_batch_size` in `configs/retrieval/retrieval.yaml` is leftover from
   the in-memory BM25 loader.
 - CLI search reloads the embedding model on every process start; a long-lived
-  process (later API) should keep the provider warm.
+  FastAPI process (Phase 8) should keep the provider warm. This is not a
+  Sprint 15 blocker.
 
 ## Retrospective
 
@@ -155,8 +156,8 @@ Observed on live hybrid smoke: `result_count=5`, both `dense_score` and `bm25_sc
 
 ### Backlog Updates
 
-- Добавить: удалить неиспользуемый `rank-bm25`.
-- Добавить: держать embedding model в долгоживущем процессе (API), не в CLI.
+- Добавить: держать embedding model в долгоживущем процессе (Phase 8 API), не в CLI.
+- `RET-003` (удаление `rank-bm25`) включён в этот же sprint PR; `done` после merge.
 - Перенести: gold evaluation и quality metrics в Phase 7.
 - Не закрывать `RET-002` как `done`, пока не пройдут PR, CI и merge.
 

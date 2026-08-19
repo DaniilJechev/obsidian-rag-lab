@@ -96,9 +96,8 @@ vector in the collection whose model, revision, dimension and chunking
 version match the query provider. BM25 uses Qdrant's built-in sparse index
 (`Qdrant/bm25`, IDF modifier, `avg_len=191.0` from Sprint 9 mean token
 length) on the same points. PostgreSQL remains the source of truth for
-chunks; it is no longer scanned at query time to build an in-memory
-`rank-bm25` index. `rank-bm25` remains a leftover dependency until it is
-explicitly removed.
+chunks. Python RRF remains in-process. The unused `rank-bm25` package has
+been removed from project dependencies.
 
 Dense and BM25 raw scores are not added directly because their scales differ.
 RRF combines their rank positions, removes duplicate stable chunk identities
