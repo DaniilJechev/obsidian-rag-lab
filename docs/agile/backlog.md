@@ -73,6 +73,7 @@ Backlog не является жёстким расписанием. Приор�
 | RET-001 | P1 | done | 5 | Создать Qdrant collection и dense retrieval | Sprint 14 completed: direct batch upsert, versioned collection/payload, idempotency, consistency verification; PR [#39](https://github.com/DaniilJechev/obsidian-rag-lab/pull/39) merged with CI passed |
 | RET-002 | P1 | done | 5 | Добавить BM25 и RRF hybrid retrieval | Sprint 15 completed: Qdrant sparse BM25, RRF, retrieval contract и live hybrid smoke; PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41) merged (`46b4234`), CI passed, Issue [#38](https://github.com/DaniilJechev/obsidian-rag-lab/issues/38) closed |
 | RET-003 | P2 | done | 5 | Удалить неиспользуемый `rank-bm25` | Dependency removed in PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41); lexical search uses Qdrant sparse `bm25` only |
+| PGV-001 | P2 | ready | 6 | Учебный dense path на PostgreSQL + pgvector (без merge в `main`) | На ветке `sprint/16-pgvector-dense-experiment`: те же chunks/embeddings, dense `RetrievedChunk`, CLI smoke vs Qdrant dense; Qdrant остаётся default; BM25/hybrid и nDCG не входят |
 | EVAL-001 | P0 | idea | 7 | Создать gold eval-набор | Вопросы и relevant note/chunk IDs проверены вручную |
 | EVAL-002 | P0 | idea | 7 | Реализовать nDCG@k и MRR@k | Метрики считаются тестами на фиксированном наборе |
 | API-001 | P1 | idea | 8 | Создать FastAPI retriever service | `/health`, `/ingest`, `/search` имеют контракты и тесты |
@@ -89,7 +90,8 @@ Backlog не является жёстким расписанием. Приор�
 ## Идеи и технический долг
 
 - Добавить отдельный benchmark платных embeddings через OpenRouter.
-- Сравнить Qdrant с PostgreSQL + pgvector на одинаковых chunks.
+- Сравнить Qdrant с PostgreSQL + pgvector на одинаковых chunks —
+  вынесено в `PGV-001` / Sprint 16 как branch-only experiment, без merge в `main`.
 - Добавить cloud-профиль после локального baseline.
 - Рассмотреть graph-enhanced retrieval по Obsidian wikilinks.
 - Добавить Telegram integration через `asyncio`.
@@ -104,7 +106,13 @@ Backlog не является жёстким расписанием. Приор�
 production-like test drive. Sprint 7, Sprint 8 и structural implementation Sprint 9
 завершены. Технический scope Phase 4 завершён в Sprint 10 и Sprint 11;
 сравнение embedding-моделей (`EMB-003`) сознательно отложено до
-evaluation-ready этапа. Следующая готовая работа относится к Phase 5:
+evaluation-ready этапа. Phase 5 закрыта (Sprint 14–15). Следующая работа —
+Phase 6 comparison: Sprint 16 (`PGV-001`) — учебный pgvector dense path на
+отдельной ветке, без merge в `main`. Qdrant остаётся единственным retrieval
+default. Дальше по roadmap после эксперимента: Phase 7 gold eval или Phase 8 API,
+по решению пользователя.
+
+История завершённых спринтов:
 
 1. Sprint 7: SectionTree, typed blocks, LangChain Documents и policy contracts
    (`CHUNK-003`, `CHUNK-004`, `CHUNK-005`; GitHub [#19](https://github.com/DaniilJechev/obsidian-rag-lab/issues/19)).
@@ -143,7 +151,13 @@ evaluation-ready этапа. Следующая готовая работа от
    merged (`46b4234`), CI passed, Issue
    [#38](https://github.com/DaniilJechev/obsidian-rag-lab/issues/38) closed.
 
+8. Sprint 16: учебный PostgreSQL + pgvector dense path
+   (`PGV-001`; planning document:
+   `docs/agile/sprint-16-pgvector-dense-experiment.md`)
+   — planned; implementation на `sprint/16-pgvector-dense-experiment`,
+   без merge в `main`.
+
 Semantic evaluation, gold questions и RAGAS остаются в Phase 7, а OpenRouter
 generation — в Phase 9. LangGraph относится к более поздней фазе. Sprint 14 и
 Sprint 15 создают только технический vector/retrieval foundation; они не
-утверждают качество embeddings или retrieval.
+утверждают качество embeddings или retrieval. Sprint 16 не заменяет Qdrant.

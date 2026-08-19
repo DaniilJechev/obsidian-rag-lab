@@ -129,8 +129,8 @@ Observed on live hybrid smoke: `result_count=5`, both `dense_score` and `bm25_sc
 
 ### Not Completed
 
-- Next sprint not planned. Phase 6 (pgvector comparison) remains the next
-  roadmap phase after Phase 5 retrieval foundation.
+- Sprint 16 planned as branch-only pgvector experiment
+  (`docs/agile/sprint-16-pgvector-dense-experiment.md`); not merged to `main`.
 
 ### Changed Decisions
 
@@ -168,7 +168,7 @@ Observed on live hybrid smoke: `result_count=5`, both `dense_score` and `bm25_sc
 - [x] Retrospective заполнена.
 - [x] Commit/PR/merge выполнены по согласованному Git workflow.
 - [x] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Следующий sprint выбран или запланирован.
 
 **Итоговый статус:** `completed`
 
