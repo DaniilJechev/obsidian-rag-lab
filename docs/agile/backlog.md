@@ -71,8 +71,8 @@ Backlog не является жёстким расписанием. Приор�
 | EMB-002 | P2 | done | 4 | Реализовать batch embedding pipeline | Versioned chunks обрабатываются batches с progress, retries, failure accounting и temporary JSON manifest; Sprint 11 merged in PR [#35](https://github.com/DaniilJechev/obsidian-rag-lab/pull/35), merge commit `60324d7`, CI passed |
 | EMB-003 | P1 | deferred | 4 | Сравнить local embedding models и подготовить Qdrant handoff | Отложено до появления evaluation-ready этапа; `multilingual-e5-small` используется как provisional baseline, а Qdrant handoff реализуется отдельно в Phase 5 |
 | RET-001 | P1 | done | 5 | Создать Qdrant collection и dense retrieval | Sprint 14 completed: direct batch upsert, versioned collection/payload, idempotency, consistency verification; PR [#39](https://github.com/DaniilJechev/obsidian-rag-lab/pull/39) merged with CI passed |
-| RET-002 | P1 | in-progress | 5 | Добавить BM25 и RRF hybrid retrieval | Sprint 15: Qdrant sparse BM25, RRF fusion, retrieval contract и live hybrid smoke; `done` только после PR/CI/merge |
-| RET-003 | P2 | in-progress | 5 | Удалить неиспользуемый `rank-bm25` | Dependency убрана из `pyproject.toml`/`uv.lock` в Sprint 15 PR; `done` после merge |
+| RET-002 | P1 | done | 5 | Добавить BM25 и RRF hybrid retrieval | Sprint 15 completed: Qdrant sparse BM25, RRF, retrieval contract и live hybrid smoke; PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41) merged (`46b4234`), CI passed, Issue [#38](https://github.com/DaniilJechev/obsidian-rag-lab/issues/38) closed |
+| RET-003 | P2 | done | 5 | Удалить неиспользуемый `rank-bm25` | Dependency removed in PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41); lexical search uses Qdrant sparse `bm25` only |
 | EVAL-001 | P0 | idea | 7 | Создать gold eval-набор | Вопросы и relevant note/chunk IDs проверены вручную |
 | EVAL-002 | P0 | idea | 7 | Реализовать nDCG@k и MRR@k | Метрики считаются тестами на фиксированном наборе |
 | API-001 | P1 | idea | 8 | Создать FastAPI retriever service | `/health`, `/ingest`, `/search` имеют контракты и тесты |
@@ -132,11 +132,16 @@ evaluation-ready этапа. Следующая готовая работа от
 
 6. Sprint 14: direct Qdrant vector storage и versioned handoff
    (`RET-001`; planning document:
-   `docs/agile/sprint-14-qdrant-vector-storage.md`).
+   `docs/agile/sprint-14-qdrant-vector-storage.md`)
+   — completed; PR [#39](https://github.com/DaniilJechev/obsidian-rag-lab/pull/39)
+   merged.
 
-7. Sprint 15: dense search, BM25, RRF и retrieval contracts
-   (`RET-002`; planning document:
-   `docs/agile/sprint-15-retrieval-foundation.md`).
+7. Sprint 15: dense search, Qdrant sparse BM25, RRF и retrieval contracts
+   (`RET-002`, `RET-003`; planning document:
+   `docs/agile/sprint-15-retrieval-foundation.md`)
+   — completed; PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41)
+   merged (`46b4234`), CI passed, Issue
+   [#38](https://github.com/DaniilJechev/obsidian-rag-lab/issues/38) closed.
 
 Semantic evaluation, gold questions и RAGAS остаются в Phase 7, а OpenRouter
 generation — в Phase 9. LangGraph относится к более поздней фазе. Sprint 14 и

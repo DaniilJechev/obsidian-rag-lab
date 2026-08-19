@@ -1,12 +1,12 @@
 # Sprint 15 — Dense, BM25 and Retrieval Contract
 
-> Статус: `in-progress`
+> Статус: `completed`
 >
 > Ветка: `sprint/15-retrieval-foundation`
 >
 > Связанная фаза roadmap: `Фаза 5`
 >
-> Backlog: `RET-002`
+> Backlog: `RET-002`, `RET-003`
 
 ## Sprint Goal
 
@@ -77,7 +77,7 @@ claims о semantic quality.
 - [x] Acceptance Criteria проверены.
 - [x] Тесты добавлены или обновлены и проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит, если изменения отправлялись в remote.
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
 - [x] Documentation/configuration обновлены.
@@ -95,6 +95,7 @@ claims о semantic quality.
 | implementation | Removed unused `rank-bm25` dependency (`RET-003`) | Lexical search uses only Qdrant sparse `bm25` |
 | validation | Live hybrid search against `rag_chunks_dense_sparse__sprint9-policy-512-v2__intfloat-multilingual-e5-small__main__384` | JSON top-5 with `retrieval_method=hybrid`, both `dense_score` and `bm25_score`, payload provenance |
 | validation | Full Ruff and pytest | Ruff passed; `104 passed, 1 skipped, 18 deselected` |
+| closeout | Merged PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41); CI Lint and test SUCCESS; Issue [#38](https://github.com/DaniilJechev/obsidian-rag-lab/issues/38) closed | Merge commit `46b4234`; `RET-002`/`RET-003` complete |
 
 ## Validation Evidence
 
@@ -112,7 +113,7 @@ uv run rag-cli search hybrid --query "synthetic retrieval query"
 - Tests: `PASS — uv run --no-sync pytest -q` (`104 passed, 1 skipped, 18 deselected`)
 - Lint: `PASS — uv run --no-sync ruff check .`
 - Retrieval smoke: `PASS — live hybrid JSON top-5 against collection rag_chunks_dense_sparse__sprint9-policy-512-v2__intfloat-multilingual-e5-small__main__384`; no semantic-quality claim
-- CI: `NOT VERIFIED — sprint branch has no upstream / PR yet`
+- CI: `PASS — GitHub Actions Lint and test` on PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41) (`SUCCESS`, 2026-08-19T19:09:09Z)
 
 ### Metrics
 
@@ -128,8 +129,8 @@ Observed on live hybrid smoke: `result_count=5`, both `dense_score` and `bm25_sc
 
 ### Not Completed
 
-- Push, pull request и GitHub CI для ветки `sprint/15-retrieval-foundation`.
-- Closeout: merge, backlog `RET-002=done`, retrospective sign-off.
+- Next sprint not planned. Phase 6 (pgvector comparison) remains the next
+  roadmap phase after Phase 5 retrieval foundation.
 
 ### Changed Decisions
 
@@ -157,19 +158,18 @@ Observed on live hybrid smoke: `result_count=5`, both `dense_score` and `bm25_sc
 ### Backlog Updates
 
 - Добавить: держать embedding model в долгоживущем процессе (Phase 8 API), не в CLI.
-- `RET-003` (удаление `rank-bm25`) включён в этот же sprint PR; `done` после merge.
+- `RET-003` выполнен в том же PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41).
 - Перенести: gold evaluation и quality metrics в Phase 7.
-- Не закрывать `RET-002` как `done`, пока не пройдут PR, CI и merge.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
+- [x] Definition of Done проверен.
+- [x] Review проведён.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `in-progress`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** `не завершён`
+**Дата завершения:** `2026-08-19`
