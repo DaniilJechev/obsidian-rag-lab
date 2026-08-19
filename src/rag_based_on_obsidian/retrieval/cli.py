@@ -10,16 +10,13 @@ from pathlib import Path
 from time import perf_counter
 
 from qdrant_client import QdrantClient
-from sqlalchemy import create_engine
 
-from rag_based_on_obsidian.chunking.persistence import ChunkRepository
 from rag_based_on_obsidian.config import (
     DEFAULT_BATCH_EMBEDDING_CONFIG_PATH,
     DEFAULT_EMBEDDING_MODEL_CONFIG_PATH,
     DEFAULT_QDRANT_CONFIG_PATH,
     DEFAULT_RETRIEVAL_CONFIG_PATH,
 )
-from rag_based_on_obsidian.db.connection import load_database_url
 from rag_based_on_obsidian.embeddings.qdrant_sink import versioned_collection_name
 from rag_based_on_obsidian.embeddings.settings import (
     load_batch_embedding_config,
@@ -30,7 +27,7 @@ from rag_based_on_obsidian.embeddings.transformers_provider import (
 )
 from rag_based_on_obsidian.retrieval.contracts import RetrievedChunk
 from rag_based_on_obsidian.retrieval.dense import QdrantDenseRetriever
-from rag_based_on_obsidian.retrieval.lexical import InMemoryBM25Index
+from rag_based_on_obsidian.retrieval.lexical import QdrantSparseRetriever
 from rag_based_on_obsidian.retrieval.mlflow_tracking import log_search_run
 from rag_based_on_obsidian.retrieval.pipeline import HybridRetriever
 from rag_based_on_obsidian.retrieval.progress import (
@@ -98,7 +95,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             model_name, model_revision, device, dimension = model_meta
         elif args.operation == "bm25":
-            results, duration = _run_bm25(args, config, progress)
+            results, duration, collection_name = _run_bm25(
+                args,
+                config,
+                progress,
+            )
         elif args.operation == "hybrid":
             results, duration, collection_name, model_meta = _run_hybrid(
                 args,
@@ -221,37 +222,28 @@ def _run_bm25(
     args: argparse.Namespace,
     config: RetrievalConfig,
     progress: SearchProgress,
-) -> tuple[list[RetrievedChunk], float]:
-    batch_config = load_batch_embedding_config(args.batch_config)
-    progress.mark("load_batch_config", chunking_version=batch_config.chunking_version)
-    engine = create_engine(load_database_url())
-    progress.mark("connect_postgres")
+) -> tuple[list[RetrievedChunk], float, str]:
+    collection_name, qdrant_config = _load_collection_target(args)
+    progress.mark("load_qdrant_config", collection=collection_name)
+    client = QdrantClient(url=qdrant_config.url)
+    progress.mark("connect_qdrant", url=qdrant_config.url)
     started_at = perf_counter()
     try:
-        with engine.connect() as connection:
-            repository = ChunkRepository(connection)
-            progress.mark("load_postgres_chunks")
-            index = InMemoryBM25Index.from_rows(
-                (
-                    row
-                    for batch in repository.iter_by_version(
-                        chunking_version=batch_config.chunking_version,
-                        batch_size=config.postgres_batch_size,
-                    )
-                    for row in batch
-                ),
-                chunking_version=batch_config.chunking_version,
-            )
-            progress.mark("build_bm25_index")
-            results = index.search(
-                args.query,
-                top_k=config.top_k,
-                filters=_filters(args, config),
-            )
-            progress.mark("bm25_search", hits=len(results))
+        results = QdrantSparseRetriever(
+            client,
+            collection_name=collection_name,
+            chunking_version=config.chunking_version,
+            bm25_avg_len=qdrant_config.bm25_avg_len,
+            bm25_model=qdrant_config.bm25_model,
+        ).search(
+            args.query,
+            top_k=config.top_k,
+            filters=_filters(args, config),
+        )
+        progress.mark("bm25_search", hits=len(results))
     finally:
-        engine.dispose()
-    return results, perf_counter() - started_at
+        client.close()
+    return results, perf_counter() - started_at, collection_name
 
 
 def _run_hybrid(
@@ -267,38 +259,37 @@ def _run_hybrid(
         model=provider.metadata.model_name,
         collection=collection_name,
     )
-    batch_config = load_batch_embedding_config(args.batch_config)
     client = QdrantClient(url=qdrant_config.url)
     progress.mark("connect_qdrant", url=qdrant_config.url)
-    engine = create_engine(load_database_url())
-    progress.mark("connect_postgres")
     started_at = perf_counter()
     try:
-        with engine.connect() as connection:
-            retriever = HybridRetriever.from_repository(
-                dense=QdrantDenseRetriever(
-                    client,
-                    collection_name=collection_name,
-                    provider=provider,
-                ),
+        retriever = HybridRetriever(
+            dense=QdrantDenseRetriever(
+                client,
+                collection_name=collection_name,
                 provider=provider,
-                repository=ChunkRepository(connection),
-                chunking_version=batch_config.chunking_version,
-                batch_size=config.postgres_batch_size,
+            ),
+            lexical=QdrantSparseRetriever(
+                client,
+                collection_name=collection_name,
+                chunking_version=config.chunking_version,
+                bm25_avg_len=qdrant_config.bm25_avg_len,
+                bm25_model=qdrant_config.bm25_model,
+            ),
+            provider=provider,
+        )
+        progress.mark("prepare_hybrid_retrievers")
+        results = asyncio.run(
+            retriever.search(
+                args.query,
+                top_k=config.top_k,
+                candidate_k=config.candidate_k,
+                rrf_k=config.rrf_k,
+                filters=_filters(args, config),
             )
-            progress.mark("build_bm25_index")
-            results = asyncio.run(
-                retriever.search(
-                    args.query,
-                    top_k=config.top_k,
-                    candidate_k=config.candidate_k,
-                    rrf_k=config.rrf_k,
-                    filters=_filters(args, config),
-                )
-            )
-            progress.mark("hybrid_search", hits=len(results))
+        )
+        progress.mark("hybrid_search", hits=len(results))
     finally:
-        engine.dispose()
         client.close()
     return (
         results,
@@ -332,6 +323,25 @@ def _load_dense_dependencies(
         vector_size=provider.metadata.dimension,
     )
     return provider, collection_name, qdrant_config
+
+
+def _load_collection_target(
+    args: argparse.Namespace,
+) -> tuple[str, QdrantConfig]:
+    """Resolve the versioned collection without loading the embedding model."""
+    model_config = load_embedding_model_config(args.model_config)
+    batch_config = load_batch_embedding_config(args.batch_config)
+    qdrant_config = load_qdrant_config(args.qdrant_config)
+    if model_config.dimension is None:
+        raise ValueError("model config must define dimension for BM25 search")
+    collection_name = versioned_collection_name(
+        qdrant_config.collection,
+        batch_config.chunking_version,
+        model_name=model_config.model_name,
+        model_revision=model_config.model_revision,
+        vector_size=model_config.dimension,
+    )
+    return collection_name, qdrant_config
 
 
 def _record_search_run(

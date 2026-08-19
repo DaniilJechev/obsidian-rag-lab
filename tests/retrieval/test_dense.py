@@ -58,4 +58,5 @@ def test_dense_search_maps_qdrant_payload_and_filter() -> None:
     assert results[0].chunk_id == 7
     assert client.arguments["limit"] == 3
     assert client.arguments["query"] == [1.0, 0.0, 0.0]
+    assert client.arguments["using"] == "dense"
     assert client.arguments["query_filter"] is not None

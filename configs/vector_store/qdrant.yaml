@@ -1,5 +1,7 @@
 url: http://localhost:6333
-collection: rag_chunks
+collection: rag_chunks_dense_sparse
 scroll_page_size: 256
 max_retries: 2
 retry_backoff_seconds: 1.0
+bm25_avg_len: 191.0
+bm25_model: Qdrant/bm25

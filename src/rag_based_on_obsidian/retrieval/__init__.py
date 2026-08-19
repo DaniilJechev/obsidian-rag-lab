@@ -6,11 +6,11 @@ from rag_based_on_obsidian.retrieval.contracts import (
     RetrievedChunk,
 )
 from rag_based_on_obsidian.retrieval.fusion import reciprocal_rank_fusion
-from rag_based_on_obsidian.retrieval.lexical import InMemoryBM25Index
+from rag_based_on_obsidian.retrieval.lexical import QdrantSparseRetriever
 
 __all__ = [
-    "InMemoryBM25Index",
     "LexicalIndex",
+    "QdrantSparseRetriever",
     "RetrievalMethod",
     "RetrievedChunk",
     "reciprocal_rank_fusion",

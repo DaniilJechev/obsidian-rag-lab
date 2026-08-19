@@ -1,70 +1,48 @@
-"""Version-aware in-memory BM25 retrieval over PostgreSQL chunk rows."""
+"""Sparse BM25 retrieval against a Qdrant named vector slot."""
 
-from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
-from typing import Any
+from collections.abc import Mapping
 
-from rank_bm25 import BM25Okapi
+from qdrant_client import QdrantClient
+from qdrant_client.models import Document
 
 from rag_based_on_obsidian.retrieval.contracts import (
     RetrievalMethod,
     RetrievedChunk,
 )
 from rag_based_on_obsidian.retrieval.progress import logger
-from rag_based_on_obsidian.storage_identity import stable_point_key
+from rag_based_on_obsidian.retrieval.qdrant_results import (
+    BM25_MODEL_NAME,
+    SPARSE_VECTOR_NAME,
+    build_payload_filter,
+    point_to_retrieved_chunk,
+)
 
 
-@dataclass(frozen=True)
-class _LexicalEntry:
-    """A chunk row retained alongside the BM25 corpus position."""
-
-    chunk_id: int
-    text: str
-    chunking_version: str
-    point_key: str
-    metadata: Mapping[str, object]
-
-
-class InMemoryBM25Index:
-    """Build one explicit chunk-version BM25 index in process memory."""
+class QdrantSparseRetriever:
+    """Search the BM25 sparse slot of one versioned Qdrant collection."""
 
     def __init__(
         self,
-        entries: Sequence[_LexicalEntry],
+        client: QdrantClient,
         *,
-        tokenizer: Any = None,
-    ) -> None:
-        if not entries:
-            raise ValueError("BM25 index requires at least one chunk")
-        self._entries = tuple(entries)
-        self._tokenizer = tokenizer or _tokenize
-        corpus = [
-            self._tokenizer(entry.text)
-            for entry in self._entries
-        ]
-        self._index = BM25Okapi(corpus)
-        self.chunking_version = self._entries[0].chunking_version
-        logger.info(
-            "stage=bm25_index_ready chunks=%s chunking_version=%s",
-            len(self._entries),
-            self.chunking_version,
-        )
-
-    @classmethod
-    def from_rows(
-        cls,
-        rows: Iterable[Mapping[str, object]],
-        *,
+        collection_name: str,
         chunking_version: str,
-    ) -> "InMemoryBM25Index":
-        """Create an index from one explicit PostgreSQL chunking version."""
+        bm25_avg_len: float,
+        bm25_model: str = BM25_MODEL_NAME,
+        vector_name: str = SPARSE_VECTOR_NAME,
+    ) -> None:
+        if not collection_name.strip():
+            raise ValueError("collection_name must not be empty")
         if not chunking_version.strip():
             raise ValueError("chunking_version must not be empty")
-        entries = tuple(
-            _entry_from_row(row, chunking_version=chunking_version)
-            for row in rows
-        )
-        return cls(entries)
+        if bm25_avg_len <= 0:
+            raise ValueError("bm25_avg_len must be positive")
+        self.client = client
+        self.collection_name = collection_name
+        self.chunking_version = chunking_version
+        self.bm25_avg_len = bm25_avg_len
+        self.bm25_model = bm25_model
+        self.vector_name = vector_name
 
     def search(
         self,
@@ -73,104 +51,39 @@ class InMemoryBM25Index:
         top_k: int,
         filters: Mapping[str, object] | None = None,
     ) -> list[RetrievedChunk]:
-        """Return deterministic lexical matches for one query."""
+        """Return ranked lexical matches from the Qdrant sparse index."""
         if not query.strip():
             raise ValueError("query must not be empty")
         if top_k <= 0:
             raise ValueError("top_k must be positive")
-        query_tokens = self._tokenizer(query)
+        merged_filters = dict(filters or {})
+        merged_filters.setdefault("chunking_version", self.chunking_version)
         logger.info(
-            "stage=bm25_score query_tokens=%s corpus=%s",
-            len(query_tokens),
-            len(self._entries),
+            "stage=qdrant_sparse_query collection=%s top_k=%s using=%s",
+            self.collection_name,
+            top_k,
+            self.vector_name,
         )
-        scores = self._index.get_scores(query_tokens)
-        candidates = [
-            (index, float(scores[index]))
-            for index in range(len(self._entries))
-            if _matches_filters(self._entries[index].metadata, filters)
-        ]
-        candidates.sort(
-            key=lambda item: (-item[1], self._entries[item[0]].point_key)
+        response = self.client.query_points(
+            collection_name=self.collection_name,
+            query=Document(
+                text=query,
+                model=self.bm25_model,
+                options={"avg_len": self.bm25_avg_len},
+            ),
+            using=self.vector_name,
+            query_filter=build_payload_filter(merged_filters),
+            limit=top_k,
+            with_payload=True,
+            with_vectors=False,
         )
-        results: list[RetrievedChunk] = []
-        for rank, (index, score) in enumerate(candidates[:top_k], start=1):
-            entry = self._entries[index]
-            results.append(
-                RetrievedChunk(
-                    chunk_id=entry.chunk_id,
-                    text=entry.text,
-                    score=score,
-                    retrieval_method=RetrievalMethod.BM25,
-                    metadata=entry.metadata,
-                    chunking_version=entry.chunking_version,
-                    rank=rank,
-                    point_key=entry.point_key,
-                    bm25_score=score,
-                )
+        points = getattr(response, "points", response)
+        logger.info("stage=qdrant_sparse_query_done hits=%s", len(points))
+        return [
+            point_to_retrieved_chunk(
+                point,
+                rank=rank,
+                method=RetrievalMethod.BM25,
             )
-        logger.info("stage=bm25_search_done hits=%s", len(results))
-        return results
-
-
-def _entry_from_row(
-    row: Mapping[str, object],
-    *,
-    chunking_version: str,
-) -> _LexicalEntry:
-    chunk_id = _required_int(row, "chunk_id")
-    note_id = _required_int(row, "note_id")
-    chunk_index = _required_int(row, "chunk_index")
-    row_version = row.get("chunking_version")
-    if row_version != chunking_version:
-        raise ValueError("row chunking_version does not match index version")
-    text = _required_text(row, "text")
-    source_path = _required_text(row, "source_path")
-    source_hash = _required_text(row, "source_content_hash")
-    point_key = stable_point_key(
-        source_path=source_path,
-        source_content_hash=source_hash,
-        chunking_version=chunking_version,
-        chunk_index=chunk_index,
-    )
-    metadata = {
-        key: value
-        for key, value in row.items()
-        if key != "text"
-    }
-    metadata["note_id"] = note_id
-    metadata["chunk_id"] = chunk_id
-    return _LexicalEntry(
-        chunk_id=chunk_id,
-        text=text,
-        chunking_version=chunking_version,
-        point_key=point_key,
-        metadata=metadata,
-    )
-
-
-def _matches_filters(
-    metadata: Mapping[str, object],
-    filters: Mapping[str, object] | None,
-) -> bool:
-    if not filters:
-        return True
-    return all(metadata.get(key) == value for key, value in filters.items())
-
-
-def _required_int(row: Mapping[str, object], key: str) -> int:
-    value = row.get(key)
-    if not isinstance(value, int):
-        raise TypeError(f"{key} must be an integer")
-    return value
-
-
-def _required_text(row: Mapping[str, object], key: str) -> str:
-    value = row.get(key)
-    if not isinstance(value, str) or not value.strip():
-        raise TypeError(f"{key} must be a non-empty string")
-    return value
-
-
-def _tokenize(text: str) -> list[str]:
-    return text.lower().split()
+            for rank, point in enumerate(points, start=1)
+        ]

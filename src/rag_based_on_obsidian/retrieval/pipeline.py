@@ -1,8 +1,7 @@
 """Hybrid retrieval orchestration for dense Qdrant and BM25 backends."""
 
 import asyncio
-from collections.abc import Iterable, Mapping
-from typing import Protocol
+from collections.abc import Mapping
 
 from rag_based_on_obsidian.embeddings.contracts import EmbeddingProvider
 from rag_based_on_obsidian.retrieval.contracts import (
@@ -11,22 +10,7 @@ from rag_based_on_obsidian.retrieval.contracts import (
 )
 from rag_based_on_obsidian.retrieval.dense import QdrantDenseRetriever
 from rag_based_on_obsidian.retrieval.fusion import reciprocal_rank_fusion
-from rag_based_on_obsidian.retrieval.lexical import InMemoryBM25Index
 from rag_based_on_obsidian.retrieval.progress import logger
-
-type ChunkRow = Mapping[str, object]
-
-
-class VersionedChunkReader(Protocol):
-    """Minimal repository contract needed to build the lexical index."""
-
-    def iter_by_version(
-        self,
-        *,
-        chunking_version: str,
-        batch_size: int,
-    ) -> Iterable[list[dict[str, object]]]:
-        """Yield bounded batches for one explicit chunking version."""
 
 
 class HybridRetriever:
@@ -42,36 +26,6 @@ class HybridRetriever:
         self.dense = dense
         self.lexical = lexical
         self.provider = provider
-
-    @classmethod
-    def from_repository(
-        cls,
-        *,
-        dense: QdrantDenseRetriever,
-        provider: EmbeddingProvider,
-        repository: VersionedChunkReader,
-        chunking_version: str,
-        batch_size: int,
-    ) -> "HybridRetriever":
-        """Build the versioned in-memory BM25 index from PostgreSQL rows."""
-        logger.info(
-            "stage=bm25_index_load chunking_version=%s batch_size=%s",
-            chunking_version,
-            batch_size,
-        )
-        rows = (
-            row
-            for batch in repository.iter_by_version(
-                chunking_version=chunking_version,
-                batch_size=batch_size,
-            )
-            for row in batch
-        )
-        lexical = InMemoryBM25Index.from_rows(
-            rows,
-            chunking_version=chunking_version,
-        )
-        return cls(dense=dense, lexical=lexical, provider=provider)
 
     async def search(
         self,

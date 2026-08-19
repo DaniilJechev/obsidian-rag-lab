@@ -1,11 +1,18 @@
 """Direct persistence of validated embedding batches in Qdrant."""
 
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from time import perf_counter, sleep
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    Document,
+    Modifier,
+    PointStruct,
+    SparseVectorParams,
+    VectorParams,
+)
 
 from rag_based_on_obsidian.embeddings.pipeline import (
     ChunkRow,
@@ -17,6 +24,11 @@ from rag_based_on_obsidian.storage_identity import point_id_from_key
 from rag_based_on_obsidian.storage_identity import (
     stable_point_key as build_stable_point_key,
 )
+
+DENSE_VECTOR_NAME = "dense"
+SPARSE_VECTOR_NAME = "bm25"
+BM25_MODEL_NAME = "Qdrant/bm25"
+DEFAULT_BM25_AVG_LEN = 191.0
 
 
 class QdrantVectorSink:
@@ -30,6 +42,8 @@ class QdrantVectorSink:
         vector_size: int,
         max_retries: int = 2,
         retry_backoff_seconds: float = 0.0,
+        bm25_avg_len: float = DEFAULT_BM25_AVG_LEN,
+        bm25_model: str = BM25_MODEL_NAME,
     ) -> None:
         if not collection_name.strip():
             raise ValueError("collection_name must not be empty")
@@ -39,11 +53,17 @@ class QdrantVectorSink:
             raise ValueError("max_retries must be non-negative")
         if retry_backoff_seconds < 0:
             raise ValueError("retry_backoff_seconds must be non-negative")
+        if bm25_avg_len <= 0:
+            raise ValueError("bm25_avg_len must be positive")
+        if not bm25_model.strip():
+            raise ValueError("bm25_model must not be empty")
         self.client = client
         self.collection_name = collection_name
         self.vector_size = vector_size
         self.max_retries = max_retries
         self.retry_backoff_seconds = retry_backoff_seconds
+        self.bm25_avg_len = bm25_avg_len
+        self.bm25_model = bm25_model
         self.ensure_collection()
 
     @classmethod
@@ -55,6 +75,8 @@ class QdrantVectorSink:
         vector_size: int,
         max_retries: int = 2,
         retry_backoff_seconds: float = 0.0,
+        bm25_avg_len: float = DEFAULT_BM25_AVG_LEN,
+        bm25_model: str = BM25_MODEL_NAME,
     ) -> "QdrantVectorSink":
         """Create a sink connected to a local or remote Qdrant endpoint."""
         return cls(
@@ -63,28 +85,46 @@ class QdrantVectorSink:
             vector_size=vector_size,
             max_retries=max_retries,
             retry_backoff_seconds=retry_backoff_seconds,
+            bm25_avg_len=bm25_avg_len,
+            bm25_model=bm25_model,
         )
 
     def ensure_collection(self) -> None:
-        """Create the collection once, preserving an existing compatible one."""
+        """Create the named dense+sparse collection or verify a compatible one."""
         if self.client.collection_exists(collection_name=self.collection_name):
             collection = self.client.get_collection(
                 collection_name=self.collection_name
             )
-            actual_vectors = collection.config.params.vectors
-            actual_size = getattr(actual_vectors, "size", None)
+            params = collection.config.params
+            actual_size = _dense_vector_size(
+                getattr(params, "vectors", None),
+                name=DENSE_VECTOR_NAME,
+            )
             if actual_size != self.vector_size:
                 raise ValueError(
                     f"Qdrant collection dimension mismatch: "
                     f"expected {self.vector_size}, got {actual_size}"
                 )
+            if not _has_sparse_slot(
+                getattr(params, "sparse_vectors", None),
+                name=SPARSE_VECTOR_NAME,
+            ):
+                raise ValueError(
+                    "Qdrant collection is missing the bm25 sparse vector slot; "
+                    "recreate it with --recreate before sparse search"
+                )
             return
         self.client.create_collection(
             collection_name=self.collection_name,
-            vectors_config=VectorParams(
-                size=self.vector_size,
-                distance=Distance.COSINE,
-            ),
+            vectors_config={
+                DENSE_VECTOR_NAME: VectorParams(
+                    size=self.vector_size,
+                    distance=Distance.COSINE,
+                )
+            },
+            sparse_vectors_config={
+                SPARSE_VECTOR_NAME: SparseVectorParams(modifier=Modifier.IDF),
+            },
         )
 
     def upsert_batch(
@@ -106,7 +146,12 @@ class QdrantVectorSink:
         points = [
             PointStruct(
                 id=point_id_for_chunk(embedded, chunk),
-                vector=list(embedded.vector),
+                vector=_named_vectors_for_chunk(
+                    embedded,
+                    chunk,
+                    bm25_model=self.bm25_model,
+                    bm25_avg_len=self.bm25_avg_len,
+                ),
                 payload=_payload_for_chunk(embedded, chunk),
             )
             for embedded, chunk in zip(embeddings, chunks, strict=True)
@@ -167,6 +212,52 @@ def versioned_collection_name(
         f"{normalized_base}__{normalized_chunking}__{normalized_model}"
         f"__{normalized_revision}__{vector_size}"
     )
+
+
+def _named_vectors_for_chunk(
+    embedded: EmbeddedChunk,
+    chunk: ChunkRow,
+    *,
+    bm25_model: str,
+    bm25_avg_len: float,
+) -> dict[str, object]:
+    """Store dense cosine and BM25 inference input on the same Qdrant point."""
+    text = chunk.get("text")
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("chunk text must be a non-empty string")
+    return {
+        DENSE_VECTOR_NAME: list(embedded.vector),
+        SPARSE_VECTOR_NAME: Document(
+            text=text,
+            model=bm25_model,
+            options={"avg_len": bm25_avg_len},
+        ),
+    }
+
+
+def _dense_vector_size(vectors: object, *, name: str) -> int:
+    """Read the named dense slot or reject an unnamed legacy collection."""
+    if isinstance(vectors, Mapping):
+        named = vectors.get(name)
+        size = getattr(named, "size", None)
+        if isinstance(size, int):
+            return size
+        raise ValueError(
+            f"Qdrant collection is missing the {name} dense vector slot; "
+            "recreate it with --recreate before search"
+        )
+    size = getattr(vectors, "size", None)
+    if isinstance(size, int):
+        raise TypeError(
+            "Qdrant collection uses unnamed dense vectors; "
+            "recreate it with --recreate so dense and bm25 share one point"
+        )
+    raise ValueError("Qdrant collection is missing dense vector configuration")
+
+
+def _has_sparse_slot(sparse_vectors: object, *, name: str) -> bool:
+    """Return whether the collection exposes the BM25 sparse vector slot."""
+    return isinstance(sparse_vectors, Mapping) and name in sparse_vectors
 
 
 def _payload_for_chunk(

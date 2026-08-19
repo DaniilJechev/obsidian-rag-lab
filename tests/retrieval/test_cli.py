@@ -14,9 +14,9 @@ def test_search_cli_runs_hybrid_only_when_requested(
         called.append("dense")
         return [], 0.1, "collection", ("model", "rev", "cpu", 384)
 
-    def fake_bm25(*_args: object) -> tuple[list[object], float]:
+    def fake_bm25(*_args: object) -> tuple[list[object], float, str]:
         called.append("bm25")
-        return [], 0.1
+        return [], 0.1, "collection"
 
     def fake_hybrid(*_args: object) -> tuple[list[object], float, str, tuple[str, str, str, int]]:
         called.append("hybrid")
@@ -30,6 +30,10 @@ def test_search_cli_runs_hybrid_only_when_requested(
 
     assert cli.main(["dense", "--query", "nDCG"]) == 0
     assert called == ["dense"]
+
+    called.clear()
+    assert cli.main(["bm25", "--query", "nDCG"]) == 0
+    assert called == ["bm25"]
 
     called.clear()
     assert cli.main(["hybrid", "--query", "nDCG"]) == 0

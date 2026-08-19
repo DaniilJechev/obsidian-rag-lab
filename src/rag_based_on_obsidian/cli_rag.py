@@ -22,12 +22,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run the existing chunking and PostgreSQL materialization CLI.",
     )
     subparsers.add_parser(
-        "embed",
-        help="Run the batch embedding pipeline over PostgreSQL chunks.",
+        "upsert-dense-sparse",
+        help=(
+            "Fill a Qdrant collection with dense embeddings and BM25 sparse "
+            "vectors for one chunking version."
+        ),
     )
     subparsers.add_parser(
         "vector-store",
-        help="Create, embed and verify Qdrant vector storage.",
+        help="Create, upsert dense+BM25 points and verify Qdrant storage.",
     )
     subparsers.add_parser(
         "search",
@@ -46,7 +49,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     command, command_arguments = arguments[0], arguments[1:]
     if command == "chunk":
         return chunking_main(command_arguments)
-    if command == "embed":
+    if command == "upsert-dense-sparse":
         return embedding_main(command_arguments)
     if command == "vector-store":
         return vector_store_main(command_arguments)

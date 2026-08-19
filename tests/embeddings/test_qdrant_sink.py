@@ -4,12 +4,15 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from qdrant_client.models import Document, Modifier
 
 from rag_based_on_obsidian.embeddings.pipeline import (
     EmbeddedChunk,
     SinkWriteError,
 )
 from rag_based_on_obsidian.embeddings.qdrant_sink import (
+    DENSE_VECTOR_NAME,
+    SPARSE_VECTOR_NAME,
     QdrantVectorSink,
     point_id_for_chunk,
     versioned_collection_name,
@@ -33,11 +36,17 @@ class FakeQdrantClient:
         self.created.append(kwargs)
 
     def get_collection(self, *, collection_name: str) -> Any:
-        del collection_name
-        vector_config = self.created[0]["vectors_config"]
+        created = next(
+            item
+            for item in self.created
+            if item.get("collection_name") == collection_name
+        )
         return SimpleNamespace(
             config=SimpleNamespace(
-                params=SimpleNamespace(vectors=vector_config),
+                params=SimpleNamespace(
+                    vectors=created["vectors_config"],
+                    sparse_vectors=created.get("sparse_vectors_config"),
+                ),
             )
         )
 
@@ -94,7 +103,12 @@ def test_sink_creates_collection_and_upserts_payload() -> None:
     )
 
     assert len(client.created) == 1
-    assert client.created[0]["collection_name"] == "rag_chunks__chunk-v1"
+    created = client.created[0]
+    assert created["collection_name"] == "rag_chunks__chunk-v1"
+    assert DENSE_VECTOR_NAME in created["vectors_config"]
+    assert created["vectors_config"][DENSE_VECTOR_NAME].size == 2
+    assert SPARSE_VECTOR_NAME in created["sparse_vectors_config"]
+    assert created["sparse_vectors_config"][SPARSE_VECTOR_NAME].modifier == Modifier.IDF
     assert len(client.upserts) == 1
     point = client.upserts[0]["points"][0]
     assert point.id == point_id_for_chunk(
@@ -104,7 +118,9 @@ def test_sink_creates_collection_and_upserts_payload() -> None:
             "source_content_hash": "hash-1",
         },
     )
-    assert point.vector == [0.6, 0.8]
+    assert point.vector[DENSE_VECTOR_NAME] == [0.6, 0.8]
+    assert isinstance(point.vector[SPARSE_VECTOR_NAME], Document)
+    assert point.vector[SPARSE_VECTOR_NAME].text == "Attention context"
     assert point.payload["chunking_version"] == "chunk-v1"
     assert point.payload["section_path"] == ["ML", "Attention"]
 
@@ -196,4 +212,42 @@ def test_sink_raises_after_retry_budget_is_exhausted() -> None:
                     "source_content_hash": "hash-failure",
                 }
             ],
+        )
+
+
+def test_sink_rejects_unnamed_legacy_collection() -> None:
+    client = FakeQdrantClient()
+    client.collections.add("legacy-unnamed")
+    client.created.append(
+        {
+            "collection_name": "legacy-unnamed",
+            "vectors_config": SimpleNamespace(size=2),
+        }
+    )
+
+    with pytest.raises(TypeError, match="unnamed dense vectors"):
+        QdrantVectorSink(
+            client,
+            collection_name="legacy-unnamed",
+            vector_size=2,
+        )
+
+
+def test_sink_rejects_named_dense_without_sparse_slot() -> None:
+    client = FakeQdrantClient()
+    client.collections.add("dense-only")
+    client.created.append(
+        {
+            "collection_name": "dense-only",
+            "vectors_config": {
+                DENSE_VECTOR_NAME: SimpleNamespace(size=2),
+            },
+        }
+    )
+
+    with pytest.raises(ValueError, match="missing the bm25 sparse vector slot"):
+        QdrantVectorSink(
+            client,
+            collection_name="dense-only",
+            vector_size=2,
         )

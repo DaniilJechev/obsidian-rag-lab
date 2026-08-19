@@ -16,6 +16,8 @@ class QdrantConfig:
     scroll_page_size: int = 256
     max_retries: int = 2
     retry_backoff_seconds: float = 1.0
+    bm25_avg_len: float = 191.0
+    bm25_model: str = "Qdrant/bm25"
 
     def __post_init__(self) -> None:
         """Reject settings that could make storage operations ambiguous."""
@@ -29,6 +31,10 @@ class QdrantConfig:
             raise ValueError("max_retries must be non-negative")
         if self.retry_backoff_seconds < 0:
             raise ValueError("retry_backoff_seconds must be non-negative")
+        if self.bm25_avg_len <= 0:
+            raise ValueError("bm25_avg_len must be positive")
+        if not self.bm25_model.strip():
+            raise ValueError("bm25_model must not be empty")
 
 
 def load_qdrant_config(path: Path) -> QdrantConfig:

@@ -14,19 +14,20 @@ PostgreSQL chunks
     → Qdrant collection
 ```
 
-The application-level `EmbeddingSink` contract keeps the batch pipeline
-independent of the Qdrant SDK. `QdrantVectorSink` creates a collection with an
-explicit vector dimension and cosine distance, then performs durable batch
-upserts with stable point IDs derived from source identity and index version.
-The mutable PostgreSQL `chunk_id` remains in payload for provenance but is not
-used as the deduplication key.
+`QdrantVectorSink` creates one versioned collection with two named vector
+slots on the same point: `dense` (cosine, model dimension) and `bm25`
+(sparse, `modifier=IDF`). Upserts write both the dense embedding and a
+`Document(text=..., model="Qdrant/bm25")` inference input. The mutable
+PostgreSQL `chunk_id` remains in payload for provenance but is not used as
+the deduplication key. Legacy unnamed dense collections are rejected; rebuild
+them with `--recreate` so dense and BM25 share one point.
 
 Collections are versioned by the configured base collection,
 `chunking_version`, embedding model, model revision and vector dimension, for
 example:
 
 ```text
-rag_chunks__sprint9-policy-512-v2__intfloat-multilingual-e5-small__main__384
+rag_chunks_dense_sparse__sprint9-policy-512-v2__intfloat-multilingual-e5-small__main__384
 ```
 
 The Qdrant payload contains the chunk identity, text, section provenance,
@@ -69,11 +70,12 @@ counts in MLflow.
 
 ```text
 uv run rag-cli vector-store create --vector-size <model-dimension>
-uv run rag-cli vector-store embed
+uv run rag-cli vector-store upsert-dense-sparse
 uv run rag-cli vector-store verify
 ```
 
-`rag-cli embed` remains as a compatibility alias for the embedding operation.
+`rag-cli upsert-dense-sparse` is a shortcut for the same ingest: dense
+embeddings plus BM25 sparse vectors on one Qdrant point.
 
 ## Retrieval boundary
 
@@ -83,17 +85,20 @@ retrieval stages:
 ```text
 query
   → one query embedding
-  → asyncio.to_thread(dense Qdrant search)
-  → asyncio.to_thread(BM25 search)
-  → rank-based RRF fusion
+  → asyncio.to_thread(dense Qdrant search using="dense")
+  → asyncio.to_thread(sparse Qdrant BM25 search using="bm25")
+  → rank-based Python RRF fusion
   → deterministic top-k RetrievedChunk results
 ```
 
-Dense search uses Qdrant cosine/HNSW retrieval against the collection whose
-model, revision, dimension and chunking version match the query provider.
-BM25 uses `rank-bm25` over one explicit version of PostgreSQL chunks. The BM25
-index is an in-memory process structure: PostgreSQL remains its source of truth,
-and the index is rebuilt after process restart or version change.
+Dense search uses Qdrant cosine/HNSW retrieval against the `dense` named
+vector in the collection whose model, revision, dimension and chunking
+version match the query provider. BM25 uses Qdrant's built-in sparse index
+(`Qdrant/bm25`, IDF modifier, `avg_len=191.0` from Sprint 9 mean token
+length) on the same points. PostgreSQL remains the source of truth for
+chunks; it is no longer scanned at query time to build an in-memory
+`rank-bm25` index. `rank-bm25` remains a leftover dependency until it is
+explicitly removed.
 
 Dense and BM25 raw scores are not added directly because their scales differ.
 RRF combines their rank positions, removes duplicate stable chunk identities
