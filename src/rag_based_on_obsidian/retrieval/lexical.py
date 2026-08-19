@@ -10,6 +10,7 @@ from rag_based_on_obsidian.retrieval.contracts import (
     RetrievalMethod,
     RetrievedChunk,
 )
+from rag_based_on_obsidian.retrieval.progress import logger
 from rag_based_on_obsidian.storage_identity import stable_point_key
 
 
@@ -43,6 +44,11 @@ class InMemoryBM25Index:
         ]
         self._index = BM25Okapi(corpus)
         self.chunking_version = self._entries[0].chunking_version
+        logger.info(
+            "stage=bm25_index_ready chunks=%s chunking_version=%s",
+            len(self._entries),
+            self.chunking_version,
+        )
 
     @classmethod
     def from_rows(
@@ -73,6 +79,11 @@ class InMemoryBM25Index:
         if top_k <= 0:
             raise ValueError("top_k must be positive")
         query_tokens = self._tokenizer(query)
+        logger.info(
+            "stage=bm25_score query_tokens=%s corpus=%s",
+            len(query_tokens),
+            len(self._entries),
+        )
         scores = self._index.get_scores(query_tokens)
         candidates = [
             (index, float(scores[index]))
@@ -98,6 +109,7 @@ class InMemoryBM25Index:
                     bm25_score=score,
                 )
             )
+        logger.info("stage=bm25_search_done hits=%s", len(results))
         return results
 
 

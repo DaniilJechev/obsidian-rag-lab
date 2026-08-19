@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import json
+import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
@@ -30,7 +31,13 @@ from rag_based_on_obsidian.embeddings.transformers_provider import (
 from rag_based_on_obsidian.retrieval.contracts import RetrievedChunk
 from rag_based_on_obsidian.retrieval.dense import QdrantDenseRetriever
 from rag_based_on_obsidian.retrieval.lexical import InMemoryBM25Index
+from rag_based_on_obsidian.retrieval.mlflow_tracking import log_search_run
 from rag_based_on_obsidian.retrieval.pipeline import HybridRetriever
+from rag_based_on_obsidian.retrieval.progress import (
+    SearchProgress,
+    configure_search_logging,
+    logger,
+)
 from rag_based_on_obsidian.retrieval.settings import (
     RetrievalConfig,
     load_retrieval_config,
@@ -55,15 +62,89 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Execute one retrieval operation."""
+    """Execute one explicitly selected retrieval operation."""
+    configure_search_logging()
     args = build_parser().parse_args(argv)
+    if args.operation not in {"dense", "bm25", "hybrid"}:
+        print(
+            "error: search requires an explicit operation: dense, bm25 or hybrid",
+            file=sys.stderr,
+        )
+        return 2
+
+    progress = SearchProgress()
+    progress.mark("parse_args", operation=args.operation)
     config = _load_runtime_config(args)
-    if args.operation == "dense":
-        results, duration = _run_dense(args, config)
-    elif args.operation == "bm25":
-        results, duration = _run_bm25(args, config)
-    else:
-        results, duration = _run_hybrid(args, config)
+    progress.mark(
+        "load_config",
+        top_k=config.top_k,
+        chunking_version=config.chunking_version,
+    )
+    logger.info("stage=search_start operation=%s query=%r", args.operation, args.query)
+
+    collection_name: str | None = None
+    model_name: str | None = None
+    model_revision: str | None = None
+    device: str | None = None
+    dimension: int | None = None
+    results: list[RetrievedChunk] = []
+    duration = 0.0
+    try:
+        if args.operation == "dense":
+            results, duration, collection_name, model_meta = _run_dense(
+                args,
+                config,
+                progress,
+            )
+            model_name, model_revision, device, dimension = model_meta
+        elif args.operation == "bm25":
+            results, duration = _run_bm25(args, config, progress)
+        elif args.operation == "hybrid":
+            results, duration, collection_name, model_meta = _run_hybrid(
+                args,
+                config,
+                progress,
+            )
+            model_name, model_revision, device, dimension = model_meta
+        else:
+            print(
+                "error: search requires an explicit operation: dense, bm25 or hybrid",
+                file=sys.stderr,
+            )
+            return 2
+    except Exception as exc:  # noqa: BLE001
+        error_text = f"{type(exc).__name__}: {exc}"
+        logger.exception("stage=search_failed operation=%s", args.operation)
+        _record_search_run(
+            args=args,
+            config=config,
+            progress=progress,
+            results=results,
+            duration_seconds=progress.total_seconds,
+            collection_name=collection_name,
+            model_name=model_name,
+            model_revision=model_revision,
+            device=device,
+            dimension=dimension,
+            error=error_text,
+        )
+        print(f"error: {error_text}", file=sys.stderr)
+        return 1
+
+    progress.mark("search_done", result_count=len(results))
+    _record_search_run(
+        args=args,
+        config=config,
+        progress=progress,
+        results=results,
+        duration_seconds=duration,
+        collection_name=collection_name,
+        model_name=model_name,
+        model_revision=model_revision,
+        device=device,
+        dimension=dimension,
+        error=None,
+    )
     _print_results(
         results,
         operation=args.operation,
@@ -98,11 +179,18 @@ def _load_runtime_config(args: argparse.Namespace) -> RetrievalConfig:
 def _run_dense(
     args: argparse.Namespace,
     config: RetrievalConfig,
-) -> tuple[list[RetrievedChunk], float]:
+    progress: SearchProgress,
+) -> tuple[list[RetrievedChunk], float, str, tuple[str, str, str, int]]:
     provider, collection_name, qdrant_config = _load_dense_dependencies(
         args,
     )
+    progress.mark(
+        "load_embedding_model",
+        model=provider.metadata.model_name,
+        collection=collection_name,
+    )
     client = QdrantClient(url=qdrant_config.url)
+    progress.mark("connect_qdrant", url=qdrant_config.url)
     started_at = perf_counter()
     try:
         results = QdrantDenseRetriever(
@@ -116,19 +204,33 @@ def _run_dense(
         )
     finally:
         client.close()
-    return results, perf_counter() - started_at
+    return (
+        results,
+        perf_counter() - started_at,
+        collection_name,
+        (
+            provider.metadata.model_name,
+            provider.metadata.model_revision,
+            provider.metadata.device,
+            provider.metadata.dimension,
+        ),
+    )
 
 
 def _run_bm25(
     args: argparse.Namespace,
     config: RetrievalConfig,
+    progress: SearchProgress,
 ) -> tuple[list[RetrievedChunk], float]:
     batch_config = load_batch_embedding_config(args.batch_config)
+    progress.mark("load_batch_config", chunking_version=batch_config.chunking_version)
     engine = create_engine(load_database_url())
+    progress.mark("connect_postgres")
     started_at = perf_counter()
     try:
         with engine.connect() as connection:
             repository = ChunkRepository(connection)
+            progress.mark("load_postgres_chunks")
             index = InMemoryBM25Index.from_rows(
                 (
                     row
@@ -140,11 +242,13 @@ def _run_bm25(
                 ),
                 chunking_version=batch_config.chunking_version,
             )
+            progress.mark("build_bm25_index")
             results = index.search(
                 args.query,
                 top_k=config.top_k,
                 filters=_filters(args, config),
             )
+            progress.mark("bm25_search", hits=len(results))
     finally:
         engine.dispose()
     return results, perf_counter() - started_at
@@ -153,13 +257,21 @@ def _run_bm25(
 def _run_hybrid(
     args: argparse.Namespace,
     config: RetrievalConfig,
-) -> tuple[list[RetrievedChunk], float]:
+    progress: SearchProgress,
+) -> tuple[list[RetrievedChunk], float, str, tuple[str, str, str, int]]:
     provider, collection_name, qdrant_config = _load_dense_dependencies(
         args,
     )
+    progress.mark(
+        "load_embedding_model",
+        model=provider.metadata.model_name,
+        collection=collection_name,
+    )
     batch_config = load_batch_embedding_config(args.batch_config)
     client = QdrantClient(url=qdrant_config.url)
+    progress.mark("connect_qdrant", url=qdrant_config.url)
     engine = create_engine(load_database_url())
+    progress.mark("connect_postgres")
     started_at = perf_counter()
     try:
         with engine.connect() as connection:
@@ -174,6 +286,7 @@ def _run_hybrid(
                 chunking_version=batch_config.chunking_version,
                 batch_size=config.postgres_batch_size,
             )
+            progress.mark("build_bm25_index")
             results = asyncio.run(
                 retriever.search(
                     args.query,
@@ -183,10 +296,21 @@ def _run_hybrid(
                     filters=_filters(args, config),
                 )
             )
+            progress.mark("hybrid_search", hits=len(results))
     finally:
         engine.dispose()
         client.close()
-    return results, perf_counter() - started_at
+    return (
+        results,
+        perf_counter() - started_at,
+        collection_name,
+        (
+            provider.metadata.model_name,
+            provider.metadata.model_revision,
+            provider.metadata.device,
+            provider.metadata.dimension,
+        ),
+    )
 
 
 def _load_dense_dependencies(
@@ -208,6 +332,44 @@ def _load_dense_dependencies(
         vector_size=provider.metadata.dimension,
     )
     return provider, collection_name, qdrant_config
+
+
+def _record_search_run(
+    *,
+    args: argparse.Namespace,
+    config: RetrievalConfig,
+    progress: SearchProgress,
+    results: Sequence[RetrievedChunk],
+    duration_seconds: float,
+    collection_name: str | None,
+    model_name: str | None,
+    model_revision: str | None,
+    device: str | None,
+    dimension: int | None,
+    error: str | None,
+) -> None:
+    logger.info("stage=mlflow_log experiment=searching")
+    try:
+        run_id = log_search_run(
+            operation=args.operation,
+            query=args.query,
+            top_k=config.top_k,
+            candidate_k=config.candidate_k,
+            rrf_k=config.rrf_k,
+            chunking_version=config.chunking_version,
+            result_count=len(results),
+            duration_seconds=duration_seconds,
+            stage_seconds=progress.stage_seconds,
+            collection_name=collection_name,
+            model_name=model_name,
+            model_revision=model_revision,
+            device=device,
+            dimension=dimension,
+            error=error,
+        )
+        logger.info("stage=mlflow_log_done run_id=%s", run_id)
+    except Exception:  # noqa: BLE001
+        logger.exception("stage=mlflow_log_failed")
 
 
 def _filters(

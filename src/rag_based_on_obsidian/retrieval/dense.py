@@ -13,6 +13,7 @@ from rag_based_on_obsidian.retrieval.contracts import (
     RetrievalMethod,
     RetrievedChunk,
 )
+from rag_based_on_obsidian.retrieval.progress import logger
 
 
 class QdrantDenseRetriever:
@@ -39,8 +40,14 @@ class QdrantDenseRetriever:
         filters: Mapping[str, object] | None = None,
     ) -> list[RetrievedChunk]:
         """Embed one query and execute dense search."""
+        logger.info("stage=embed_query collection=%s", self.collection_name)
+        vector = self.provider.embed_query(query)
+        logger.info(
+            "stage=embed_query_done dimension=%s",
+            len(vector),
+        )
         return self.search_vector(
-            self.provider.embed_query(query),
+            vector,
             top_k=top_k,
             filters=filters,
         )
@@ -61,6 +68,11 @@ class QdrantDenseRetriever:
                 f"query vector dimension mismatch: expected "
                 f"{expected_dimension}, got {len(vector)}"
             )
+        logger.info(
+            "stage=qdrant_query_points collection=%s top_k=%s",
+            self.collection_name,
+            top_k,
+        )
         response = self.client.query_points(
             collection_name=self.collection_name,
             query=list(vector),
@@ -70,6 +82,7 @@ class QdrantDenseRetriever:
             with_vectors=False,
         )
         points = getattr(response, "points", response)
+        logger.info("stage=qdrant_query_points_done hits=%s", len(points))
         return [
             _point_to_chunk(point, rank=rank)
             for rank, point in enumerate(points, start=1)
