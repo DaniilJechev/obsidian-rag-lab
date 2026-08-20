@@ -22,9 +22,14 @@ def test_search_cli_runs_hybrid_only_when_requested(
         called.append("hybrid")
         return [], 0.1, "collection", ("model", "rev", "cpu", 384)
 
+    def fake_pgvector(*_args: object) -> tuple[list[object], float, str, tuple[str, str, str, int]]:
+        called.append("pgvector")
+        return [], 0.1, "collection", ("model", "rev", "cpu", 384)
+
     monkeypatch.setattr(cli, "_run_dense", fake_dense)
     monkeypatch.setattr(cli, "_run_bm25", fake_bm25)
     monkeypatch.setattr(cli, "_run_hybrid", fake_hybrid)
+    monkeypatch.setattr(cli, "_run_pgvector", fake_pgvector)
     monkeypatch.setattr(cli, "_record_search_run", lambda **_kwargs: None)
     monkeypatch.setattr(cli, "_print_results", lambda *_args, **_kwargs: None)
 
@@ -38,6 +43,10 @@ def test_search_cli_runs_hybrid_only_when_requested(
     called.clear()
     assert cli.main(["hybrid", "--query", "nDCG"]) == 0
     assert called == ["hybrid"]
+
+    called.clear()
+    assert cli.main(["pgvector", "--query", "nDCG"]) == 0
+    assert called == ["pgvector"]
 
 
 def test_search_cli_rejects_unknown_operation(monkeypatch, capsys) -> None:

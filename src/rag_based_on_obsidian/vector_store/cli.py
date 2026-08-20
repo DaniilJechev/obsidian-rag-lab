@@ -13,11 +13,16 @@ from rag_based_on_obsidian.chunking.persistence import ChunkRepository
 from rag_based_on_obsidian.config import (
     DEFAULT_BATCH_EMBEDDING_CONFIG_PATH,
     DEFAULT_EMBEDDING_MODEL_CONFIG_PATH,
+    DEFAULT_PGVECTOR_CONFIG_PATH,
     DEFAULT_QDRANT_CONFIG_PATH,
     load_config,
 )
-from rag_based_on_obsidian.db.connection import load_database_url
+from rag_based_on_obsidian.db.connection import (
+    load_database_url,
+    load_pgvector_database_url,
+)
 from rag_based_on_obsidian.embeddings.cli.batch import main as embedding_main
+from rag_based_on_obsidian.embeddings.cli.pgvector_batch import run_pgvector_upsert
 from rag_based_on_obsidian.embeddings.mlflow_tracking import (
     log_qdrant_consistency_run,
 )
@@ -32,6 +37,8 @@ from rag_based_on_obsidian.embeddings.settings import (
 from rag_based_on_obsidian.vector_store.consistency import (
     QdrantConsistencyVerifier,
 )
+from rag_based_on_obsidian.vector_store.pgvector_settings import load_pgvector_config
+from rag_based_on_obsidian.vector_store.pgvector_sink import PgvectorVectorSink
 from rag_based_on_obsidian.vector_store.settings import load_qdrant_config
 
 
@@ -70,6 +77,31 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_embedding_arguments(upsert)
 
+    upsert_pgvector = subparsers.add_parser(
+        "upsert-pgvector",
+        help=(
+            "Embed source PostgreSQL chunks and upsert dense vectors into the "
+            "experimental pgvector database. Does not change Qdrant."
+        ),
+    )
+    _add_embedding_arguments(upsert_pgvector)
+    upsert_pgvector.add_argument(
+        "--pgvector-config",
+        type=Path,
+        default=None,
+    )
+
+    create_pgvector = subparsers.add_parser(
+        "create-pgvector",
+        help="Create the experimental pgvector extension, table and HNSW index.",
+    )
+    _add_config_arguments(create_pgvector)
+    create_pgvector.add_argument(
+        "--pgvector-config",
+        type=Path,
+        default=DEFAULT_PGVECTOR_CONFIG_PATH,
+    )
+
     run_and_verify = subparsers.add_parser(
         "run-and-verify",
         help="Embed chunks into Qdrant as dense plus BM25 sparse points, then verify.",
@@ -86,8 +118,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.operation == "upsert-dense-sparse":
         return embedding_main(_embedding_arguments(args))
+    if args.operation == "upsert-pgvector":
+        return _upsert_pgvector(args)
     if args.operation == "create":
         return _create_collection(args)
+    if args.operation == "create-pgvector":
+        return _create_pgvector(args)
     if args.operation == "run-and-verify":
         return _run_and_verify(args)
     if args.operation == "verify":
@@ -145,6 +181,66 @@ def _create_collection(args: argparse.Namespace) -> int:
     print(
         f"Qdrant collection ready: {collection_name} "
         f"(dimension={sink.vector_size})"
+    )
+    return 0
+
+
+def _create_pgvector(args: argparse.Namespace) -> int:
+    qdrant_config = load_qdrant_config(args.qdrant_config)
+    batch_config = load_batch_embedding_config(args.batch_config)
+    model_config = load_embedding_model_config(args.model_config)
+    pgvector_config = load_pgvector_config(args.pgvector_config)
+    vector_size = model_config.dimension
+    if vector_size is None:
+        raise ValueError("model config must define dimension for pgvector")
+    index_generation = versioned_collection_name(
+        qdrant_config.collection,
+        batch_config.chunking_version,
+        model_name=model_config.model_name,
+        model_revision=model_config.model_revision,
+        vector_size=vector_size,
+    )
+    sink = PgvectorVectorSink.from_url(
+        load_pgvector_database_url(),
+        index_generation=index_generation,
+        vector_size=vector_size,
+        table_name=pgvector_config.table,
+        max_retries=pgvector_config.max_retries,
+        retry_backoff_seconds=pgvector_config.retry_backoff_seconds,
+    )
+    try:
+        print(
+            f"pgvector table ready: {pgvector_config.table} "
+            f"(dimension={sink.vector_size}, generation={index_generation})"
+        )
+    finally:
+        sink.engine.dispose()
+    return 0
+
+
+def _upsert_pgvector(args: argparse.Namespace) -> int:
+    app_config = load_config()
+    result = run_pgvector_upsert(
+        model_config_path=args.model_config or app_config.embedding_model_config_path,
+        batch_config_path=(
+            args.batch_config or app_config.batch_embedding_config_path
+        ),
+        qdrant_config_path=(
+            args.qdrant_config or app_config.qdrant_config_path
+        ),
+        pgvector_config_path=(
+            args.pgvector_config or app_config.pgvector_config_path
+        ),
+        recreate=args.recreate,
+        tracking_uri=args.tracking_uri,
+        experiment_name=args.experiment_name,
+        run_name=args.run_name,
+    )
+    print(
+        f"pgvector upsert {result.embeddings_succeeded}/{result.chunks_total} "
+        f"chunks; failed={len(result.failures)}; "
+        f"duration={result.duration_seconds:.3f}s; "
+        f"mlflow_run_id={result.mlflow_run_id or 'unknown'}"
     )
     return 0
 

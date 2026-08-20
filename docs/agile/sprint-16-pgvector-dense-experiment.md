@@ -1,6 +1,6 @@
 # Sprint 16 — pgvector Dense Experiment
 
-> Статус: `planned`
+> Статус: `in-progress`
 >
 > Ветка: `sprint/16-pgvector-dense-experiment`
 >
@@ -29,12 +29,12 @@ pgvector не умеет BM25. Lexical/hybrid остаются в Qdrant (`dense
 
 ## Scope
 
-- [ ] Включить `pgvector` в Postgres на экспериментальной ветке (образ/extension),
+- [x] Включить `pgvector` в Postgres на экспериментальной ветке (образ/extension),
   не ломая текущий `postgres_data` на `main`.
-- [ ] Добавить таблицу/колонку `vector(384)` с versioned identity тех же chunks.
-- [ ] Upsert тех же embeddings, что используются для Qdrant dense.
-- [ ] Dense search, который возвращает существующий `RetrievedChunk`.
-- [ ] CLI вроде `rag-cli search pgvector` для synthetic smoke.
+- [x] Добавить таблицу/колонку `vector(384)` с versioned identity тех же chunks.
+- [x] Upsert тех же embeddings, что используются для Qdrant dense.
+- [x] Dense search, который возвращает существующий `RetrievedChunk`.
+- [x] CLI вроде `rag-cli search pgvector` для synthetic smoke.
 - [ ] Записать 3–5 наблюдаемых отличий vs `rag-cli search dense` (Qdrant).
 
 ## Out of Scope
@@ -51,10 +51,13 @@ pgvector не умеет BM25. Lexical/hybrid остаются в Qdrant (`dense
 
 Артефакты живут на `sprint/16-pgvector-dense-experiment`, не на `main`:
 
-- Docker/Postgres с расширением `vector` (отдельный image или profile).
-- Alembic migration: `vector(384)` + index + versioned chunk identity.
+- Docker profile `pgvector` (`pgvector/pgvector:pg16` on port 5433).
+- Table `chunk_embeddings_pgvector` created by `PgvectorVectorSink.ensure_schema`
+  (`CREATE EXTENSION vector` + HNSW). Not added to the main Alembic chain, so
+  source Postgres `:5432` is not migrated.
 - pgvector sink и dense retriever поверх `RetrievedChunk`.
-- CLI dense search через pgvector.
+- CLI: `vector-store create-pgvector`, `vector-store upsert-pgvector`,
+  `search pgvector`.
 - Короткая заметка в этом sprint-документе: что увидели vs Qdrant.
 
 ## Acceptance Criteria
@@ -62,8 +65,8 @@ pgvector не умеет BM25. Lexical/hybrid остаются в Qdrant (`dense
 - [ ] Локально: `CREATE EXTENSION vector` воспроизводится на экспериментальном Postgres.
 - [ ] pgvector хранит те же `chunk_id` / chunking version / model / dimension,
   что Qdrant payload.
-- [ ] Dense search возвращает `RetrievedChunk` с явным pgvector retrieval method.
-- [ ] Повторный upsert идемпотентен.
+- [x] Dense search возвращает `RetrievedChunk` с явным pgvector retrieval method.
+- [x] Повторный upsert идемпотентен.
 - [ ] Записаны наблюдаемые отличия vs Qdrant dense (не ranking quality).
 - [ ] Код и default CLI на `main` не меняются этим спринтом.
 
@@ -84,12 +87,17 @@ CI, PR и merge в `main` сознательно не являются Definitio
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-19 | Sprint planned; Qdrant stays on `main`; pgvector is branch-only | Planning docs committed to `main` |
+| 2026-08-20 | Implemented experimental pgvector storage and dense search | Compose profile, sink, CLI; live smoke still pending |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
+docker compose --env-file .env -f docker/compose.yml --profile pgvector up -d postgres-pgvector
+uv run rag-cli vector-store create-pgvector
+uv run rag-cli vector-store upsert-pgvector
+uv run rag-cli search pgvector --query "synthetic retrieval query"
 ```
 
 ### Test and Lint Results
@@ -112,7 +120,8 @@ CI, PR и merge в `main` сознательно не являются Definitio
 
 ### Not Completed
 
-- Implementation на `sprint/16-pgvector-dense-experiment`.
+- Implementation на ветке: storage + search CLI.
+- Live upsert/search на `postgres-pgvector` и заметка отличий vs Qdrant.
 
 ### Changed Decisions
 

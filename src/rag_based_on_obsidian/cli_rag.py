@@ -34,7 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers.add_parser(
         "search",
-        help="Run dense, BM25 or hybrid retrieval.",
+        help="Run dense, BM25, hybrid or experimental pgvector retrieval.",
     )
     return parser
 

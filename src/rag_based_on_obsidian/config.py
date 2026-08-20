@@ -19,6 +19,9 @@ DEFAULT_BATCH_EMBEDDING_CONFIG_PATH = (
 DEFAULT_QDRANT_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "vector_store" / "qdrant.yaml"
 )
+DEFAULT_PGVECTOR_CONFIG_PATH = (
+    PROJECT_ROOT / "configs" / "vector_store" / "pgvector.yaml"
+)
 DEFAULT_RETRIEVAL_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "retrieval" / "retrieval.yaml"
 )
@@ -59,6 +62,9 @@ class AppConfig:
     embedding_experiment_name: str = DEFAULT_EMBEDDING_EXPERIMENT_NAME
     batch_embedding_config_path: Path = DEFAULT_BATCH_EMBEDDING_CONFIG_PATH
     qdrant_config_path: Path = DEFAULT_QDRANT_CONFIG_PATH
+    pgvector_host: str = "localhost"
+    pgvector_port: int = 5433
+    pgvector_config_path: Path = DEFAULT_PGVECTOR_CONFIG_PATH
     retrieval_config_path: Path = DEFAULT_RETRIEVAL_CONFIG_PATH
 
 
@@ -150,6 +156,17 @@ def load_config(*, vault_root_override: Path | None = None) -> AppConfig:
             os.environ.get(
                 "QDRANT_CONFIG_PATH",
                 str(DEFAULT_QDRANT_CONFIG_PATH),
+            )
+        ).expanduser(),
+        pgvector_host=os.environ.get(
+            "PGVECTOR_HOST",
+            os.environ.get("POSTGRES_HOST", "localhost"),
+        ),
+        pgvector_port=int(os.environ.get("PGVECTOR_PORT", "5433")),
+        pgvector_config_path=Path(
+            os.environ.get(
+                "PGVECTOR_CONFIG_PATH",
+                str(DEFAULT_PGVECTOR_CONFIG_PATH),
             )
         ).expanduser(),
         retrieval_config_path=Path(

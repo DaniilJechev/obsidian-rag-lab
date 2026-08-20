@@ -10,13 +10,16 @@ from pathlib import Path
 from time import perf_counter
 
 from qdrant_client import QdrantClient
+from sqlalchemy import create_engine
 
 from rag_based_on_obsidian.config import (
     DEFAULT_BATCH_EMBEDDING_CONFIG_PATH,
     DEFAULT_EMBEDDING_MODEL_CONFIG_PATH,
+    DEFAULT_PGVECTOR_CONFIG_PATH,
     DEFAULT_QDRANT_CONFIG_PATH,
     DEFAULT_RETRIEVAL_CONFIG_PATH,
 )
+from rag_based_on_obsidian.db.connection import load_pgvector_database_url
 from rag_based_on_obsidian.embeddings.qdrant_sink import versioned_collection_name
 from rag_based_on_obsidian.embeddings.settings import (
     load_batch_embedding_config,
@@ -29,6 +32,7 @@ from rag_based_on_obsidian.retrieval.contracts import RetrievedChunk
 from rag_based_on_obsidian.retrieval.dense import QdrantDenseRetriever
 from rag_based_on_obsidian.retrieval.lexical import QdrantSparseRetriever
 from rag_based_on_obsidian.retrieval.mlflow_tracking import log_search_run
+from rag_based_on_obsidian.retrieval.pgvector import PgvectorDenseRetriever
 from rag_based_on_obsidian.retrieval.pipeline import HybridRetriever
 from rag_based_on_obsidian.retrieval.progress import (
     SearchProgress,
@@ -38,6 +42,10 @@ from rag_based_on_obsidian.retrieval.progress import (
 from rag_based_on_obsidian.retrieval.settings import (
     RetrievalConfig,
     load_retrieval_config,
+)
+from rag_based_on_obsidian.vector_store.pgvector_settings import (
+    PgvectorConfig,
+    load_pgvector_config,
 )
 from rag_based_on_obsidian.vector_store.settings import (
     QdrantConfig,
@@ -49,10 +57,10 @@ def build_parser() -> argparse.ArgumentParser:
     """Build dense, BM25 and hybrid retrieval commands."""
     parser = argparse.ArgumentParser(
         prog="rag-cli search",
-        description="Run dense, BM25 or hybrid retrieval.",
+        description="Run dense, BM25, hybrid or experimental pgvector retrieval.",
     )
     subparsers = parser.add_subparsers(dest="operation", required=True)
-    for operation in ("dense", "bm25", "hybrid"):
+    for operation in ("dense", "bm25", "hybrid", "pgvector"):
         operation_parser = subparsers.add_parser(operation)
         _add_arguments(operation_parser)
     return parser
@@ -62,9 +70,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Execute one explicitly selected retrieval operation."""
     configure_search_logging()
     args = build_parser().parse_args(argv)
-    if args.operation not in {"dense", "bm25", "hybrid"}:
+    if args.operation not in {"dense", "bm25", "hybrid", "pgvector"}:
         print(
-            "error: search requires an explicit operation: dense, bm25 or hybrid",
+            "error: search requires an explicit operation: "
+            "dense, bm25, hybrid or pgvector",
             file=sys.stderr,
         )
         return 2
@@ -107,9 +116,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 progress,
             )
             model_name, model_revision, device, dimension = model_meta
+        elif args.operation == "pgvector":
+            results, duration, collection_name, model_meta = _run_pgvector(
+                args,
+                config,
+                progress,
+            )
+            model_name, model_revision, device, dimension = model_meta
         else:
             print(
-                "error: search requires an explicit operation: dense, bm25 or hybrid",
+                "error: search requires an explicit operation: "
+                "dense, bm25, hybrid or pgvector",
                 file=sys.stderr,
             )
             return 2
@@ -158,6 +175,11 @@ def _add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--query", required=True)
     parser.add_argument("--retrieval-config", type=Path, default=DEFAULT_RETRIEVAL_CONFIG_PATH)
     parser.add_argument("--qdrant-config", type=Path, default=DEFAULT_QDRANT_CONFIG_PATH)
+    parser.add_argument(
+        "--pgvector-config",
+        type=Path,
+        default=DEFAULT_PGVECTOR_CONFIG_PATH,
+    )
     parser.add_argument("--batch-config", type=Path, default=DEFAULT_BATCH_EMBEDDING_CONFIG_PATH)
     parser.add_argument("--model-config", type=Path, default=DEFAULT_EMBEDDING_MODEL_CONFIG_PATH)
     parser.add_argument("--top-k", type=int, default=None)
@@ -302,6 +324,65 @@ def _run_hybrid(
             provider.metadata.dimension,
         ),
     )
+
+
+def _run_pgvector(
+    args: argparse.Namespace,
+    config: RetrievalConfig,
+    progress: SearchProgress,
+) -> tuple[list[RetrievedChunk], float, str, tuple[str, str, str, int]]:
+    provider, index_generation, pgvector_config = _load_pgvector_dependencies(args)
+    progress.mark(
+        "load_embedding_model",
+        model=provider.metadata.model_name,
+        collection=index_generation,
+    )
+    engine = create_engine(load_pgvector_database_url())
+    progress.mark("connect_pgvector", table=pgvector_config.table)
+    started_at = perf_counter()
+    try:
+        results = PgvectorDenseRetriever(
+            engine,
+            index_generation=index_generation,
+            provider=provider,
+            table_name=pgvector_config.table,
+        ).search(
+            args.query,
+            top_k=config.top_k,
+            filters=_filters(args, config),
+        )
+        progress.mark("pgvector_search", hits=len(results))
+    finally:
+        engine.dispose()
+    return (
+        results,
+        perf_counter() - started_at,
+        index_generation,
+        (
+            provider.metadata.model_name,
+            provider.metadata.model_revision,
+            provider.metadata.device,
+            provider.metadata.dimension,
+        ),
+    )
+
+
+def _load_pgvector_dependencies(
+    args: argparse.Namespace,
+) -> tuple[TransformersEmbeddingProvider, str, PgvectorConfig]:
+    model_config = load_embedding_model_config(args.model_config)
+    provider = TransformersEmbeddingProvider(model_config)
+    batch_config = load_batch_embedding_config(args.batch_config)
+    qdrant_config = load_qdrant_config(args.qdrant_config)
+    pgvector_config = load_pgvector_config(args.pgvector_config)
+    index_generation = versioned_collection_name(
+        qdrant_config.collection,
+        batch_config.chunking_version,
+        model_name=provider.metadata.model_name,
+        model_revision=provider.metadata.model_revision,
+        vector_size=provider.metadata.dimension,
+    )
+    return provider, index_generation, pgvector_config
 
 
 def _load_dense_dependencies(

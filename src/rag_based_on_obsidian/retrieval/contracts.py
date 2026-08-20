@@ -12,6 +12,7 @@ class RetrievalMethod(StrEnum):
     DENSE = "dense"
     BM25 = "bm25"
     HYBRID = "hybrid"
+    PGVECTOR = "pgvector"
 
 
 class LexicalIndex(Protocol):

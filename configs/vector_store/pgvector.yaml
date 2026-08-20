@@ -1,0 +1,3 @@
+table: chunk_embeddings_pgvector
+max_retries: 2
+retry_backoff_seconds: 1.0

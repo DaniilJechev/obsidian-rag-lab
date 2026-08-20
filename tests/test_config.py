@@ -19,6 +19,18 @@ def test_load_config_reads_vault_root_from_environment(
     assert config.experiment_name == "test-experiments"
 
 
+def test_load_config_reads_pgvector_port(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OBSIDIAN_VAULT_ROOT", "~/obsidianNotes")
+    monkeypatch.setenv("PGVECTOR_PORT", "5544")
+
+    config = config_module.load_config()
+
+    assert config.pgvector_port == 5544
+    assert config.pgvector_config_path.name == "pgvector.yaml"
+
+
 def test_load_config_requires_vault_root(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
