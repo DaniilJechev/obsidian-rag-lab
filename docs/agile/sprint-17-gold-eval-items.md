@@ -1,8 +1,8 @@
 # Sprint 17 — Gold Eval Items and Metric Harness
 
-> Статус: `planned`
+> Статус: `in-progress`
 >
-> Ветка: `sprint/17-gold-eval-items` (ещё не создана)
+> Ветка: `sprint/17-gold-eval-items`
 >
 > Связанная фаза roadmap: `Фаза 7`
 >
@@ -29,18 +29,16 @@ FastAPI.
 
 - [ ] `EVAL-001` — согласовать с владельцем черновик 50 вопросов
   (`evals/gold/phase7_note_level_v0.yaml`) и поправить labels после review.
-- [ ] Добавить таблицу `eval_items` в SQLAlchemy Core + Alembic (контракт из
+- [x] Добавить таблицу `eval_items` в SQLAlchemy Core + Alembic (контракт из
   Phase 2 schema: `question`, `corpus_scope`, `relevant_note_ids`,
   `relevant_chunk_ids=[]`, `dataset_version`).
-- [ ] Loader YAML → `eval_items`: resolve `relative_path` → `note_id`.
-- [ ] Реализовать note-level collapse (chunk ranking → unique notes) и метрики
+- [x] Loader YAML → `eval_items`: resolve `relative_path` → `note_id`.
+- [x] Реализовать note-level collapse (chunk ranking → unique notes) и метрики
   nDCG@5/10, MRR@10, Recall@5/10, Hit@10 с unit-тестами на синтетике.
-- [ ] Каркас MLflow experiment `phase-7-retrieval-eval` (tags phase/sprint/task,
+- [x] Каркас MLflow experiment `phase-7-retrieval-eval` (tags phase/sprint/task,
   `mlflow.note.content`); Sprint 17 может залогировать только synthetic/harness
   smoke, не выдавая его за corpus baseline.
-- [ ] CLI-помощь разметки: прогон `rag-cli search hybrid --top-k 20` не обязан
-  стать отдельной командой в этом спринте, но runner должен уметь принять
-  готовый ranked list notes.
+- [x] CLI принимает готовый ranked list notes: `rag-cli eval score --rankings`.
 
 ## Out of Scope
 
@@ -66,9 +64,9 @@ FastAPI.
 - [ ] 50 вопросов покрывают оба каталога DLS1 и DLS2; labels note-level.
 - [ ] Владелец просмотрел gold; `dataset_version` draft не называется `v1`,
   пока review не закрыт.
-- [ ] `eval_items` создаётся миграцией и заполняется loader-ом.
-- [ ] Метрики совпадают с эталонными фикстурами (ручной расчёт 2–3 ranking).
-- [ ] Пустой gold / IDCG=0 не даёт NaN.
+- [x] `eval_items` описывается миграцией; loader готов (нужен `alembic upgrade` на локальной БД).
+- [x] Метрики совпадают с эталонными фикстурами (ручной расчёт ranking).
+- [x] Пустой gold / IDCG=0 не даёт NaN.
 - [ ] Vault не изменён; секреты не в git.
 
 ## Definition of Done
@@ -107,7 +105,9 @@ FastAPI.
 
 | Дата | Действие / решение | Результат |
 |---|---|---|
-| 2026-08-20 | Planning | Документ создан; implementation не начата |
+| 2026-08-20 | Planning | Документ создан |
+| 2026-08-20 | Implementation | Schema, metrics, YAML loader, MLflow harness, CLI `eval`; gold review владельца ещё открыт |
+| 2026-08-20 | Gold rewrite | Удалён q008; у каждого вопроса 3 заметки; добавлен q051; `v1` не заморожен |
 
 ## Validation Evidence
 
@@ -120,9 +120,9 @@ uv run pytest -q
 
 ### Test and Lint Results
 
-- Tests: не запускались для этого sprint (планирование)
-- Lint: не запускались для этого sprint (планирование)
-- CI: нет
+- Tests: `uv run pytest -q` — 120 passed, 1 skipped, 18 deselected
+- Lint: `uv run ruff check src/ tests/` — All checks passed
+- CI: не запускался до push ветки
 
 ### Metrics
 
@@ -136,7 +136,8 @@ uv run pytest -q
 
 ### Not Completed
 
-- Implementation Sprint 17.
+- Review gold владельцем и заморозка `v1`.
+- `alembic upgrade` + `rag-cli eval load-gold` на локальном Postgres.
 
 ### Changed Decisions
 
