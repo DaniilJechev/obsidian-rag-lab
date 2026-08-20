@@ -364,8 +364,54 @@ chunks = Table(
 )
 
 
+eval_items = Table(
+    "eval_items",
+    metadata,
+    Column("eval_item_id", BigInteger, Identity(), primary_key=True),
+    Column("question", Text, nullable=False),
+    Column("corpus_scope", Text, nullable=False),
+    Column(
+        "relevant_note_ids",
+        JSONB,
+        nullable=False,
+        server_default="[]",
+    ),
+    Column(
+        "relevant_chunk_ids",
+        JSONB,
+        nullable=False,
+        server_default="[]",
+    ),
+    Column("dataset_version", Text, nullable=False),
+    Column(
+        "created_at",
+        DateTime(timezone=True),
+        nullable=False,
+        server_default="now()",
+    ),
+    UniqueConstraint(
+        "dataset_version",
+        "question",
+        name="uq_eval_items_dataset_question",
+    ),
+    CheckConstraint(
+        "char_length(question) > 0",
+        name="eval_items_question_not_empty_check",
+    ),
+    CheckConstraint(
+        "char_length(dataset_version) > 0",
+        name="eval_items_dataset_version_not_empty_check",
+    ),
+    CheckConstraint(
+        "char_length(corpus_scope) > 0",
+        name="eval_items_corpus_scope_not_empty_check",
+    ),
+)
+
+
 __all__ = [
     "chunks",
+    "eval_items",
     "index_versions",
     "ingestion_runs",
     "ingestion_states",

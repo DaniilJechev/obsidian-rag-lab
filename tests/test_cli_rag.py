@@ -61,6 +61,21 @@ def test_rag_cli_dispatches_search_arguments(
     assert received == ["hybrid", "--query", "RAG"]
 
 
+def test_rag_cli_dispatches_eval_arguments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    received: list[str] = []
+
+    def fake_eval_main(arguments: list[str]) -> int:
+        received.extend(arguments)
+        return 4
+
+    monkeypatch.setattr(cli_rag, "eval_main", fake_eval_main)
+
+    assert cli_rag.main(["eval", "score", "--rankings", "ranks.json"]) == 4
+    assert received == ["score", "--rankings", "ranks.json"]
+
+
 def test_rag_cli_rejects_unknown_command() -> None:
     with pytest.raises(SystemExit):
         cli_rag.main(["unknown"])

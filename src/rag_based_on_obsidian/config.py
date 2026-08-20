@@ -34,6 +34,10 @@ DEFAULT_EXPERIMENT_PROTOCOL_PATH = (
 DEFAULT_CHUNK_INGESTION_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "ingestion" / "chunk_ingestion.yaml"
 )
+DEFAULT_EVAL_GOLD_PATH = (
+    PROJECT_ROOT / "evals" / "gold" / "phase7_note_level_v0.yaml"
+)
+EVAL_EXPERIMENT_NAME = "phase-7-retrieval-eval"
 from rag_based_on_obsidian.chunking.policy import ChunkingPolicy
 
 

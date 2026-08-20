@@ -346,12 +346,14 @@ contract и relationship `notes → chunks`.
 
 ## Будущие operational/evaluation таблицы
 
-Эти таблицы описываются сейчас как расширяемый contract, но их полноценная
-логика не входит в Sprint 4.
+`eval_items` реализована в Sprint 17 (Alembic `b7e4a91c2d80`). Остальные
+таблицы ниже по-прежнему расширяемый contract без runtime-логики.
 
 ### `eval_items`
 
-Одна строка — один вопрос в gold evaluation set.
+Одна строка — один вопрос в gold evaluation set. Unique
+`(dataset_version, question)` нужен для идемпотентного YAML upsert.
+На v1 `relevant_chunk_ids` остаётся `[]`.
 
 
 | Поле                 | PostgreSQL type   | Ограничения                 | Назначение                 |
