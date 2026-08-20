@@ -96,6 +96,7 @@ Sprint 17 даёт набор и формулы. Без live прогона на
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-20 | Planning | Документ создан; ждать Sprint 17 |
+| 2026-08-20 | Sprint 17 merged | PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45) (`59188fb`); harness и draft gold на `main`; freeze `v1` остаётся здесь |
 
 ## Validation Evidence
 

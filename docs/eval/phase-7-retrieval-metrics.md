@@ -1,7 +1,8 @@
 # Phase 7 — Retrieval metrics (note-level)
 
-Статус: `planned`. Этот документ фиксирует **что** меряем в живой Phase 7
-и **как** это считается. Числа появляются только после реального eval-запуска
+Статус: `in-progress`. Sprint 17 дал gold draft, `eval_items` и формулы.
+Этот документ фиксирует **что** меряем в живой Phase 7 и **как** это
+считается. Числа появляются только после реального eval-запуска (Sprint 18)
 и пишутся в MLflow, не сюда заранее.
 
 Generation-метрики RAGAS (Faithfulness, Answer Relevancy, Context
@@ -164,9 +165,9 @@ Run-level обязательно:
 
 ## Хранение gold: `eval_items`
 
-Один вопрос — одна строка. Контракт уже описан в
-`docs/architecture/phase-2-database-schema.md`; таблицы в Alembic ещё нет,
-это работа Sprint 17.
+Один вопрос — одна строка. Контракт в
+`docs/architecture/phase-2-database-schema.md`; таблица создана в Sprint 17
+(Alembic `b7e4a91c2d80`).
 
 - `question` — текст;
 - `corpus_scope` — `DLS1+DLS2`;
