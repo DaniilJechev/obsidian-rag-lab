@@ -1,0 +1,322 @@
+# Draft gold set for Phase 7. Status: pending owner review.
+# Not dataset_version v1 until the user accepts or edits labels.
+# Paths are vault-relative after OBSIDIAN_VAULT_ROOT=.../obsidianNotes/ML_NLP
+dataset_version: phase7-note-level-v0-draft
+label_granularity: note
+corpus_scope: DLS1+DLS2
+relevance: binary
+relevant_chunk_ids: []
+author: assistant-draft
+review_status: pending
+notes: >
+  Questions authored from note titles and vault structure, not from a live
+  rag-cli top-20. Owner should delete/add notes. ML_NLP/NLP is out of allowlist.
+
+items:
+  - id: q001
+    question: "Что такое dropout и зачем его используют при обучении нейросети?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Dropout.md
+  - id: q002
+    question: "Чем отличаются GD, SGD и mini-batch SGD?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Basic gradient descent kinds GD SGD Mini-batch SGD.md
+      - DLS1/Стохастический градиентный спуск.md
+      - DLS1/Градиентный спуск.md
+  - id: q003
+    question: "Почему возникает затухание градиентов и как с ним борются?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Vanishing gradient Затухание градиентов.md
+  - id: q004
+    question: "Почему линейная модель не решает XOR и что из этого следует для нейросетей?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/XOR Problem.md
+  - id: q005
+    question: "Зачем в U-Net нужны skip connections?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/UNet architecture & Skip connections.md
+      - DLS1/Encoder - Decoder architecture.md
+  - id: q006
+    question: "Как работает Non-maximum suppression в детекции объектов?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Non-maximum supression - NMS algorithm.md
+  - id: q007
+    question: "Что измеряет mAP в задачах детекции?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/mAP - mean Average Precision.md
+      - DLS1/Метрики машинного обучения.md
+  - id: q008
+    question: "Зачем нужен Focal loss в one-stage детекторах?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Focal loss - classification loss in detecton.md
+      - DLS1/Loss function in detection tasks, intro.md
+  - id: q009
+    question: "Чем variational autoencoder отличается от классического автокодировщика?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Variantional autoencoder VAE.md
+      - DLS1/Autoencoder classic AE.md
+      - DLS1/Autoencoders автокодировщики.md
+  - id: q010
+    question: "В чём идея GAN и минимаксной функции потерь генератора и дискриминатора?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/GAN - generative adversarial network concept.md
+      - DLS1/Minimax Objective - минимаксная функция потерь.md
+  - id: q011
+    question: "Зачем делают cross-validation и как она связана с оценкой обобщения?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Cross-validation.md
+      - DLS1/Разделение на TrainValidationTest.md
+  - id: q012
+    question: "Какие есть способы регуляризации, кроме dropout?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Регуляризация.md
+      - DLS1/Проблема переобучения.md
+  - id: q013
+    question: "Как early stopping помогает против переобучения?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Early stopping Ранняя остановка.md
+      - DLS1/Проблема переобучения.md
+  - id: q014
+    question: "Чем бустинг отличается от бэггинга?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Бустинг.md
+      - DLS1/Бэггинг.md
+      - DLS1/Градиентный бустинг.md
+  - id: q015
+    question: "Что такое SHAP values и чем они отличаются от permutation importance?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Shap value.md
+      - DLS1/Permutation importance.md
+  - id: q016
+    question: "В чём разница между transfer learning и fine-tuning?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Transfer learning.md
+      - DLS1/Fine-tunning.md
+  - id: q017
+    question: "Зачем нужна Feature Pyramid Network в детекции?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/FPN (Feature Pyramid Network) architecture.md
+      - DLS1/Detectory anatomy анатомия детектора.md
+  - id: q018
+    question: "Что даёт dilated convolution по сравнению с обычной свёрткой?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Dilated Convolution.md
+      - DLS1/CNN базовое представление.md
+  - id: q019
+    question: "Как устроен ROI Pooling в семействе R-CNN?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/ROI Pooling.md
+      - DLS1/R-CNN семейство, two-stage detectors.md
+  - id: q020
+    question: "Зачем детектору якоря (anchors)?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Якоря (Anchors).md
+      - DLS1/One-stage & two-stage detectors.md
+  - id: q021
+    question: "Что такое эмпирический риск и как он связан с функцией потерь?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Эмпирический риск.md
+      - DLS1/Функция потерь.md
+  - id: q022
+    question: "Как Momentum и Nesterov accelerated gradient меняют обычный градиентный спуск?"
+    source_directory: DLS1
+    relevant_notes:
+      - DLS1/Momentum and NAG in gradient descent.md
+      - DLS1/Градиентный спуск.md
+  - id: q023
+    question: "Как работает self-attention: откуда берутся Q, K, V и зачем scaled dot-product?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Механизм самовнимания (Self-Attention).md
+      - DLS2/Вычисление функции оценки QKV (Queries, Keys, Values) (Scaled Dot-Product).md
+  - id: q024
+    question: "Зачем в Transformer несколько голов внимания, а не одна?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Многоголовое внимание (Multi-Head Attention).md
+      - DLS2/Механизм самовнимания (Self-Attention).md
+  - id: q025
+    question: "Как устроен decoder-блок Transformer и чем он отличается от encoder-блока?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Архитектура Decoder блока в Transformer architecture.md
+      - DLS2/Архитектура Encoder блока в Transformer architecture.md
+  - id: q026
+    question: "Что такое RoPE и какую проблему позиционных векторов он закрывает?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/RoPE (Rotary Position Embedding) Математика вращения.md
+      - DLS2/Проблема лимита позиционных векторов.md
+      - DLS2/Позиционное кодирование (Positional Encoding).md
+  - id: q027
+    question: "Как BERT учится через Masked Language Modeling и зачем ему CLS-токен?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Маскирование MLM (Masked Language Modeling).md
+      - DLS2/BERT модель и Тройной эмбеддинг.md
+      - DLS2/CLS токен и как в него стекает информация (BERT).md
+  - id: q028
+    question: "Из каких шагов состоит RAG pipeline?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/RAG pipeline — общая схема.md
+      - DLS2/Галлюцинации LLM и зачем RAG.md
+  - id: q029
+    question: "Как recursive splitter и overlap влияют на chunking для RAG?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Chunking лимит абзацы Recursive splitter overlap.md
+      - DLS2/Documents и Metadata в RAG.md
+  - id: q030
+    question: "Как сравнивают эмбеддинг запроса и чанка через cosine similarity?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Эмбеддинги запроса чанков и cosine similarity.md
+      - DLS2/embeddings эмбеддинги.md
+  - id: q031
+    question: "Чем closed-book QA отличается от RAG на примере TriviaQA?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Closed-book QA vs RAG (TriviaQA).md
+      - DLS2/Retriever vs Reader разные модели и окна.md
+  - id: q032
+    question: "Что измеряют Faithfulness и Answer Relevancy в оценке RAG?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Faithfulness и Answer Relevancy.md
+      - DLS2/RAGAS framework (обзор).md
+  - id: q033
+    question: "Чем Context Precision отличается от Context Recall?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Context Recall и Context Precision.md
+  - id: q034
+    question: "Чем GloVe отличается от Word2Vec (Skip-gram / CBOW)?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/GloVe (global vectors).md
+      - DLS2/Word2Vec.md
+      - DLS2/Skip-gram.md
+      - DLS2/CBOW алгоритм.md
+  - id: q035
+    question: "Почему GPT-2 использует byte-level BPE, а не обычную словесную токенизацию?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Byte-level BPE (BBPE) токенизация в GPT-2.md
+      - DLS2/Tockenizaton, feature extracting токенизация, извлечение признаков.md
+  - id: q036
+    question: "Что такое compute-optimal scaling по Chinchilla и почему Kaplan ошиблись в аллокации compute?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Compute-optimal scaling (Chinchilla) N и D 1 к 1.md
+      - DLS2/Почему Kaplan ошиблись в аллокации compute.md
+      - DLS2/GPT-3 недообучение Chinchilla и цена инференса.md
+  - id: q037
+    question: "Что такое in-context learning в GPT-3 и чем few-shot отличается от fine-tuning?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/GPT-3, In-Context Learning и Разреженное внимание.md
+      - DLS2/GPT-2 и Zero-Shot Learning (Масштаб и Промптинг).md
+      - DLS2/Zero-shot и Few-shot промптинг на GPT-2 (TL;DR, перевод, QA).md
+  - id: q038
+    question: "Почему Transformer лучше масштабируется на длинный контекст, чем LSTM?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Почему Transformer скелится лучше LSTM (long context).md
+      - DLS2/Проблемы рекуррентных сетей и концепция Transformer.md
+      - DLS2/LSTM architecture.md
+  - id: q039
+    question: "Зачем нужно позиционное кодирование, если attention сам по себе перестановочно-инвариантен?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Позиционное кодирование (Positional Encoding).md
+      - DLS2/Проблема лимита позиционных векторов.md
+  - id: q040
+    question: "В чём идея Flash Attention и почему dense attention бьёт по памяти на длинном контексте?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Flash Attention (точная математика, IO-aware).md
+      - DLS2/Почему Dense Attention бьёт по памяти при длинном контексте.md
+  - id: q041
+    question: "Чем retriever отличается от reader в классическом QA/RAG?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Retriever vs Reader разные модели и окна.md
+      - DLS2/RAG pipeline — общая схема.md
+  - id: q042
+    question: "Зачем в RAG делают reranking чанков после первого retrieval?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Reranking чанков в RAG.md
+  - id: q043
+    question: "Как BLEU оценивает качество машинного перевода и какие у метрики ограничения?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/BLEU metric оценка качества перевода.md
+      - DLS2/Постановка задачи машинного перевода.md
+  - id: q044
+    question: "Что такое teacher forcing при обучении seq2seq?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Teacher forcing.md
+      - DLS2/Seq2Seq architecture.md
+  - id: q045
+    question: "Как устроены LSTM и GRU и какую проблему RNN они закрывают?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/LSTM architecture.md
+      - DLS2/GRU architecture.md
+      - DLS2/RNN concept and forward pass.md
+  - id: q046
+    question: "Как DetectGPT и Binoculars пытаются отличить сгенерированный текст от человеческого?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/DetectGPT и Binoculars.md
+      - DLS2/Задача детекции сгенерированных текстов.md
+  - id: q047
+    question: "Зачем sparse autoencoder ставят на активации LLM?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Sparse Autoencoder SAE для фич LLM.md
+      - DLS2/Полисемантичность и Superposition.md
+  - id: q048
+    question: "Что такое induction head circuit в интерпретации трансформеров?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Induction head circuit.md
+      - DLS2/QK-circuit и OV-circuit.md
+      - DLS2/Классы attention heads по паттернам.md
+  - id: q049
+    question: "Зачем в GPT-2 Pre-LayerNorm и как устроен residual stream?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Pre-LayerNorm и Residual Stream в GPT-2.md
+      - DLS2/Инициализация весов в GPT-2 (residual scaling).md
+  - id: q050
+    question: "Почему LLM галлюцинируют и какую роль в этом играет RAG?"
+    source_directory: DLS2
+    relevant_notes:
+      - DLS2/Галлюцинации LLM и зачем RAG.md
+      - DLS2/RAG pipeline — общая схема.md
+      - DLS2/Промпт RAG роль контекст вопрос.md

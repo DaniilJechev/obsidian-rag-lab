@@ -12,8 +12,12 @@ Production-like RAG-пайплайн поверх учебных заметок 
 
 Первая версия работает только с:
 
-- `obsidianNotes/DLS1/`
-- `obsidianNotes/DLS2/`
+- `obsidianNotes/ML_NLP/DLS1/`
+- `obsidianNotes/ML_NLP/DLS2/`
+
+`OBSIDIAN_VAULT_ROOT` указывает на `obsidianNotes/ML_NLP`, потому что
+discovery принимает только прямые дочерние каталоги `DLS1` и `DLS2`.
+Каталог `obsidianNotes/ML_NLP/NLP/` в allowlist не входит.
 
 Каталог `obsidianNotes` является read-only. Приложение не должно изменять, перемещать или удалять исходные заметки.
 

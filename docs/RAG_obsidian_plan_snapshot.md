@@ -1,7 +1,7 @@
 # План: RAG для Obsidian vault
 
-**Цель:** production-like pet RAG по vault (v1 — allowlist `DLS2/`), с покрытием большинства скиллов из [[ML main skills]].  
-**Корпус (ориентир):** ~608 md / ~250k tokens overall; v1 ≈ `DLS2/` (~48k+ words) — достаточно для eval и абляций.  
+**Цель:** production-like pet RAG по vault (v1 — allowlist `ML_NLP/DLS1/` + `ML_NLP/DLS2/`), с покрытием большинства скиллов из [[ML main skills]].  
+**Корпус (ориентир):** DLS1+DLS2 внутри `obsidianNotes/ML_NLP/`; `ML_NLP/NLP/` вне allowlist.  
 **Легенда стека:** **основной** / *замена* / *(опционально)*.  
 `seaborn` — только лёгкая визуализация, не ядро (см. пометку в ML main skills).
 
@@ -18,8 +18,17 @@
   `sprint/16-pgvector-dense-experiment` (`bd39d20`), в `main` не влит.
   Live dense top-k совпал с Qdrant; BM25/hybrid в Postgres не делали.
   Дальше с pgvector не работаем.
-- **Следующее на `main`:** Phase 7 gold eval (nDCG/MRR) или Phase 8 FastAPI
-  (тёплый embedding process). Не pgvector.
+- **Следующее на `main`:** живая **Phase 7** gold eval (note-level nDCG/MRR),
+  не FastAPI. Спринты: 17 (`eval_items` + gold + harness), 18 (live baseline
+  dense/bm25/hybrid в MLflow).
+- **Корпус:** `obsidianNotes/ML_NLP/DLS1/` и `obsidianNotes/ML_NLP/DLS2/`.
+  `OBSIDIAN_VAULT_ROOT` = `obsidianNotes/ML_NLP`. `ML_NLP/NLP/` не в allowlist.
+- **Живой порядок после generate:** Phase 9 OpenRouter generate → **Phase 10 RAGAS**
+  (generation baseline) → Phase 11 LangGraph → 12 rerank → 13 cache → 14 cloud →
+  15 paid embeddings → 16 vLLM. RAGAS специально стоит сразу после первого
+  generate, чтобы LangGraph/cache/rerank мерялись «до/после», а не на глаз.
+  Исторические заголовки «Фаза 9 LangGraph» / «Фаза 12 Eval» ниже — нумерация
+  vault-оригинала, не живого roadmap.
 - Sprint-док: `docs/agile/sprint-16-pgvector-dense-experiment.md`.
 
 ---
@@ -57,7 +66,7 @@
 
 | Шаг | Что делаешь |
 |---|---|
-| 1.1 | Allowlist: v1 = `DLS2/` (± выбранный DLS1 без CV-шума) |
+| 1.1 | Allowlist: v1 = `ML_NLP/DLS1/` + `ML_NLP/DLS2/` |
 | 1.2 | Парсинг `.md`: frontmatter, wikilinks, картинки-ссылки, заголовки |
 | 1.3 | Статистика: #файлов, слов, токенов, длина заметок, дубли |
 | 1.4 | Выкинуть пустые/мусор; завести `documents` + `metadata` (path, tags, folder, mtime) |
@@ -107,11 +116,11 @@ Sprint 9 — [#21](https://github.com/DaniilJechev/obsidian-rag-lab/issues/21).
 | 3.2 | Sprint 8: LangChain recursive structural splitter, heading в chunk text, selective overlap и versioned PostgreSQL persistence |
 | 3.3 | Sprint 9: YAML-driven candidates `256/512/1024`, structural metrics и ранний MLflow tracking |
 | 3.4 | Сохранять parent `note_id`, section path, parser/content versions и chunking version; старые chunk versions не удалять автоматически |
-| 3.5 | Wikilinks хранить как metadata/graph hint; LangGraph orchestration остаётся Phase 10 |
+| 3.5 | Wikilinks хранить как metadata/graph hint; LangGraph orchestration — живая Phase 11 |
 
 **Стек:** `Python`, `LangChain` (основной splitter/runtime contract), PostgreSQL,
 YAML configs, local JSON/CSV/Markdown/PNG artifacts и `MLflow` для tracking
-parameters, metrics, configs и artifacts. `LangGraph` в Phase 10.
+parameters, metrics, configs и artifacts. `LangGraph` в живой Phase 11.
 
 ### Phase 3 — Sprint boundaries
 
@@ -145,7 +154,7 @@ parameters, metrics, configs и artifacts. `LangGraph` в Phase 10.
 Phase 3 не реализует embeddings, Qdrant, BM25/RRF, retrieval evaluation, LLM,
 FastAPI или LangGraph. Semantic splitting остаётся optional experiment после
 появления embeddings, а practical LangGraph graph/state orchestration относится
-к Phase 10.
+к живой Phase 11 (после RAGAS).
 
 ---
 
@@ -221,6 +230,9 @@ GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 
 ## Фаза 8 — RAG chain (генерация)
 
+> В живом roadmap это Phase 9 OpenRouter generate. Сразу после неё — **живая
+> Phase 10 RAGAS**, не LangGraph.
+
 **Цель:** вопрос → контекст → ответ с цитатами на заметки.
 
 | Шаг | Что делаешь |
@@ -235,6 +247,8 @@ GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 ---
 
 ## Фаза 9 — Agents / оркестрация (LangGraph)
+
+> В живом roadmap LangGraph — **Phase 11**, после RAGAS baseline (Phase 10).
 
 **Цель:** граф с ветками, не один прямой chain.
 
@@ -288,7 +302,7 @@ GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 
 | Шаг | Что |
 |---|---|
-| 12.1 | Gold: 40–100 вопросов по DLS2 + релевантные note/chunk ids |
+| 12.1 | Gold: в живом roadmap — 50 note-level вопросов DLS1+DLS2 в `eval_items` |
 | 12.2 | Retrieval: **nDCG@k**, **MRR@k** |
 | 12.3 | Generation: Faithfulness, Answer Relevancy, Context Precision/Recall (`eval of rag(RAGAS)`) |
 | 12.4 | Ops: latency p95, tokens/q, cost/q, ingest success rate |
@@ -297,6 +311,8 @@ GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 **Стек:** `eval of rag(RAGAS)`, `Python`, `pandas`, `ML`, `Теория вероятностей`, `MLFlow`, `jupyter notebook`
 
 > Eval лучше **вклинить сразу после первого generate** (не ждать конца всех фаз).
+> В живом roadmap это Phase 10 RAGAS сразу после Phase 9 OpenRouter generate;
+> retrieval nDCG/MRR — отдельная живая Phase 7, до API и generate.
 
 ---
 
@@ -373,6 +389,10 @@ GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 
 ## Критический путь (порядок внедрения)
 
+Ниже — **исторические** номера vault-snapshot. Живой порядок (Cursor roadmap):
+`… → 7 nDCG/MRR → 8 FastAPI → 9 generate → 10 RAGAS → 11 LangGraph → 12 rerank
+→ 13 cache → …`
+
 ```text
 0 Каркас
 → 1 EDA corpus (DLS2)
@@ -382,7 +402,7 @@ GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 → 5 Hybrid index (Qdrant + BM25 на `main`; pgvector comparison — ветка Sprint 16, не в `main`)
 → 7 FastAPI /search
 → 8 LangChain RAG generate
-→ 12 Eval gold (nDCG/MRR/RAGAS)  ← не откладывать
+→ RAGAS / generation eval  ← сразу после generate (живой Phase 10)
 → 9 LangGraph orchestration
 → 10 Cache/token budget
 → 11 Rerank
@@ -399,7 +419,7 @@ GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 ## MVP (если резать scope)
 
 **Обязательный минимум:**  
-фазы `1 → 2 → 3 → 4 → 5(Qdrant hybrid) → 7 → 8 → 12 → 9 → 10` + Docker + git + FastAPI.  
+фазы `1 → 2 → 3 → 4 → 5(Qdrant hybrid) → 7 → 8 → RAGAS сразу после generate → 9 → 10` + Docker + git + FastAPI.  
 pgvector не входит в MVP на `main` (Sprint 16 остался на отдельной ветке).
 
 **Отложить:** K8s deep, fine-tune, второй vector DB, оба бустинга сразу, seaborn как навык.
@@ -412,7 +432,7 @@ pgvector не входит в MVP на `main` (Sprint 16 остался на о�
 |---|---|---|
 | RAG | 8–12, 15 | ядро |
 | LangChain | 3, 8 | split/chain/prompts |
-| LangGraph | 9–10, 15 | агенты/ветки/кеш-хуки |
+| LangGraph | 9–10, 15 в этом snapshot; **живая Phase 11** | агенты/ветки/кеш-хуки |
 | LLM | 8–13, 15 | генерация |
 | vLLM | 13, 16 | self-host serve |
 | Qdrant | 5, 10 | vector DB *(alt к pgvector)* |
@@ -427,7 +447,7 @@ pgvector не входит в MVP на `main` (Sprint 16 остался на о�
 | Kubernetis | 16 | оркестрация деплоя |
 | CI/CD | 0, 16 | автопроверка/деплой |
 | MLFlow | 3–6, 11–14, 16 | эксперименты |
-| eval of rag(RAGAS) | 12 | quality gen |
+| eval of rag(RAGAS) | 12 в этом snapshot; **живая Phase 10** сразу после generate | quality gen |
 | ML + scikit-learn | 6, 12 | классификаторы, метрики |
 | XGBoost / catboost | 6 | *взаимозамена* |
 | pandas / Numpy | 1, 6, 12 | EDA/фичи/отчёты |

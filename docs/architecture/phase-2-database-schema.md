@@ -9,7 +9,8 @@ migrations в Sprint 4.
 ## Общие решения
 
 - PostgreSQL — source of truth для metadata и состояния pipeline.
-- Первый полный ingestion охватывает `DLS1 + DLS2`.
+- Первый полный ingestion охватывает `DLS1 + DLS2` внутри
+  `obsidianNotes/ML_NLP/`.
 - Исходный `obsidianNotes` остаётся read-only.
 - Пути хранятся только как относительные значения.
 - `TIMESTAMPTZ` используется для времени.

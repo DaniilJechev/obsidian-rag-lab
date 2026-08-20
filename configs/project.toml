@@ -3,6 +3,7 @@ name = "rag-based-on-obsidian"
 environment = "development"
 
 [corpus]
+# Direct children of OBSIDIAN_VAULT_ROOT (obsidianNotes/ML_NLP).
 allowed_directories = ["DLS1", "DLS2"]
 
 [paths]
