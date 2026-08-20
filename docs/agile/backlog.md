@@ -73,7 +73,7 @@ Backlog не является жёстким расписанием. Приор�
 | RET-001 | P1 | done | 5 | Создать Qdrant collection и dense retrieval | Sprint 14 completed: direct batch upsert, versioned collection/payload, idempotency, consistency verification; PR [#39](https://github.com/DaniilJechev/obsidian-rag-lab/pull/39) merged with CI passed |
 | RET-002 | P1 | done | 5 | Добавить BM25 и RRF hybrid retrieval | Sprint 15 completed: Qdrant sparse BM25, RRF, retrieval contract и live hybrid smoke; PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41) merged (`46b4234`), CI passed, Issue [#38](https://github.com/DaniilJechev/obsidian-rag-lab/issues/38) closed |
 | RET-003 | P2 | done | 5 | Удалить неиспользуемый `rank-bm25` | Dependency removed in PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41); lexical search uses Qdrant sparse `bm25` only |
-| PGV-001 | P2 | ready | 6 | Учебный dense path на PostgreSQL + pgvector (без merge в `main`) | На ветке `sprint/16-pgvector-dense-experiment`: те же chunks/embeddings, dense `RetrievedChunk`, CLI smoke vs Qdrant dense; Qdrant остаётся default; BM25/hybrid и nDCG не входят |
+| PGV-001 | P2 | done | 6 | Учебный dense path на PostgreSQL + pgvector (без merge в `main`) | Sprint 16 completed on `sprint/16-pgvector-dense-experiment` (`bd39d20`); live top-k matched Qdrant dense; implementation not merged; Qdrant remains default |
 | EVAL-001 | P0 | idea | 7 | Создать gold eval-набор | Вопросы и relevant note/chunk IDs проверены вручную |
 | EVAL-002 | P0 | idea | 7 | Реализовать nDCG@k и MRR@k | Метрики считаются тестами на фиксированном наборе |
 | API-001 | P1 | idea | 8 | Создать FastAPI retriever service | `/health`, `/ingest`, `/search` имеют контракты и тесты |
@@ -91,7 +91,8 @@ Backlog не является жёстким расписанием. Приор�
 
 - Добавить отдельный benchmark платных embeddings через OpenRouter.
 - Сравнить Qdrant с PostgreSQL + pgvector на одинаковых chunks —
-  вынесено в `PGV-001` / Sprint 16 как branch-only experiment, без merge в `main`.
+  закрыто в `PGV-001` / Sprint 16 как branch-only experiment (`bd39d20`),
+  без merge в `main`; follow-up по pgvector не планируется.
 - Добавить cloud-профиль после локального baseline.
 - Рассмотреть graph-enhanced retrieval по Obsidian wikilinks.
 - Добавить Telegram integration через `asyncio`.
@@ -102,15 +103,12 @@ Backlog не является жёстким расписанием. Приор�
 
 ## Текущий фокус
 
-Фазы 1 и 2 завершены; Phase 2 закрыта после Sprint 6 и полного DLS1+DLS2
-production-like test drive. Sprint 7, Sprint 8 и structural implementation Sprint 9
-завершены. Технический scope Phase 4 завершён в Sprint 10 и Sprint 11;
-сравнение embedding-моделей (`EMB-003`) сознательно отложено до
-evaluation-ready этапа. Phase 5 закрыта (Sprint 14–15). Следующая работа —
-Phase 6 comparison: Sprint 16 (`PGV-001`) — учебный pgvector dense path на
-отдельной ветке, без merge в `main`. Qdrant остаётся единственным retrieval
-default. Дальше по roadmap после эксперимента: Phase 7 gold eval или Phase 8 API,
-по решению пользователя.
+Фазы 1–5 завершены на `main` (Qdrant dense + sparse BM25 + RRF). Phase 6
+(`PGV-001`, Sprint 16) закрыта как branch-only pgvector dense experiment:
+implementation на `sprint/16-pgvector-dense-experiment` (`bd39d20`), в `main`
+не влита, дальше с pgvector не работаем. Qdrant остаётся единственным
+retrieval default. Следующая работа на `main`: Phase 7 gold eval или Phase 8
+FastAPI, по решению пользователя.
 
 История завершённых спринтов:
 
@@ -152,10 +150,9 @@ default. Дальше по roadmap после эксперимента: Phase 7 
    [#38](https://github.com/DaniilJechev/obsidian-rag-lab/issues/38) closed.
 
 8. Sprint 16: учебный PostgreSQL + pgvector dense path
-   (`PGV-001`; planning document:
-   `docs/agile/sprint-16-pgvector-dense-experiment.md`)
-   — planned; implementation на `sprint/16-pgvector-dense-experiment`,
-   без merge в `main`.
+   (`PGV-001`; `docs/agile/sprint-16-pgvector-dense-experiment.md`)
+   — completed as branch-only; implementation `bd39d20` on
+   `sprint/16-pgvector-dense-experiment`, not merged to `main`.
 
 Semantic evaluation, gold questions и RAGAS остаются в Phase 7, а OpenRouter
 generation — в Phase 9. LangGraph относится к более поздней фазе. Sprint 14 и

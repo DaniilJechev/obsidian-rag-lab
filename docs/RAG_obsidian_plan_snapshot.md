@@ -5,6 +5,23 @@
 **Легенда стека:** **основной** / *замена* / *(опционально)*.  
 `seaborn` — только лёгкая визуализация, не ядро (см. пометку в ML main skills).
 
+### Актуальное состояние (2026-08-20)
+
+Нумерация фаз **ниже в этом snapshot** — историческая копия vault-плана.
+Живой порядок — Cursor roadmap
+(`.cursor/plans/rag_pipeline_roadmap_7c0acd14.plan.md`) и `docs/agile/`.
+
+- **На `main`:** фазы 0–5 живого roadmap закрыты. PostgreSQL — source of
+  truth для `notes`/`chunks`. Retrieval default: Qdrant named vectors
+  `dense` + `bm25`, Python RRF, CLI `rag-cli search dense|bm25|hybrid`.
+- **Phase 6 (pgvector comparison):** закрыта как **branch-only**. Код на
+  `sprint/16-pgvector-dense-experiment` (`bd39d20`), в `main` не влит.
+  Live dense top-k совпал с Qdrant; BM25/hybrid в Postgres не делали.
+  Дальше с pgvector не работаем.
+- **Следующее на `main`:** Phase 7 gold eval (nDCG/MRR) или Phase 8 FastAPI
+  (тёплый embedding process). Не pgvector.
+- Sprint-док: `docs/agile/sprint-16-pgvector-dense-experiment.md`.
+
 ---
 
 ## Легенда взаимозамен
@@ -13,7 +30,7 @@
 
 | Пара | Правило |
 |---|---|
-| `Qdrant` vs `pgvectors` | один — deep в pet, второй — comparison |
+| `Qdrant` vs `pgvectors` | Qdrant — deep на `main`; pgvector — comparison на ветке Sprint 16, не merge |
 | `XGBoost` vs `catboost` | достаточно одного |
 | облачный `LLM` vs `vLLM` | сначала API, потом self-host backend |
 | `LangChain` vs свой pipeline | LangChain-first splitters/adapters; собственные contracts, persistence и experiment logic остаются прозрачными |
@@ -362,7 +379,7 @@ GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 → 2 Postgres schema
 → 3 Chunking
 → 4 Embeddings
-→ 5 Hybrid index (pgvector ИЛИ Qdrant + BM25)
+→ 5 Hybrid index (Qdrant + BM25 на `main`; pgvector comparison — ветка Sprint 16, не в `main`)
 → 7 FastAPI /search
 → 8 LangChain RAG generate
 → 12 Eval gold (nDCG/MRR/RAGAS)  ← не откладывать
@@ -382,7 +399,8 @@ GPU/тяжёлое — `Google collab`. Трекинг: `MLFlow`.
 ## MVP (если резать scope)
 
 **Обязательный минимум:**  
-фазы `1 → 2 → 3 → 4 → 5(pgvector) → 7 → 8 → 12 → 9 → 10` + Docker + git + FastAPI.
+фазы `1 → 2 → 3 → 4 → 5(Qdrant hybrid) → 7 → 8 → 12 → 9 → 10` + Docker + git + FastAPI.  
+pgvector не входит в MVP на `main` (Sprint 16 остался на отдельной ветке).
 
 **Отложить:** K8s deep, fine-tune, второй vector DB, оба бустинга сразу, seaborn как навык.
 
