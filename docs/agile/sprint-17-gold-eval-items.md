@@ -1,12 +1,12 @@
 # Sprint 17 — Gold Eval Items and Metric Harness
 
-> Статус: `in-progress`
+> Статус: `completed`
 >
 > Ветка: `sprint/17-gold-eval-items`
 >
 > Связанная фаза roadmap: `Фаза 7`
 >
-> Backlog: `EVAL-001`, частично `EVAL-002` (формулы и тесты; live baseline — Sprint 18)
+> Backlog: `EVAL-001` (done), частично `EVAL-002` (формулы и тесты; live baseline — Sprint 18)
 >
 > GitHub: [Issue #43](https://github.com/DaniilJechev/obsidian-rag-lab/issues/43),
 > [Milestone Phase 7](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/8)
@@ -27,8 +27,9 @@ FastAPI.
 
 ## Scope
 
-- [ ] `EVAL-001` — согласовать с владельцем черновик 50 вопросов
+- [x] `EVAL-001` — согласовать с владельцем черновик 50 вопросов
   (`evals/gold/phase7_note_level_v0.yaml`) и поправить labels после review.
+  Заморозка `dataset_version=v1` перенесена в Sprint 18.
 - [x] Добавить таблицу `eval_items` в SQLAlchemy Core + Alembic (контракт из
   Phase 2 schema: `question`, `corpus_scope`, `relevant_note_ids`,
   `relevant_chunk_ids=[]`, `dataset_version`).
@@ -61,26 +62,27 @@ FastAPI.
 
 ## Acceptance Criteria
 
-- [ ] 50 вопросов покрывают оба каталога DLS1 и DLS2; labels note-level.
-- [ ] Владелец просмотрел gold; `dataset_version` draft не называется `v1`,
-  пока review не закрыт.
-- [x] `eval_items` описывается миграцией; loader готов (нужен `alembic upgrade` на локальной БД).
+- [x] 50 вопросов покрывают оба каталога DLS1 и DLS2; labels note-level.
+- [x] Владелец просмотрел gold; `dataset_version` остаётся
+  `phase7-note-level-v0-draft` (не `v1`) до freeze в Sprint 18.
+- [x] `eval_items` описывается миграцией; loader применён локально
+  (`alembic upgrade` + `rag-cli eval load-gold`, `items: 50`).
 - [x] Метрики совпадают с эталонными фикстурами (ручной расчёт ranking).
 - [x] Пустой gold / IDCG=0 не даёт NaN.
-- [ ] Vault не изменён; секреты не в git.
+- [x] Vault не изменён; секреты не в git.
 
 ## Definition of Done
 
-- [ ] Все задачи из Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Документация и конфигурация обновлены, если это необходимо.
-- [ ] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Все задачи из Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
+- [x] CI проходит, если изменения отправлялись в remote.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Документация и конфигурация обновлены, если это необходимо.
+- [x] Результаты и ограничения записаны в этот sprint-документ.
+- [x] Пользователь подтвердил завершение спринта.
 
 ## Dependencies and risks
 
@@ -91,7 +93,8 @@ FastAPI.
   нужен повторный read-only ingest **после** правки `.env` (это не merge
   pgvector и не FastAPI).
 - Черновик gold составлен по названиям/содержимому заметок, не по live
-  top-20. После CLI-прогонов labels могут измениться.
+  top-20. После CLI-прогонов labels могут измениться; тогда бамп
+  `dataset_version`, а не тихая правка `v1`.
 
 ## Estimate
 
@@ -99,15 +102,17 @@ FastAPI.
 
 ## Proposed branch
 
-`sprint/17-gold-eval-items` (этот skill/commit ветку не создаёт).
+`sprint/17-gold-eval-items`
 
 ## Execution Log
 
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-20 | Planning | Документ создан |
-| 2026-08-20 | Implementation | Schema, metrics, YAML loader, MLflow harness, CLI `eval`; gold review владельца ещё открыт |
+| 2026-08-20 | Implementation | Schema, metrics, YAML loader, MLflow harness, CLI `eval` |
 | 2026-08-20 | Gold rewrite | Удалён q008; у каждого вопроса 3 заметки; добавлен q051; `v1` не заморожен |
+| 2026-08-20 | Local DB | `alembic upgrade` `7a2c4d1e9f30` → `b7e4a91c2d80`; `load-gold` `items: 50` |
+| 2026-08-20 | Merge | PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45); CI Lint and test SUCCESS; merge `59188fb` |
 
 ## Validation Evidence
 
@@ -116,51 +121,82 @@ FastAPI.
 ```text
 uv run ruff check .
 uv run pytest -q
+uv run alembic upgrade head
+uv run rag-cli eval load-gold
 ```
 
 ### Test and Lint Results
 
-- Tests: `uv run pytest -q` — 120 passed, 1 skipped, 18 deselected
-- Lint: `uv run ruff check src/ tests/` — All checks passed
-- CI: не запускался до push ветки
+- Tests: `PASS — uv run pytest -q` (`120 passed, 1 skipped, 18 deselected`)
+- Lint: `PASS — uv run ruff check .`
+- CI: `PASS — GitHub Actions Lint and test` on PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45) (`SUCCESS`, 2026-08-20T17:37:49Z)
+- Local load: `PASS — rag-cli eval load-gold` printed `dataset_version=phase7-note-level-v0-draft`, `items: 50`
 
 ### Metrics
 
-Числа corpus eval появятся только в Sprint 18 после live run.
+Числа corpus eval (dense / bm25 / hybrid nDCG/MRR) появятся только в Sprint 18
+после live run. Synthetic harness не является baseline.
 
 ## Review
 
 ### Completed
 
-- Планирование Phase 7: note-level, `eval_items`, 50 вопросов, без FastAPI.
+- Note-level gold: 50 вопросов, 22 DLS1 + 28 DLS2, по 3 заметки.
+- `eval_items`, collapse, nDCG/MRR/Recall/Hit, CLI `load-gold` / `score`.
+- Owner review implementation PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45) и merge.
 
 ### Not Completed
 
-- Review gold владельцем и заморозка `v1`.
-- `alembic upgrade` + `rag-cli eval load-gold` на локальном Postgres.
+- Заморозка `phase7-note-level-v1` — Sprint 18.
+- Live dense/bm25/hybrid baseline — Sprint 18 / `EVAL-002`.
 
 ### Changed Decisions
 
 - Gold хранится в `eval_items`, не только YAML.
 - Разметка note-level, не chunk-level.
+- Draft gold принимается в Sprint 17; `v1` не объявляем до live eval.
 
 ### Technical Debt
 
-- CLI top-20 как помощник разметки ещё не встроен в eval runner.
+- `load-gold` печатает `upserted: -1` на multi-row `ON CONFLICT` (PostgreSQL
+  rowcount); 50 строк при этом загружаются.
+- CLI top-20 как помощник разметки ещё не встроен в eval runner (Sprint 18).
 
 ## Retrospective
 
-Заполняется при closeout.
+### What Went Well
+
+- Тонкий IR-слой без LangChain evaluators: формулы читаемые, контракт
+  collapse chunks→notes совпадает с gold.
+- Owner iteration (убрать q008, минимум 3 заметки) прошла до merge, не после.
+
+### What Was Difficult
+
+- pgAdmin не показывал `eval_items` сразу после Alembic: дерево Tables
+  нужно Refresh, это не провал миграции.
+- `upserted: -1` выглядит как ошибка загрузки, хотя `items: 50` успешны.
+
+### What We Will Change
+
+- В Sprint 18 писать ranking JSON из живого search и не кормить score
+  пустыми шаблонами.
+- Freeze `v1` только после первого live прогона, если labels устоят.
+
+### Backlog Updates
+
+- `EVAL-001` → `done`.
+- `EVAL-002` остаётся `ready`: формулы уже на `main`, live runner — Sprint 18.
+- Не стартовать Phase 8 FastAPI до live baseline.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён.
+- [x] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `completed`
 
-**Дата завершения:**
+**Дата завершения:** `2026-08-20`
