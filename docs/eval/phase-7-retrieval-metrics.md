@@ -1,11 +1,9 @@
 # Phase 7 — Retrieval metrics (note-level)
 
-Статус: `baseline recorded` (Sprint 18). Sprint 17 дал gold, `eval_items` и
-формулы. Sprint 18 прогнал dense / bm25 / hybrid на
-`phase7_GT_note_level_v0` и записал числа в MLflow
-`phase-7-retrieval-eval`. Каноническая таблица — в
-`docs/agile/sprint-18-retrieval-eval-baseline.md` (Compare владельца,
-k=5, 50 вопросов). Сюда — короткий снимок и ограничения.
+Статус: `completed` (Sprint 17 gold + Sprint 18 live baseline). Каноническая
+таблица — `docs/agile/sprint-18-retrieval-eval-baseline.md`. Следующая живая
+фаза retrieval quality — rerank (Phase 12 / `ML-001`); generate/RAGAS —
+Phase 9–10. FastAPI — Phase 8.
 
 Generation-метрики RAGAS (Faithfulness, Answer Relevancy, Context
 Precision/Recall) — **живая Phase 10**, сразу после OpenRouter generate.

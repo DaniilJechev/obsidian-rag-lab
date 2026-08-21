@@ -75,7 +75,7 @@ Backlog не является жёстким расписанием. Приор�
 | RET-003 | P2 | done | 5 | Удалить неиспользуемый `rank-bm25` | Dependency removed in PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41); lexical search uses Qdrant sparse `bm25` only |
 | PGV-001 | P2 | done | 6 | Учебный dense path на PostgreSQL + pgvector (без merge в `main`) | Sprint 16 completed on `sprint/16-pgvector-dense-experiment` (`bd39d20`); live top-k matched Qdrant dense; implementation not merged; Qdrant remains default |
 | EVAL-001 | P0 | done | 7 | Создать gold eval-набор | Sprint 17 completed: 50 note-level вопросов, owner review, `eval_items` loader; PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45) merged (`59188fb`); freeze `phase7_GT_note_level_v0` в Sprint 18 |
-| EVAL-002 | P0 | done | 7 | Реализовать nDCG@k и MRR@k | Sprint 18: live `rag-cli eval run`; MLflow Compare dense/bm25/hybrid @5 на 50 вопросах записан в `docs/agile/sprint-18-retrieval-eval-baseline.md`; PR closeout — owner review |
+| EVAL-002 | P0 | done | 7 | Реализовать nDCG@k и MRR@k | Sprint 18 completed: live `rag-cli eval run`; MLflow Compare dense/bm25/hybrid @5; PR [#47](https://github.com/DaniilJechev/obsidian-rag-lab/pull/47) merged (`6f82a00`), CI passed, Issue [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44) closed |
 | API-001 | P1 | idea | 8 | Создать FastAPI retriever service | `/health`, `/ingest`, `/search` имеют контракты и тесты |
 | LLM-001 | P1 | idea | 9 | Подключить OpenRouter LLM | Ответы имеют structured output и citations |
 | GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
@@ -164,7 +164,9 @@ FastAPI — Phase 8, не сейчас.
 10. Sprint 18: live dense/bm25/hybrid baseline в MLflow
     (`EVAL-002`; `docs/agile/sprint-18-retrieval-eval-baseline.md`;
     GitHub [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44))
-    — implementation + observed @5 metrics recorded; owner review/merge PR.
+    — completed; PR [#47](https://github.com/DaniilJechev/obsidian-rag-lab/pull/47)
+    merged (`6f82a00`), CI passed, Issue
+    [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44) closed.
 
 Semantic evaluation и gold questions — Phase 7. RAGAS — живая Phase 10 после
 generate. OpenRouter generation — Phase 9. FastAPI — Phase 8, сознательно
