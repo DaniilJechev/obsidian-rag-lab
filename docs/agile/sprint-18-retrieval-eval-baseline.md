@@ -1,6 +1,6 @@
 # Sprint 18 — Retrieval Baseline on Frozen Gold
 
-> Статус: `in-review`
+> Статус: `completed`
 >
 > Ветка: `sprint/18-retrieval-eval-baseline`
 >
@@ -70,12 +70,12 @@ Sprint 17 даёт набор и формулы. Без live прогона на
 - [x] Acceptance Criteria проверены.
 - [x] Тесты добавлены или обновлены и проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит, если изменения отправлялись в remote.
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
 - [x] Документация и конфигурация обновлены, если это необходимо.
 - [x] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта. *(owner review + merge PR)*
+- [x] Пользователь подтвердил завершение спринта. *(merge PR #47 + closeout)*
 
 ## Dependencies and risks
 
@@ -103,6 +103,7 @@ Sprint 17 даёт набор и формулы. Без live прогона на
 | 2026-08-21 | Live runner | `rag-cli eval run --method … --top-k k`: Postgres gold, один embedder на прогон, collapse→IR metrics @k с CLI, MLflow artifact `per_question.json`. |
 | 2026-08-21 | Eval defaults | `--top-k` обязателен. Hybrid `candidate_k` дефолт `2 * top_k`. `rrf_k` из `configs/retrieval/retrieval.yaml` (60); `--rrf-k` — override. MLflow metric names `ndcg_at_5` (символ `@` сервер отвергает). |
 | 2026-08-21 | Canonical Compare | Owner Compare трёх live run: hybrid / dense / bm25, `top_k=5`, `rrf_k=60`, 50/50 scored. Цифры ниже. Hybrid с `candidate_k=5` и rrf 10 vs 60 — **не** канон (метрики совпали байт-в-байт; пул слишком узкий для RRF). |
+| 2026-08-21 | Merge + closeout | PR [#47](https://github.com/DaniilJechev/obsidian-rag-lab/pull/47) merged `6f82a00`; Issue [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44) closed; Milestone 8 closed (`open_issues=0`). |
 
 ## Validation Evidence
 
@@ -134,7 +135,11 @@ uv run mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-
 
 - Tests: `uv run pytest -q` — 139 passed, 1 skipped, 18 deselected (exit 0).
 - Lint: `uv run ruff check .` — All checks passed.
-- CI: после push/PR, не выдумывать.
+- CI: PR [#47](https://github.com/DaniilJechev/obsidian-rag-lab/pull/47)
+  `Lint and test` **pass**
+  ([job](https://github.com/DaniilJechev/obsidian-rag-lab/actions/runs/32511531417/job/96863518648));
+  merge commit CI on `main` **success**
+  ([run](https://github.com/DaniilJechev/obsidian-rag-lab/actions/runs/32511586640)).
 - Live Qdrant runs: три comparable run в MLflow Compare (скрин владельца 2026-08-21).
 
 ### Protocol of the recorded Compare
@@ -196,9 +201,8 @@ Macro-average по 50 вопросам, cutoff **k=5**. Источник: MLflow
 
 ### Not Completed
 
-- Owner review и merge PR в `main`.
-- Remote CI на PR (после push).
-- Подтверждение closeout спринта владельцем.
+- Нет. Следующая roadmap-фаза — FastAPI (Phase 8 / `API-001`); sprint не
+  планировался в этом closeout.
 
 ### Changed Decisions
 
@@ -216,21 +220,33 @@ Macro-average по 50 вопросам, cutoff **k=5**. Источник: MLflow
 
 ## Retrospective
 
-Что сработало: один `--top-k` для retrieval и метрик; e5 один раз на прогон; Compare в MLflow как source of truth для чисел.
+### What Went Well
 
-Что нет: сначала hybrid искал YAML `candidate_k=20` при dense/bm25 на `top_k`; потом `candidate_k=top_k` сделал rrf_k=10 vs 60 невидимым. `@` в именах метрик сломал логирование после уже посчитанного прогона.
+- Один `--top-k` для выдачи и метрик; e5 один раз на dense/hybrid прогон.
+- MLflow Compare владельца как source of truth: числа не выдуманы.
+- Hybrid не объявлен лучше dense: nDCG 0.616 vs 0.619, MRR 0.797 vs 0.817.
 
-Вывод: fair eval = одинаковый k на выдаче; шире пул hybrid — явный `--candidate-k`; константа RRF — 60 из конфига, пока не делаем ablation.
+### What Was Difficult
+
+- Сначала hybrid тянул YAML `candidate_k=20` при dense/bm25 на `top_k`.
+- `candidate_k = top_k` сделал rrf_k=10 vs 60 невидимым (метрики байт-в-байт).
+- Имена `ndcg@5` отвергнуты MLflow после уже посчитанного прогона.
+
+### What We Will Change
+
+- Fair eval: cutoff = `--top-k`; шире пул hybrid только явным `--candidate-k`.
+- `rrf_k` по умолчанию 60 из YAML; ablation — отдельный run, не тихая смена.
+- Metric names только `ndcg_at_k` / `map_at_k`.
 
 ## Completion
 
-- [x] Definition of Done проверен локально перед PR.
-- [ ] Review проведён *(владелец на GitHub)*.
+- [x] Definition of Done проверен.
+- [x] Review проведён (owner merge PR [#47](https://github.com/DaniilJechev/obsidian-rag-lab/pull/47), `6f82a00`).
 - [x] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [x] Backlog обновлён (`EVAL-002` → done после записи baseline).
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Commit/PR/merge implementation выполнены; closeout PR следует.
+- [x] Backlog обновлён (`EVAL-002` → done).
+- [ ] Следующий sprint выбран или запланирован. *(Phase 8 FastAPI / API-001 — отдельный sprint-planning)*
 
-**Итоговый статус:** `in-review`
+**Итоговый статус:** `completed`
 
-**Дата завершения:**
+**Дата завершения:** `2026-08-21`
