@@ -39,7 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers.add_parser(
         "eval",
-        help="Load gold eval items or score explicit note rankings.",
+        help="Load gold items, score rankings, or run live retrieval eval.",
     )
     return parser
 

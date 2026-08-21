@@ -6,11 +6,10 @@ from rag_based_on_obsidian.config import DEFAULT_EVAL_GOLD_PATH
 from rag_based_on_obsidian.eval.gold_yaml import GoldYamlError, load_gold_yaml
 
 
-def test_draft_gold_yaml_has_fifty_note_level_items() -> None:
+def test_frozen_gold_yaml_has_fifty_note_level_items() -> None:
     dataset_version, items = load_gold_yaml(DEFAULT_EVAL_GOLD_PATH)
 
-    assert dataset_version == "phase7-note-level-v0-draft"
-    assert "v1" not in dataset_version
+    assert dataset_version == "phase7_GT_note_level_v0"
     assert len(items) == 50
     assert {item.item_id for item in items} == {
         *(f"q{index:03d}" for index in range(1, 8)),
@@ -30,3 +29,14 @@ def test_gold_yaml_rejects_empty_items(tmp_path: Path) -> None:
     )
     with pytest.raises(GoldYamlError, match="items"):
         load_gold_yaml(path)
+
+
+def test_eval_config_points_at_gt_gold_yaml() -> None:
+    from rag_based_on_obsidian.config import (
+        DEFAULT_EVAL_DATASET_VERSION,
+        DEFAULT_EVAL_GOLD_PATH,
+    )
+
+    assert DEFAULT_EVAL_GOLD_PATH.name == "phase7_GT_note_level_v0.yaml"
+    assert DEFAULT_EVAL_GOLD_PATH.is_file()
+    assert DEFAULT_EVAL_DATASET_VERSION == "phase7_GT_note_level_v0"

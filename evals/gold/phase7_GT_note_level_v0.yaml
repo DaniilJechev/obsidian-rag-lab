@@ -1,17 +1,18 @@
-# Draft gold set for Phase 7. Status: pending owner review.
-# Not dataset_version v1 until the user accepts or edits labels.
-# Paths are vault-relative after OBSIDIAN_VAULT_ROOT=.../obsidianNotes/ML_NLP
+# Phase 7 note-level ground truth. Identity is dataset_version (must match
+# configs/eval/eval.yaml). Paths are vault-relative after
+# OBSIDIAN_VAULT_ROOT=.../obsidianNotes/ML_NLP
 # Target: 2–3 relevant notes per question (never 1). q008 removed by owner.
-dataset_version: phase7-note-level-v0-draft
+dataset_version: phase7_GT_note_level_v0
 label_granularity: note
 corpus_scope: DLS1+DLS2
 relevance: binary
 relevant_chunk_ids: []
 author: assistant-draft
-review_status: pending
+review_status: frozen
 notes: >
-  Each item should retrieve more than one atomic note. Labels are note-level.
-  ML_NLP/NLP is out of allowlist. q008 (Focal loss) was dropped on owner request.
+  Frozen by owner on 2026-08-21. Each item should retrieve more than one
+  atomic note. Labels are note-level. ML_NLP/NLP is out of allowlist.
+  q008 (Focal loss) was dropped on owner request.
 
 items:
   - id: q001

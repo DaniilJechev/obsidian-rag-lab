@@ -1,9 +1,11 @@
 # Phase 7 — Retrieval metrics (note-level)
 
-Статус: `in-progress`. Sprint 17 дал gold draft, `eval_items` и формулы.
-Этот документ фиксирует **что** меряем в живой Phase 7 и **как** это
-считается. Числа появляются только после реального eval-запуска (Sprint 18)
-и пишутся в MLflow, не сюда заранее.
+Статус: `baseline recorded` (Sprint 18). Sprint 17 дал gold, `eval_items` и
+формулы. Sprint 18 прогнал dense / bm25 / hybrid на
+`phase7_GT_note_level_v0` и записал числа в MLflow
+`phase-7-retrieval-eval`. Каноническая таблица — в
+`docs/agile/sprint-18-retrieval-eval-baseline.md` (Compare владельца,
+k=5, 50 вопросов). Сюда — короткий снимок и ограничения.
 
 Generation-метрики RAGAS (Faithfulness, Answer Relevancy, Context
 Precision/Recall) — **живая Phase 10**, сразу после OpenRouter generate.
@@ -53,18 +55,30 @@ Gold помечает **заметки**, не чанки.
 
 ## Какие метрики считаем
 
-Рекомендуемый набор для каждого вопроса и затем macro-average по набору:
+Рекомендуемый набор для каждого вопроса и затем macro-average по набору.
+Все метрики **бинарные** и считаются после collapse chunks→notes. LLM-as-judge
+не используется.
 
 | Метрика | k | Роль |
 |---|---|---|
-| **nDCG@k** | 5 и 10 | Главная ranking-метрика: штрафует, если нужная заметка низко |
-| **MRR@k** | 10 | Насколько высоко **первая** релевантная заметка |
-| **Recall@k** | 5 и 10 | Доля gold-заметок, попавших в top-k notes |
-| **Hit@k** | 10 | 1, если хотя бы одна gold-заметка в top-k; иначе 0 |
+| **nDCG@k** | `--top-k` | Главная ranking-метрика: штрафует, если нужная заметка низко |
+| **MRR@k** | `--top-k` | Насколько высоко **первая** релевантная заметка |
+| **Precision@k** | `--top-k` | Доля top-k, которая попала в gold (вспомогательная: gold короткий) |
+| **Recall@k** | `--top-k` | Доля gold-заметок, попавших в top-k notes |
+| **F1@k** | `--top-k` | Гармоническое среднее Precision и Recall |
+| **Hit@k** | `--top-k` | 1, если хотя бы одна gold-заметка в top-k; иначе 0 |
+| **MAP@k** | `--top-k` | Mean Average Precision (TREC: AP / \|gold\|) |
+| **R-Precision** | \|gold\| | Precision на ранге, равном числу релевантных заметок |
 
-k=5 — «то, что почти наверняка уйдёт в контекст LLM».
-k=10 — чуть шире, чтобы видеть, что система «почти нашла», но не влезла
-в короткий контекст.
+Cutoff **не зашит** в код: один `k` приходит из CLI (`--top-k`) и идёт и в
+retrieval, и в метрики. Сравнивать dense / bm25 / hybrid можно только на
+одинаковом k. Типичные выборы: 5 («почти наверняка уйдёт в контекст LLM»)
+или 10 (чуть шире, видно «почти нашли»). Это решение запуска, не константа
+пакета.
+
+Главные числа для сравнения методов на выбранном k: **nDCG, MAP, MRR, Recall**.
+Precision@k на коротком gold (2–3 заметки при большом k) искусственно прижат —
+его логируем, но не объявляем «победителем» по нему одному.
 
 ### nDCG@k — Normalized Discounted Cumulative Gain
 
@@ -96,8 +110,8 @@ nDCG@k = \frac{DCG@k}{IDCG@k}
 Зачем нужна, а не только Recall: Recall@10 = 1, если обе нужные заметки
 где-то в десятке, даже если они на местах 9 и 10. nDCG это накажет.
 
-Реализацию пишем сами (NumPy), не тащим sklearn как единственный источник
-истины: так проще объяснить формулу в тестах с фиктивным ranking.
+Реализацию пишем сами, не sklearn как единственный источник истины:
+так проще объяснить формулу в тестах с фиктивным ranking.
 
 ### MRR@k — Mean Reciprocal Rank
 
@@ -130,10 +144,38 @@ Hit@k = 1, если пересечение непусто.
 достаёт нужные notes даже широким top-k (embedding, lexical, или gold
 слишком жёсткий).
 
-Precision@k на v1 **не** делаем главным числом: у вопроса часто 1–3
-релевантные заметки, а k=10, поэтому Precision искусственно прижат.
-Его можно логировать как вспомогательный, но baseline сравниваем по
-nDCG/MRR/Recall.
+Precision@k на коротком gold (2–3 релевантные заметки при k=10)
+искусственно мал. Его считаем и логируем как вспомогательный, baseline
+сравниваем в первую очередь по nDCG/MAP/MRR/Recall.
+
+### Precision@k, F1@k, MAP@k, R-Precision
+
+\[
+Precision@k = \frac{|gold \cap predicted_k|}{k}
+\]
+
+\[
+F1@k = \frac{2 \cdot P@k \cdot R@k}{P@k + R@k}
+\]
+
+(если \(P+R=0\), F1 = 0).
+
+Average Precision@k (TREC): на каждой позиции, где в top-k стоит
+релевантная заметка, берём Precision@этой_позиции и усредняем по
+**всем** gold-заметкам вопроса, даже если часть не вошла в k:
+
+\[
+AP@k = \frac{1}{|gold|} \sum_{i \le k,\, d_i \in gold} Precision@i
+\]
+
+MAP@k — среднее AP@k по вопросам.
+
+R-Precision = Precision@\(R\), где \(R = |gold|\). Для наших вопросов
+это Precision@2 или @3: насколько плотно релевантные заметки стоят в
+самом верху, без раздувания знаменателя до 10.
+
+Реализацию пишем сами, не sklearn: так проще объяснить формулу в тестах
+с фиктивным ranking.
 
 ## Что не мерим в Phase 7
 
@@ -145,7 +187,25 @@ nDCG/MRR/Recall.
 ## Протокол запуска и MLflow
 
 Каждый eval-прогон (dense, bm25, hybrid, позже rerank) — **отдельный**
-MLflow run в одном experiment, например `phase-7-retrieval-eval`.
+MLflow run в одном experiment `phase-7-retrieval-eval`.
+
+Команда Sprint 18 (записанный baseline — `--top-k 5`):
+
+```text
+uv run rag-cli eval load-gold
+uv run rag-cli eval run --method dense --top-k 5
+uv run rag-cli eval run --method bm25 --top-k 5
+uv run rag-cli eval run --method hybrid --top-k 5
+```
+
+`--top-k` обязателен: это и размер выдачи retriever, и cutoff метрик.
+По умолчанию hybrid ищет `candidate_k = 2 * --top-k` (при `--top-k 5` → 10).
+`--candidate-k` — ручной override. `rrf_k` всегда из
+`configs/retrieval/retrieval.yaml` (сейчас 60), пока не передали `--rrf-k`.
+В MLflow `rrf_k` пишется и как param, и как metric. BM25 не грузит e5;
+dense/hybrid грузят модель **один раз** на прогон. Postgres `eval_items` —
+runtime source of truth; YAML нужен, чтобы приклеить стабильные `q00N` id
+к artifact.
 
 Experiment-level tags: `phase=7`, `sprint`, `task`, `experiment_type=eval`.
 Experiment description в `mlflow.note.content`.
@@ -155,9 +215,13 @@ Run-level обязательно:
 - `dataset_version`, `label_granularity=note`;
 - retrieval method (`dense` / `bm25` / `hybrid`);
 - `chunking_version`, embedding model/revision, collection name;
-- `top_k`, `candidate_k`, `rrf_k` если hybrid;
+- `top_k`; `candidate_k` (дефолт `2 * top_k`); `rrf_k` из retrieval YAML
+  (param + metric);
 - device, batch size, normalization — как в остальных inference runs;
-- metrics: nDCG@5/10, MRR@10, Recall@5/10, Hit@10;
+- metrics: `ndcg_at_k`, `mrr_at_k`, `precision_at_k`, `recall_at_k`,
+  `f1_at_k`, `hit_at_k`, `map_at_k` (Mean Average Precision; в коде поле
+  `average_precision`; `@` в имени нельзя — MLflow его отвергает),
+  `r_precision` (cutoff = \|gold\|, не `--top-k`);
 - operational: duration, QPS, RAM, если доступны;
 - artifact: per-question JSON/CSV (ranks, predicted notes, hits/misses).
 
@@ -174,12 +238,13 @@ Run-level обязательно:
 - `relevant_note_ids` — JSONB массив `note_id` после resolve
   `relative_path → notes.note_id`;
 - `relevant_chunk_ids` — `[]` на v1;
-- `dataset_version` — например `phase7-note-level-v1` после review.
+- `dataset_version` — сейчас `phase7_GT_note_level_v0`
+  (`evals/gold/phase7_GT_note_level_v0.yaml`, `configs/eval/eval.yaml`).
 
 YAML в `evals/gold/` — authoring format и git-источник. Postgres —
-runtime source of truth для eval runner. Не держим два расходящихся
-канона: loader идемпотентно upsert-ит по `(dataset_version, question)`
-или стабильному `eval_item_id` из YAML.
+runtime source of truth для eval runner. `load-gold` сначала удаляет все
+строки `eval_items`, затем пишет текущий YAML, чтобы в таблице не копить
+старые `dataset_version`.
 
 ## Корпус
 
@@ -190,3 +255,23 @@ Discovery по-прежнему ждёт прямых детей vault root с �
 `DLS2`. Значит `OBSIDIAN_VAULT_ROOT` должен указывать на
 `obsidianNotes/ML_NLP`, а не на корень vault. Тогда `relative_path`
 остаётся `DLS1/...` и `DLS2/...`, как в текущей схеме `notes`.
+
+## Observed Sprint 18 baseline (k=5)
+
+Источник: MLflow Compare владельца, experiment `phase-7-retrieval-eval`,
+50 вопросов, `skipped=0`, `top_k=5`, `rrf_k=60`. Порядок колонок:
+hybrid / dense / bm25. Полная таблица и оговорки —
+`docs/agile/sprint-18-retrieval-eval-baseline.md`.
+
+| Metric @5 | hybrid | dense | bm25 |
+|---|---:|---:|---:|
+| nDCG | 0.616 | 0.619 | 0.536 |
+| MRR | 0.797 | 0.817 | 0.726 |
+| MAP | 0.513 | 0.512 | 0.412 |
+| Recall | 0.613 | 0.607 | 0.560 |
+| Hit | 0.92 | 0.96 | 0.96 |
+| duration_s | 10.76 | 11.37 | 1.35 |
+
+Hybrid на этом срезе **не** лучше dense по nDCG/MRR. Hit@5 высокий у всех
+трёх (узкий корпус). Следующие фазы сравнивают с этой таблицей только при
+том же gold `phase7_GT_note_level_v0` и том же k.
