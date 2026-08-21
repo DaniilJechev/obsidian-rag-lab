@@ -74,8 +74,8 @@ Backlog не является жёстким расписанием. Приор�
 | RET-002 | P1 | done | 5 | Добавить BM25 и RRF hybrid retrieval | Sprint 15 completed: Qdrant sparse BM25, RRF, retrieval contract и live hybrid smoke; PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41) merged (`46b4234`), CI passed, Issue [#38](https://github.com/DaniilJechev/obsidian-rag-lab/issues/38) closed |
 | RET-003 | P2 | done | 5 | Удалить неиспользуемый `rank-bm25` | Dependency removed in PR [#41](https://github.com/DaniilJechev/obsidian-rag-lab/pull/41); lexical search uses Qdrant sparse `bm25` only |
 | PGV-001 | P2 | done | 6 | Учебный dense path на PostgreSQL + pgvector (без merge в `main`) | Sprint 16 completed on `sprint/16-pgvector-dense-experiment` (`bd39d20`); live top-k matched Qdrant dense; implementation not merged; Qdrant remains default |
-| EVAL-001 | P0 | done | 7 | Создать gold eval-набор | Sprint 17 completed: 50 note-level вопросов, owner review, `eval_items` loader; PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45) merged (`59188fb`); `v1` freeze остаётся Sprint 18 |
-| EVAL-002 | P0 | ready | 7 | Реализовать nDCG@k и MRR@k | Формулы и synthetic harness уже на `main` (Sprint 17); live dense/bm25/hybrid в MLflow — Sprint 18; FastAPI не требуется |
+| EVAL-001 | P0 | done | 7 | Создать gold eval-набор | Sprint 17 completed: 50 note-level вопросов, owner review, `eval_items` loader; PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45) merged (`59188fb`); freeze `phase7_GT_note_level_v0` в Sprint 18 |
+| EVAL-002 | P0 | done | 7 | Реализовать nDCG@k и MRR@k | Sprint 18: live `rag-cli eval run`; MLflow Compare dense/bm25/hybrid @5 на 50 вопросах записан в `docs/agile/sprint-18-retrieval-eval-baseline.md`; PR closeout — owner review |
 | API-001 | P1 | idea | 8 | Создать FastAPI retriever service | `/health`, `/ingest`, `/search` имеют контракты и тесты |
 | LLM-001 | P1 | idea | 9 | Подключить OpenRouter LLM | Ответы имеют structured output и citations |
 | GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
@@ -108,8 +108,8 @@ Backlog не является жёстким расписанием. Приор�
 implementation на `sprint/16-pgvector-dense-experiment` (`bd39d20`), в `main`
 не влита, дальше с pgvector не работаем. Qdrant остаётся единственным
 retrieval default. Следующая работа на `main`: **Phase 7 Sprint 18** —
-live dense/bm25/hybrid nDCG/MRR в MLflow на gold draft (freeze `v1` в том
-же спринте). FastAPI — Phase 8, не сейчас.
+live dense/bm25/hybrid nDCG/MRR в MLflow на frozen gold `phase7-note-level-v1`.
+FastAPI — Phase 8, не сейчас.
 
 История завершённых спринтов:
 
@@ -158,13 +158,13 @@ live dense/bm25/hybrid nDCG/MRR в MLflow на gold draft (freeze `v1` в том
 9. Sprint 17: gold 50 вопросов, `eval_items`, note-level metric harness
    (`EVAL-001`; `docs/agile/sprint-17-gold-eval-items.md`)
    — completed; PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45)
-   merged (`59188fb`), CI passed; gold remains `phase7-note-level-v0-draft`.
+   merged (`59188fb`), CI passed; gold freeze in Sprint 18 is
+   `phase7_GT_note_level_v0`.
 
-Запланировано:
-
-10. Sprint 18: live dense/bm25/hybrid baseline в MLflow и freeze gold `v1`
+10. Sprint 18: live dense/bm25/hybrid baseline в MLflow
     (`EVAL-002`; `docs/agile/sprint-18-retrieval-eval-baseline.md`;
-    GitHub [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44)).
+    GitHub [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44))
+    — implementation + observed @5 metrics recorded; owner review/merge PR.
 
 Semantic evaluation и gold questions — Phase 7. RAGAS — живая Phase 10 после
 generate. OpenRouter generation — Phase 9. FastAPI — Phase 8, сознательно

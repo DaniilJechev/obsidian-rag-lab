@@ -4,7 +4,11 @@ from collections.abc import Collection, Sequence
 from math import log2
 from statistics import mean
 
-from rag_based_on_obsidian.eval.contracts import DatasetMetrics, QuestionMetrics
+from rag_based_on_obsidian.eval.contracts import (
+    SCORED_METRIC_FIELDS,
+    DatasetMetrics,
+    QuestionMetrics,
+)
 
 
 def ndcg_at_k(
@@ -38,6 +42,18 @@ def mrr_at_k(
     return 0.0
 
 
+def precision_at_k(
+    predicted: Sequence[object],
+    relevant: Collection[object],
+    k: int,
+) -> float:
+    """Return the fraction of the top-k ranking that is gold."""
+    _require_positive_k(k)
+    relevant_set = _require_nonempty_relevant(relevant)
+    found = relevant_set.intersection(predicted[:k])
+    return len(found) / k
+
+
 def recall_at_k(
     predicted: Sequence[object],
     relevant: Collection[object],
@@ -50,6 +66,19 @@ def recall_at_k(
     return len(found) / len(relevant_set)
 
 
+def f1_at_k(
+    predicted: Sequence[object],
+    relevant: Collection[object],
+    k: int,
+) -> float:
+    """Return the harmonic mean of precision@k and recall@k."""
+    precision = precision_at_k(predicted, relevant, k)
+    recall = recall_at_k(predicted, relevant, k)
+    if precision + recall == 0:
+        return 0.0
+    return 2 * precision * recall / (precision + recall)
+
+
 def hit_at_k(
     predicted: Sequence[object],
     relevant: Collection[object],
@@ -59,57 +88,92 @@ def hit_at_k(
     return 1.0 if recall_at_k(predicted, relevant, k) > 0 else 0.0
 
 
+def average_precision_at_k(
+    predicted: Sequence[object],
+    relevant: Collection[object],
+    k: int,
+) -> float:
+    """Return TREC average precision over the top-k, divided by |gold|."""
+    _require_positive_k(k)
+    relevant_set = _require_nonempty_relevant(relevant)
+    hits = 0
+    precision_sum = 0.0
+    for rank, item in enumerate(predicted[:k], start=1):
+        if item not in relevant_set:
+            continue
+        hits += 1
+        precision_sum += hits / rank
+    return precision_sum / len(relevant_set)
+
+
+def r_precision(
+    predicted: Sequence[object],
+    relevant: Collection[object],
+) -> float:
+    """Return precision at rank |gold| (R-Precision)."""
+    relevant_set = _require_nonempty_relevant(relevant)
+    return precision_at_k(predicted, relevant_set, len(relevant_set))
+
+
 def score_question(
     *,
     item_id: str,
     predicted: Sequence[object],
     relevant: Collection[object],
+    k: int,
 ) -> QuestionMetrics:
-    """Score one question or skip it when gold is empty."""
+    """Score one question at k, or skip it when gold is empty."""
+    _require_positive_k(k)
     if not relevant:
         return QuestionMetrics(
             item_id=item_id,
             skipped=True,
+            k=k,
             skip_reason="empty_gold",
         )
     return QuestionMetrics(
         item_id=item_id,
         skipped=False,
-        ndcg_at_5=ndcg_at_k(predicted, relevant, 5),
-        ndcg_at_10=ndcg_at_k(predicted, relevant, 10),
-        mrr_at_10=mrr_at_k(predicted, relevant, 10),
-        recall_at_5=recall_at_k(predicted, relevant, 5),
-        recall_at_10=recall_at_k(predicted, relevant, 10),
-        hit_at_10=hit_at_k(predicted, relevant, 10),
+        k=k,
+        ndcg=ndcg_at_k(predicted, relevant, k),
+        mrr=mrr_at_k(predicted, relevant, k),
+        precision=precision_at_k(predicted, relevant, k),
+        recall=recall_at_k(predicted, relevant, k),
+        f1=f1_at_k(predicted, relevant, k),
+        hit=hit_at_k(predicted, relevant, k),
+        average_precision=average_precision_at_k(predicted, relevant, k),
+        r_precision=r_precision(predicted, relevant),
     )
 
 
-def macro_average(results: Sequence[QuestionMetrics]) -> DatasetMetrics:
-    """Average non-skipped questions. All-skipped sets have None metrics."""
+def macro_average(
+    results: Sequence[QuestionMetrics],
+    *,
+    k: int,
+) -> DatasetMetrics:
+    """Average non-skipped questions at the same k. All-skipped sets have None metrics."""
+    _require_positive_k(k)
     scored = [item for item in results if not item.skipped]
     skipped_count = len(results) - len(scored)
+    empty = {name: None for name in SCORED_METRIC_FIELDS}
     if not scored:
         return DatasetMetrics(
             question_count=len(results),
             scored_count=0,
             skipped_count=skipped_count,
-            ndcg_at_5=None,
-            ndcg_at_10=None,
-            mrr_at_10=None,
-            recall_at_5=None,
-            recall_at_10=None,
-            hit_at_10=None,
+            k=k,
+            **empty,
         )
+    averaged = {
+        name: mean(_required(getattr(item, name)) for item in scored)
+        for name in SCORED_METRIC_FIELDS
+    }
     return DatasetMetrics(
         question_count=len(results),
         scored_count=len(scored),
         skipped_count=skipped_count,
-        ndcg_at_5=mean(_required(item.ndcg_at_5) for item in scored),
-        ndcg_at_10=mean(_required(item.ndcg_at_10) for item in scored),
-        mrr_at_10=mean(_required(item.mrr_at_10) for item in scored),
-        recall_at_5=mean(_required(item.recall_at_5) for item in scored),
-        recall_at_10=mean(_required(item.recall_at_10) for item in scored),
-        hit_at_10=mean(_required(item.hit_at_10) for item in scored),
+        k=k,
+        **averaged,
     )
 
 

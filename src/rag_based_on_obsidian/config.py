@@ -34,9 +34,25 @@ DEFAULT_EXPERIMENT_PROTOCOL_PATH = (
 DEFAULT_CHUNK_INGESTION_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "ingestion" / "chunk_ingestion.yaml"
 )
-DEFAULT_EVAL_GOLD_PATH = (
-    PROJECT_ROOT / "evals" / "gold" / "phase7_note_level_v0.yaml"
-)
+DEFAULT_EVAL_CONFIG_PATH = PROJECT_ROOT / "configs" / "eval" / "eval.yaml"
+
+
+def _load_eval_defaults() -> tuple[Path, str]:
+    """Read gold YAML path and dataset_version from configs/eval/eval.yaml."""
+    with DEFAULT_EVAL_CONFIG_PATH.open(encoding="utf-8") as config_file:
+        raw_config = yaml.safe_load(config_file)
+    if not isinstance(raw_config, dict):
+        raise TypeError("eval YAML must contain a mapping")
+    gold_path = raw_config.get("gold_path")
+    dataset_version = raw_config.get("dataset_version")
+    if not isinstance(gold_path, str) or not gold_path.strip():
+        raise ValueError("eval YAML gold_path must be a non-empty string")
+    if not isinstance(dataset_version, str) or not dataset_version.strip():
+        raise ValueError("eval YAML dataset_version must be a non-empty string")
+    return PROJECT_ROOT / gold_path, dataset_version.strip()
+
+
+DEFAULT_EVAL_GOLD_PATH, DEFAULT_EVAL_DATASET_VERSION = _load_eval_defaults()
 EVAL_EXPERIMENT_NAME = "phase-7-retrieval-eval"
 from rag_based_on_obsidian.chunking.policy import ChunkingPolicy
 

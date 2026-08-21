@@ -1,0 +1,3 @@
+name: phase7-note-level-gt
+gold_path: evals/gold/phase7_GT_note_level_v0.yaml
+dataset_version: phase7_GT_note_level_v0

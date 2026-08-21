@@ -9,6 +9,8 @@ from rag_based_on_obsidian.eval.metrics import score_question
 def score_path_rankings(
     items: Sequence[GoldItem],
     rankings: Mapping[str, Sequence[str]],
+    *,
+    k: int,
 ) -> list[QuestionMetrics]:
     """Score each gold item using ranked relative_path values."""
     results: list[QuestionMetrics] = []
@@ -19,6 +21,7 @@ def score_path_rankings(
                 item_id=item.item_id,
                 predicted=predicted,
                 relevant=item.relevant_note_paths,
+                k=k,
             )
         )
     return results

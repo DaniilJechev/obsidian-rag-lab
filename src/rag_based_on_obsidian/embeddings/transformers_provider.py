@@ -1,5 +1,6 @@
 """Transformers/PyTorch implementation of the embedding provider contract."""
 
+import sys
 from collections.abc import Sequence
 from typing import Any
 
@@ -31,6 +32,15 @@ class TransformersEmbeddingProvider(EmbeddingProvider):
             raise ValueError("tokenizer and model must be provided together")
         self._config = config
         self._device = torch.device(config.device)
+        loading_from_hub = tokenizer is None
+        if loading_from_hub:
+            print(
+                "loading embedding model "
+                f"{config.model_name} revision={config.model_revision} "
+                f"device={config.device} (first download can take a while)",
+                file=sys.stderr,
+                flush=True,
+            )
         self._tokenizer = tokenizer or AutoTokenizer.from_pretrained(
             config.model_name,
             revision=config.model_revision,
@@ -41,6 +51,12 @@ class TransformersEmbeddingProvider(EmbeddingProvider):
         )
         self._model.to(self._device)
         self._model.eval()
+        if loading_from_hub:
+            print(
+                f"embedding model loaded device={self._device}",
+                file=sys.stderr,
+                flush=True,
+            )
         self._metadata = EmbeddingMetadata(
             model_name=config.model_name,
             model_revision=config.model_revision,
