@@ -76,7 +76,8 @@ Backlog не является жёстким расписанием. Приор�
 | PGV-001 | P2 | done | 6 | Учебный dense path на PostgreSQL + pgvector (без merge в `main`) | Sprint 16 completed on `sprint/16-pgvector-dense-experiment` (`bd39d20`); live top-k matched Qdrant dense; implementation not merged; Qdrant remains default |
 | EVAL-001 | P0 | done | 7 | Создать gold eval-набор | Sprint 17 completed: 50 note-level вопросов, owner review, `eval_items` loader; PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45) merged (`59188fb`); freeze `phase7_GT_note_level_v0` в Sprint 18 |
 | EVAL-002 | P0 | done | 7 | Реализовать nDCG@k и MRR@k | Sprint 18 completed: live `rag-cli eval run`; MLflow Compare dense/bm25/hybrid @5; PR [#47](https://github.com/DaniilJechev/obsidian-rag-lab/pull/47) merged (`6f82a00`), CI passed, Issue [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44) closed |
-| API-001 | P1 | idea | 8 | Создать FastAPI retriever service | `/health`, `/ingest`, `/search` имеют контракты и тесты |
+| API-001 | P1 | ready | 8 | FastAPI `/health`, `/search` и Docker-сервис `api` | Sprint 19: lifespan с тёплым e5, JSON-контракты, compose `api`; реализация только на `sprint/19-fastapi-retriever-service`; `docs/agile/sprint-19-fastapi-retriever-service.md`; GitHub [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49) |
+| API-002 | P1 | ready | 8 | HTTP `/ingest` и PostgreSQL `query_logs` | Sprint 20: фоновый ingest + статус, логи `/search`; зависит от merge Sprint 19; реализация только на `sprint/20-fastapi-ingest-query-logs`; `docs/agile/sprint-20-fastapi-ingest-query-logs.md`; GitHub [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) |
 | LLM-001 | P1 | idea | 9 | Подключить OpenRouter LLM | Ответы имеют structured output и citations |
 | GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
 | ML-001 | P2 | idea | 12 | Добавить reranker и сравнить retrieval | nDCG/MRR до и после reranking измерены |
@@ -103,13 +104,13 @@ Backlog не является жёстким расписанием. Приор�
 
 ## Текущий фокус
 
-Фазы 1–5 завершены на `main` (Qdrant dense + sparse BM25 + RRF). Phase 6
-(`PGV-001`, Sprint 16) закрыта как branch-only pgvector dense experiment:
-implementation на `sprint/16-pgvector-dense-experiment` (`bd39d20`), в `main`
-не влита, дальше с pgvector не работаем. Qdrant остаётся единственным
-retrieval default. Следующая работа на `main`: **Phase 7 Sprint 18** —
-live dense/bm25/hybrid nDCG/MRR в MLflow на frozen gold `phase7-note-level-v1`.
-FastAPI — Phase 8, не сейчас.
+Фазы 1–5 и 7 завершены на `main`. Phase 6 (`PGV-001`) закрыта как branch-only
+pgvector experiment (`bd39d20`), в `main` не влита. Qdrant — единственный
+retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-baseline.md`.
+
+Следующая работа: **Phase 8**. Planning на `main` (`API-001` Sprint 19,
+`API-002` Sprint 20). Реализация FastAPI **не** на `main` — только в
+`sprint/19-fastapi-retriever-service`, затем `sprint/20-fastapi-ingest-query-logs`.
 
 История завершённых спринтов:
 
@@ -168,6 +169,11 @@ FastAPI — Phase 8, не сейчас.
     merged (`6f82a00`), CI passed, Issue
     [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44) closed.
 
-Semantic evaluation и gold questions — Phase 7. RAGAS — живая Phase 10 после
-generate. OpenRouter generation — Phase 9. FastAPI — Phase 8, сознательно
-после eval. LangGraph — Phase 11. Sprint 16 не заменяет Qdrant.
+11. Sprint 19 (planned): FastAPI `/health` + `/search` + Docker `api`
+    (`API-001`; `docs/agile/sprint-19-fastapi-retriever-service.md`).
+12. Sprint 20 (planned): HTTP `/ingest` + `query_logs`
+    (`API-002`; `docs/agile/sprint-20-fastapi-ingest-query-logs.md`).
+
+Semantic evaluation и gold questions — Phase 7 (закрыта). RAGAS — живая
+Phase 10 после generate. OpenRouter generation — Phase 9. FastAPI — Phase 8.
+LangGraph — Phase 11. Sprint 16 не заменяет Qdrant.

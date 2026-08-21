@@ -245,7 +245,7 @@ Macro-average по 50 вопросам, cutoff **k=5**. Источник: MLflow
 - [x] Retrospective заполнена.
 - [x] Commit/PR/merge implementation выполнены; closeout PR следует.
 - [x] Backlog обновлён (`EVAL-002` → done).
-- [ ] Следующий sprint выбран или запланирован. *(Phase 8 FastAPI / API-001 — отдельный sprint-planning)*
+- [x] Следующий sprint выбран или запланирован. *(Phase 8: Sprint 19 `API-001`, Sprint 20 `API-002`; docs на `main`)*
 
 **Итоговый статус:** `completed`
 
