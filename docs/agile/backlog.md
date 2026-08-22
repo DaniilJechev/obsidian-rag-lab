@@ -76,8 +76,8 @@ Backlog не является жёстким расписанием. Приор�
 | PGV-001 | P2 | done | 6 | Учебный dense path на PostgreSQL + pgvector (без merge в `main`) | Sprint 16 completed on `sprint/16-pgvector-dense-experiment` (`bd39d20`); live top-k matched Qdrant dense; implementation not merged; Qdrant remains default |
 | EVAL-001 | P0 | done | 7 | Создать gold eval-набор | Sprint 17 completed: 50 note-level вопросов, owner review, `eval_items` loader; PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45) merged (`59188fb`); freeze `phase7_GT_note_level_v0` в Sprint 18 |
 | EVAL-002 | P0 | done | 7 | Реализовать nDCG@k и MRR@k | Sprint 18 completed: live `rag-cli eval run`; MLflow Compare dense/bm25/hybrid @5; PR [#47](https://github.com/DaniilJechev/obsidian-rag-lab/pull/47) merged (`6f82a00`), CI passed, Issue [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44) closed |
-| API-001 | P1 | ready | 8 | FastAPI `/health`, `/search` и Docker-сервис `api` | Sprint 19: lifespan с тёплым e5, JSON-контракты, compose `api`; реализация только на `sprint/19-fastapi-retriever-service`; `docs/agile/sprint-19-fastapi-retriever-service.md`; GitHub [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49) |
-| API-002 | P1 | ready | 8 | HTTP `/ingest` и PostgreSQL `query_logs` | Sprint 20: фоновый ingest + статус, логи `/search`; зависит от merge Sprint 19; реализация только на `sprint/20-fastapi-ingest-query-logs`; `docs/agile/sprint-20-fastapi-ingest-query-logs.md`; GitHub [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) |
+| API-001 | P1 | done | 8 | FastAPI `/health`, `/search` и Docker-сервис `api` | Sprint 19 completed: lifespan с тёплым e5, JSON-контракты, compose `api`; PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51) merged (`0ecbe77`), CI passed, Issue [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49) closed |
+| API-002 | P1 | ready | 8 | HTTP `/ingest` и PostgreSQL `query_logs` | Sprint 20: фоновый ingest + статус, логи `/search`; Sprint 19 влит в `main`; реализация только на `sprint/20-fastapi-ingest-query-logs`; `docs/agile/sprint-20-fastapi-ingest-query-logs.md`; GitHub [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) |
 | LLM-001 | P1 | idea | 9 | Подключить OpenRouter LLM | Ответы имеют structured output и citations |
 | GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
 | ML-001 | P2 | idea | 12 | Добавить reranker и сравнить retrieval | nDCG/MRR до и после reranking измерены |
@@ -99,8 +99,9 @@ Backlog не является жёстким расписанием. Приор�
 - Добавить Telegram integration через `asyncio`.
 - Проверить необходимость typed configuration loader.
 - Документировать ограничения custom Qdrant image с `wget`.
-- Держать embedding model в долгоживущем процессе: CLI `rag-cli search`
-  сейчас каждый раз заново загружает e5, и это доминирует над Qdrant latency.
+- Держать embedding model в долгоживущем процессе: частично закрыто Sprint 19
+  (FastAPI lifespan грузит e5 один раз). CLI `rag-cli search` с хоста по-прежнему
+  холодный (~9 s на live check).
 
 ## Текущий фокус
 
@@ -108,9 +109,11 @@ Backlog не является жёстким расписанием. Приор�
 pgvector experiment (`bd39d20`), в `main` не влита. Qdrant — единственный
 retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-baseline.md`.
 
-Следующая работа: **Phase 8**. Planning на `main` (`API-001` Sprint 19,
-`API-002` Sprint 20). Реализация FastAPI **не** на `main` — только в
-`sprint/19-fastapi-retriever-service`, затем `sprint/20-fastapi-ingest-query-logs`.
+Следующая работа: **Phase 8**. Sprint 19 (`API-001`) completed on `main`
+(PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51)).
+Следующая реализация — Sprint 20 / `API-002` только на
+`sprint/20-fastapi-ingest-query-logs`, не на `main`. Milestone 9 остаётся
+open, пока открыт Issue [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50).
 
 История завершённых спринтов:
 
@@ -169,8 +172,12 @@ retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-ba
     merged (`6f82a00`), CI passed, Issue
     [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44) closed.
 
-11. Sprint 19 (planned): FastAPI `/health` + `/search` + Docker `api`
-    (`API-001`; `docs/agile/sprint-19-fastapi-retriever-service.md`).
+11. Sprint 19: FastAPI `/health` + `/search` + Docker `api`
+    (`API-001`; `docs/agile/sprint-19-fastapi-retriever-service.md`;
+    GitHub [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49))
+    — completed; PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51)
+    merged (`0ecbe77`), CI passed, Issue
+    [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49) closed.
 12. Sprint 20 (planned): HTTP `/ingest` + `query_logs`
     (`API-002`; `docs/agile/sprint-20-fastapi-ingest-query-logs.md`).
 
