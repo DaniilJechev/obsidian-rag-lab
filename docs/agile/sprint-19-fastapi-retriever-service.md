@@ -1,6 +1,6 @@
 # Sprint 19 — FastAPI /health, /search, Docker
 
-> Статус: `in-progress`
+> Статус: `completed`
 >
 > Ветка: `sprint/19-fastapi-retriever-service`
 >
@@ -72,12 +72,12 @@ e5 — это главный operational-долг Sprint 15. Долгоживу�
 - [x] Acceptance Criteria проверены.
 - [x] Тесты добавлены или обновлены и проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит, если изменения отправлялись в remote.
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
 - [x] Документация и конфигурация обновлены, если это необходимо.
 - [x] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Пользователь подтвердил завершение спринта.
 
 ## Dependencies and risks
 
@@ -105,6 +105,7 @@ e5 — это главный operational-долг Sprint 15. Долгоживу�
 | 2026-08-22 | Implementation | FastAPI `/health`+`/search`, runtime с тёплым e5, TestClient, Dockerfile + compose `api` |
 | 2026-08-22 | CPU torch lock | `uv lock`: без CUDA/`nvidia-*`; `torch==2.13.0+cpu`. Dockerfile: `UV_HTTP_TIMEOUT=600`. |
 | 2026-08-22 | Live compose | `docker-api-1` healthy; e5 CPU once; `/health` 200; `/search` hybrid 5 hits (`chunk_id=2046`); empty query 422; host CLI 5 hits. |
+| 2026-08-22 | Merge PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51) | `0ecbe77` в `main`; Issue [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49) closed. Milestone 9 оставлен open (Sprint 20 / [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50)). |
 
 ## Validation Evidence
 
@@ -139,7 +140,7 @@ PowerShell `ConvertTo-Json` портит кириллицу в теле POST; л
 
 - Tests: `uv run pytest -q` — 147 passed, 1 skipped, 18 deselected, 1 Starlette/httpx deprecation warning. Первый прогон: 39 ERROR на setup из-за WinError 32 (lock `.pytest-tmp/.../mlflow.db`); повтор — exit 0.
 - Lint: `uv run ruff check .` — All checks passed
-- CI: ждать required checks на PR (ещё не создан на момент этой записи)
+- CI: PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51) `Lint and test` SUCCESS, run [32584972523](https://github.com/DaniilJechev/obsidian-rag-lab/actions/runs/32584972523)
 
 ### Metrics
 
@@ -159,7 +160,8 @@ PowerShell `ConvertTo-Json` портит кириллицу в теле POST; л
 
 ### Not Completed
 
-- PR review, CI на PR, merge в `main`, closeout Issue [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49).
+- Нет. Следующая работа Phase 8 — Sprint 20 / `API-002` (`POST /ingest`,
+  query logs); sprint не планировался в этом closeout.
 
 ### Changed Decisions
 
@@ -195,13 +197,13 @@ PowerShell `ConvertTo-Json` портит кириллицу в теле POST; л
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён (owner merge PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51), `0ecbe77`; GitHub review records на PR пустые).
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge implementation выполнены; closeout PR следует.
+- [x] Backlog обновлён (`API-001` → done).
+- [x] Следующий sprint выбран или запланирован. *(Phase 8: Sprint 20 `API-002`; docs на `main`)*
 
-**Итоговый статус:** `in-progress` (ожидает PR review / merge)
+**Итоговый статус:** `completed`
 
-**Дата завершения:** —
+**Дата завершения:** `2026-08-22`
