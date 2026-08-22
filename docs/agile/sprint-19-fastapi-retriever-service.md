@@ -1,9 +1,8 @@
 # Sprint 19 — FastAPI /health, /search, Docker
 
-> Статус: `planned`
+> Статус: `in-progress`
 >
-> Ветка: `sprint/19-fastapi-retriever-service` (создаётся только при старте
-> реализации, не в этом planning-commit)
+> Ветка: `sprint/19-fastapi-retriever-service`
 >
 > Связанная фаза roadmap: `Фаза 8`
 >
@@ -27,20 +26,20 @@ e5 — это главный operational-долг Sprint 15. Долгоживу�
 
 ## Scope
 
-- [ ] FastAPI-приложение и lifespan: загрузить `EmbeddingProvider` и Qdrant
+- [x] FastAPI-приложение и lifespan: загрузить `EmbeddingProvider` и Qdrant
       client на старте, закрыть на shutdown (паттерн
       `LiveRetrievalSession`, не копия CLI).
-- [ ] `GET /health` — процесс жив; отдельно: модель загружена, Qdrant reachable.
-- [ ] `POST /search` — JSON `query`, `method` (`dense` / `bm25` / `hybrid`,
+- [x] `GET /health` — процесс жив; отдельно: модель загружена, Qdrant reachable.
+- [x] `POST /search` — JSON `query`, `method` (`dense` / `bm25` / `hybrid`,
       default **hybrid**), `top_k`; ответ — ranked chunks без объектов Qdrant.
-- [ ] Timeouts и structured errors: `422` валидация, `503` если модель/Qdrant
+- [x] Timeouts и structured errors: `422` валидация, `503` если модель/Qdrant
       не готовы.
-- [ ] Тесты `TestClient` с моком retriever (без vault).
-- [ ] Dockerfile приложения и сервис `api` в `docker/compose.yml`:
+- [x] Тесты `TestClient` с моком retriever (без vault).
+- [x] Dockerfile приложения и сервис `api` в `docker/compose.yml`:
       `depends_on` healthy postgres/qdrant, порт 8000, volume для HF-кэша,
       env `postgres` / `qdrant` внутри сети (CLI на хосте с `localhost` не
       ломать).
-- [ ] Зависимости FastAPI / uvicorn / httpx добавляет владелец через `uv add`
+- [x] Зависимости FastAPI / uvicorn / httpx добавляет владелец через `uv add`
       (assistant эту команду не запускает).
 
 ## Out of Scope
@@ -101,20 +100,27 @@ e5 — это главный operational-долг Sprint 15. Долгоживу�
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-21 | Planning на `main` | Документ создан; реализация не начата |
+| 2026-08-22 | Implementation | FastAPI `/health`+`/search`, runtime с тёплым e5, TestClient, Dockerfile + compose `api` |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-(не заполнять до реализации)
+uv run ruff check .
+uv run pytest -q
+uv run pytest tests/api -q
 ```
+
+Live `docker compose ... up` / build образа `api` в этой сессии не запускались
+(тяжёлый torch-слой; mutate Docker не входил в command policy). Файлы
+Dockerfile и compose готовы к ручному `up` владельцем.
 
 ### Test and Lint Results
 
-- Tests: не запускались (planning only)
-- Lint: не запускался (planning only)
-- CI: не относится
+- Tests: `uv run pytest -q` — 147 passed, 1 skipped, 18 deselected, 1 Starlette/httpx deprecation warning
+- Lint: `uv run ruff check .` — All checks passed
+- CI: не запускался (нет push этой реализации)
 
 ### Metrics
 
