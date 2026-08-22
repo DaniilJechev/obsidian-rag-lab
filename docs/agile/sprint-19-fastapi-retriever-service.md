@@ -103,8 +103,8 @@ e5 — это главный operational-долг Sprint 15. Долгоживу�
 |---|---|---|
 | 2026-08-21 | Planning на `main` | Документ создан; реализация не начата |
 | 2026-08-22 | Implementation | FastAPI `/health`+`/search`, runtime с тёплым e5, TestClient, Dockerfile + compose `api` |
-| 2026-08-22 | CPU torch lock | `uv lock`: убраны CUDA/`nvidia-*`; `torch==2.13.0+cpu`. Dockerfile: `UV_HTTP_TIMEOUT=600`. |
-| 2026-08-22 | Live compose | `docker-api-1` healthy; e5 CPU once at startup; `GET /health` 200; `POST /search` hybrid top_k=5 → chunk 2046 RoPE; empty query 422; host `rag-cli search hybrid` 5 hits. |
+| 2026-08-22 | CPU torch lock | `uv lock`: без CUDA/`nvidia-*`; `torch==2.13.0+cpu`. Dockerfile: `UV_HTTP_TIMEOUT=600`. |
+| 2026-08-22 | Live compose | `docker-api-1` healthy; e5 CPU once; `/health` 200; `/search` hybrid 5 hits (`chunk_id=2046`); empty query 422; host CLI 5 hits. |
 
 ## Validation Evidence
 
@@ -137,7 +137,7 @@ PowerShell `ConvertTo-Json` портит кириллицу в теле POST; л
 
 ### Test and Lint Results
 
-- Tests: `uv run pytest -q` — 147 passed, 1 skipped, 18 deselected, 1 Starlette/httpx deprecation warning (exit 0)
+- Tests: `uv run pytest -q` — 147 passed, 1 skipped, 18 deselected, 1 Starlette/httpx deprecation warning. Первый прогон: 39 ERROR на setup из-за WinError 32 (lock `.pytest-tmp/.../mlflow.db`); повтор — exit 0.
 - Lint: `uv run ruff check .` — All checks passed
 - CI: ждать required checks на PR (ещё не создан на момент этой записи)
 
@@ -202,6 +202,6 @@ PowerShell `ConvertTo-Json` портит кириллицу в теле POST; л
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `in-progress` (ожидает PR review / merge)
 
 **Дата завершения:** —
