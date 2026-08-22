@@ -33,6 +33,16 @@ embedding-smoke = "rag_based_on_obsidian.embeddings.smoke:main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# Default torch from PyPI on Linux pulls CUDA + nvidia-* (2GB+). This project
+# embeds on CPU only; pin the CPU wheel index so Docker/Linux match Windows.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
