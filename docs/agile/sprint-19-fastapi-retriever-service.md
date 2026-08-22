@@ -60,23 +60,23 @@ e5 — это главный operational-долг Sprint 15. Долгоживу�
 
 ## Acceptance Criteria
 
-- [ ] Повторный `POST /search` не перезагружает embedding-модель.
-- [ ] CLI `rag-cli search` с хоста не сломан.
-- [ ] Compose-сервис `api` отвечает на `GET /health` с хоста `:8000`.
-- [ ] Клиент получает JSON и HTTP-коды, не типы Qdrant/SQL.
-- [ ] Тесты и Ruff зелёные; vault не изменён.
+- [x] Повторный `POST /search` не перезагружает embedding-модель.
+- [x] CLI `rag-cli search` с хоста не сломан.
+- [x] Compose-сервис `api` отвечает на `GET /health` с хоста `:8000`.
+- [x] Клиент получает JSON и HTTP-коды, не типы Qdrant/SQL.
+- [x] Тесты и Ruff зелёные; vault не изменён.
 
 ## Definition of Done
 
-- [ ] Все задачи из Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
+- [x] Все задачи из Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
 - [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Документация и конфигурация обновлены, если это необходимо.
-- [ ] Результаты и ограничения записаны в этот sprint-документ.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Документация и конфигурация обновлены, если это необходимо.
+- [x] Результаты и ограничения записаны в этот sprint-документ.
 - [ ] Пользователь подтвердил завершение спринта.
 
 ## Dependencies and risks
@@ -85,6 +85,8 @@ e5 — это главный operational-долг Sprint 15. Долгоживу�
   через PR. Planning-файлы живут на `main`.
 - Внутри контейнера `localhost` — сам `api`; Postgres/Qdrant — имена сервисов.
 - Образ с torch/transformers тяжёлый; без volume HF-кэша каждый `up` качает e5.
+- Linux-wheel `torch` с PyPI тянет CUDA/`nvidia-*` (~2 GB). Проект CPU-only:
+  lock использует индекс `pytorch-cpu` (`torch==2.13.0+cpu`).
 - `uv add` — ручная команда владельца.
 
 ## Estimate
@@ -101,6 +103,8 @@ e5 — это главный operational-долг Sprint 15. Долгоживу�
 |---|---|---|
 | 2026-08-21 | Planning на `main` | Документ создан; реализация не начата |
 | 2026-08-22 | Implementation | FastAPI `/health`+`/search`, runtime с тёплым e5, TestClient, Dockerfile + compose `api` |
+| 2026-08-22 | CPU torch lock | `uv lock`: убраны CUDA/`nvidia-*`; `torch==2.13.0+cpu`. Dockerfile: `UV_HTTP_TIMEOUT=600`. |
+| 2026-08-22 | Live compose | `docker-api-1` healthy; e5 CPU once at startup; `GET /health` 200; `POST /search` hybrid top_k=5 → chunk 2046 RoPE; empty query 422; host `rag-cli search hybrid` 5 hits. |
 
 ## Validation Evidence
 
@@ -112,53 +116,76 @@ uv run pytest -q
 uv run pytest tests/api -q
 ```
 
-Live `docker compose ... up` / build образа `api` в этой сессии не запускались
-(тяжёлый torch-слой; mutate Docker не входил в command policy). Файлы
-Dockerfile и compose готовы к ручному `up` владельцем.
+Live (владелец, 2026-08-22):
+
+```text
+docker compose --env-file .env -f docker/compose.yml up -d --build api
+docker compose --env-file .env -f docker/compose.yml ps
+Invoke-RestMethod http://127.0.0.1:8000/health
+POST http://127.0.0.1:8000/search  {"query":"…","method":"hybrid","top_k":5}
+uv run rag-cli search hybrid --query "что такое RoPE"
+```
+
+`ps`: `api`, `postgres`, `qdrant` — `healthy`; порт `8000`. Логи: e5
+`intfloat/multilingual-e5-small` device=cpu один раз, затем только
+`GET /health` 200 от Docker healthcheck. HTTP search вернул 5 hits
+(`chunk_id=2046`, RoPE). Пустой query → 422. Host CLI: 5 hits, Qdrant
+`localhost:6333`; CLI заново грузил e5 (~9 s), контейнер — нет.
+
+PowerShell `ConvertTo-Json` портит кириллицу в теле POST; латиница `RoPE`
+в query достаточна для hit. Это клиент, не баг API.
 
 ### Test and Lint Results
 
-- Tests: `uv run pytest -q` — 147 passed, 1 skipped, 18 deselected, 1 Starlette/httpx deprecation warning
+- Tests: `uv run pytest -q` — 147 passed, 1 skipped, 18 deselected, 1 Starlette/httpx deprecation warning (exit 0)
 - Lint: `uv run ruff check .` — All checks passed
-- CI: не запускался (нет push этой реализации)
+- CI: ждать required checks на PR (ещё не создан на момент этой записи)
 
 ### Metrics
 
 | Metric | Value | Context |
 |---|---:|---|
-| — | — | Нет live-прогонов в planning |
+| HTTP `/search` hits | 5 | hybrid, top_k=5, host `:8000` |
+| Host CLI hits | 5 | `rag-cli search hybrid`, same RoPE note |
 
 ## Review
 
 ### Completed
 
 - Планирование Sprint 19.
+- FastAPI `/health` + `/search`, TestClient, compose `api`.
+- CPU-torch lock так, чтобы Linux-образ не тянул CUDA.
+- Live compose: health 200, search 5 hits, CLI с хоста жив.
 
 ### Not Completed
 
-- Реализация FastAPI, Docker `api`, тесты.
+- PR review, CI на PR, merge в `main`, closeout Issue [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49).
 
 ### Changed Decisions
 
 - API в Docker compose в этом спринте (не только host uvicorn).
+- `torch` для Linux/Docker — CPU index, не default PyPI CUDA wheel.
 
 ### Technical Debt
 
-- —
+- Образ API всё ещё ставит mlflow/matplotlib/seaborn (весь `pyproject`), не extra `api`.
+- Docker Hub/PyPI с узкого канала: первый `--build` долгий даже с CPU-torch.
+- HF Hub unauthenticated warning в логах контейнера.
 
 ## Retrospective
 
 ### What Went Well
 
-- —
+- Контракт HTTP на FakeRuntime позволил закрыть тесты без Docker.
+- Live hit `/search` совпал с CLI (тот же `chunk_id` RoPE).
 
 ### What Was Difficult
 
-- —
+- Первый `FROM python` и CUDA-torch с PyPI на ~0.1 MB/s; сборка упала по `UV_HTTP_TIMEOUT`.
 
 ### What We Will Change
 
-- —
+- Для Linux-образов сразу pin CPU-torch, не ждать OOM/timeout на `nvidia-*`.
 
 ### Backlog Updates
 
