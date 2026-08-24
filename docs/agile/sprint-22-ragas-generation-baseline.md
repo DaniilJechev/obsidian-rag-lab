@@ -1,6 +1,6 @@
 # Sprint 22 — RAGAS harness and gpt-4o-mini baseline
 
-> Статус: `in-progress`
+> Статус: `completed`
 >
 > Ветка: `sprint/22-ragas-generation-baseline`
 >
@@ -86,21 +86,21 @@ Gold остаётся `evals/gold/phase7_GT_note_level_v0.yaml`.
 - [x] MLflow-run с версиями index/LLM/prompt/gold и тегами фазы/спринта.
 - [x] Human-шаблон в репозитории (`sprint22_sample.yaml`, 10 id, `null`).
       Scores владельца — carry-over Sprint 23, не фиктивные баллы.
-- [ ] CI зелёный без `OPENROUTER_API_KEY` (после PR).
+- [x] CI зелёный без `OPENROUTER_API_KEY`.
 - [x] Vault не изменён; секреты не в git.
 
 ## Definition of Done
 
-- [ ] Все задачи из Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Документация и конфигурация обновлены, если это необходимо.
-- [ ] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Все задачи из Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
+- [x] CI проходит, если изменения отправлялись в remote.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Документация и конфигурация обновлены, если это необходимо.
+- [x] Результаты и ограничения записаны в этот sprint-документ.
+- [x] Пользователь подтвердил завершение спринта.
 
 ## Dependencies and risks
 
@@ -133,6 +133,7 @@ Gold остаётся `evals/gold/phase7_GT_note_level_v0.yaml`.
 | 2026-08-24 | Implementation | Harness: `rag-cli ragas run` → `POST /generate` (concurrency 5, subset 15); note-level Context P/R; OpenRouter JSON judge; MLflow experiment `phase-10-ragas-generation`; human template. Live subset ещё не гоняли. `import ragas` в текущем venv падает. |
 | 2026-08-24 | Live baseline | VPN + `concurrency: 2`: 15/15 scored, skip 0. MLflow `4663f6d7fc804f2eb128cfd5db412300`. Human sample ещё не размечен. |
 | 2026-08-24 | Scope change | Владелец закрывает Sprint 22 без разметки: human scores 0–5 → Sprint 23. Шаблон и review-pack остаются. |
+| 2026-08-24 | Merge PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60) | `25f924e` в `main`. Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58) closed. Milestone 10 открыт (#59). |
 
 ## Validation Evidence
 
@@ -150,9 +151,13 @@ Failed earlier (not baseline): skip-all 503 key/403; then 4/15
 
 ### Test and Lint Results
 
-- Tests: eval harness с моками проходили в ходе реализации.
-- Live: не pytest.
-- CI: ещё не на этом live-commit.
+- Tests: `uv run pytest -q` — **205 passed**, 1 skipped, 18 deselected
+  (`not manual`), 1 Starlette/httpx warning, 34.59s, 2026-08-24.
+- Lint: `uv run ruff check .` — All checks passed, 2026-08-24.
+- CI: PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60)
+  `Lint and test` SUCCESS, run
+  [32777037749](https://github.com/DaniilJechev/obsidian-rag-lab/actions/runs/32777037749).
+- Live: не pytest; канон MLflow `4663f6d7fc804f2eb128cfd5db412300`.
 
 ### Metrics
 
@@ -183,11 +188,14 @@ Context P/R ~0.45: packed notes часто не совпадают с gold `rele
 
 - Harness + live subset 15/15 на concurrency 2.
 - MLflow `4663f6d7fc804f2eb128cfd5db412300`.
+- Human-шаблон 10 вопросов; scores `null`.
+- Implementation merged PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60) (`25f924e`).
+- Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58) closed.
 
 ### Not Completed
 
-- PR/CI (implementation commit `72edcfe` на remote; PR ещё не открыт).
-- Human scores 0–5 — **перенесены в Sprint 23**, не этот спринт.
+- Human scores 0–5 — **перенесены в Sprint 23** / [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59).
+- Runtime пакета `ragas` и bake-off — Sprint 23, не этот closeout.
 
 ### Changed Decisions
 
@@ -204,17 +212,39 @@ Context P/R ~0.45: packed notes часто не совпадают с gold `rele
 
 ## Retrospective
 
-Заполняется при closeout.
+### What Went Well
+
+- Live eval бьёт тот же `POST /generate`, что и продукт; второго in-process generate нет.
+- Моки HTTP/судьи дали зелёный CI без `OPENROUTER_API_KEY`.
+- Канон 15/15 на concurrency 2 после того, как 5 параллельных вызовов через VPN сыпали skip.
+
+### What Was Difficult
+
+- OpenRouter 403 без VPN неотличим от «отклонён ключ»; skip-all прогон нельзя считать baseline.
+- JSON-судья = та же mini, что generate: средние 4.6 / 4.67 при context P/R ~0.45.
+- Human-разметка 10 вопросов не влезла в вечер closeout — сознательный carry-over, не фиктивные баллы.
+
+### What We Will Change
+
+- Sprint 23 начинается с human 0–5 по `sprint22_review.yaml`, не с bake-off.
+- `import ragas` чинить до сравнения моделей; JSON 0–5 и ragas 0–1 не класть в одну таблицу.
+- Для live OpenRouter держать VPN и concurrency ≤2, пока skip не исчезнет.
+
+### Backlog Updates
+
+- Добавить: нет.
+- Перенести: заполненные human scores 0–5 → `MLOPS-002` / Sprint 23.
+- Изменить приоритет: нет.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён (owner merge PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60), `25f924e`; GitHub review records на PR пустые — self-approval запрещён).
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge implementation выполнены; этот closeout — отдельный PR.
+- [x] Backlog обновлён (`MLOPS-001` → done; human scores → `MLOPS-002`).
+- [x] Следующий sprint выбран или запланирован. Sprint 23 / `MLOPS-002` уже в backlog; код после этого closeout.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** —
+**Дата завершения:** `2026-08-24`
