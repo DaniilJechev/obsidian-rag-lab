@@ -22,6 +22,7 @@ DEFAULT_QDRANT_CONFIG_PATH = (
 DEFAULT_RETRIEVAL_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "retrieval" / "retrieval.yaml"
 )
+DEFAULT_LLM_CONFIG_PATH = PROJECT_ROOT / "configs" / "llm" / "openrouter.yaml"
 DEFAULT_MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
 DEFAULT_MLFLOW_BACKEND_STORE_URI = "sqlite:///mlflow.db"
 DEFAULT_MLFLOW_ARTIFACT_ROOT = Path("artifacts") / "mlflow"

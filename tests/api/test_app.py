@@ -8,6 +8,7 @@ from rag_based_on_obsidian.api.app import create_app
 from rag_based_on_obsidian.api.ingest import IngestBusyError, IngestUnavailableError
 from rag_based_on_obsidian.api.runtime import RetrieverUnavailableError
 from rag_based_on_obsidian.api.schemas import IngestAccepted, IngestStatus
+from rag_based_on_obsidian.llm.contracts import LLMUnavailableError
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod, RetrievedChunk
 
 
@@ -26,6 +27,9 @@ class FakeRuntime:
     next_run_id: int = 1
     ingest_runs: dict[int, IngestStatus] = field(default_factory=dict)
     query_logs: list[dict[str, object]] = field(default_factory=list)
+    empty_hits: bool = False
+    fail_llm: bool = False
+    missing_llm_key: bool = False
 
     def ping_qdrant(self) -> bool:
         return self.qdrant_ok
@@ -40,18 +44,60 @@ class FakeRuntime:
         self.search_calls += 1
         if self.fail_search:
             raise RetrieverUnavailableError("retrieval backend failed")
+        if self.empty_hits:
+            return []
         return [
             RetrievedChunk(
                 chunk_id=1,
                 text=f"hit for {query}",
                 score=0.9,
                 retrieval_method=method,
-                metadata={"note_id": 42},
+                metadata={"note_id": 42, "source_path": "DLS2/RoPE.md"},
                 chunking_version="sprint9-policy-512-v2",
                 rank=1,
                 point_key="1:sprint9-policy-512-v2",
             )
         ][:top_k]
+
+    async def generate(
+        self,
+        query: str,
+        *,
+        method: RetrievalMethod,
+        top_k: int,
+    ) -> dict[str, object]:
+        if self.missing_llm_key:
+            raise LLMUnavailableError("OPENROUTER_API_KEY is not configured")
+        if self.fail_llm:
+            raise LLMUnavailableError("openrouter is unreachable")
+        chunks = await self.search(query, method=method, top_k=top_k)
+        if not chunks:
+            return {
+                "query": query,
+                "method": method,
+                "top_k": top_k,
+                "answer": None,
+                "citations": [],
+                "confidence": 0.0,
+                "refused": True,
+                "refusal_reason": "no retrieved context",
+                "model": None,
+                "latency_ms": None,
+                "usage": None,
+            }
+        return {
+            "query": query,
+            "method": method,
+            "top_k": top_k,
+            "answer": f"answer for {query}",
+            "citations": [{"chunk_id": 1, "note_path": "DLS2/RoPE.md"}],
+            "confidence": 0.8,
+            "refused": False,
+            "refusal_reason": None,
+            "model": "openai/gpt-4o-mini",
+            "latency_ms": 12,
+            "usage": {"prompt_tokens": 10, "generated_tokens": 4},
+        }
 
     def start_ingest(self) -> IngestAccepted:
         if self.fail_ingest:
@@ -253,3 +299,62 @@ def test_ingest_unavailable_returns_503() -> None:
         response = client.post("/ingest")
     assert response.status_code == 503
     assert "vault" in response.json()["detail"]
+
+
+def test_generate_returns_structured_answer() -> None:
+    runtime = FakeRuntime()
+    with _client(runtime) as client:
+        response = client.post("/generate", json={"query": "What is RoPE?"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["refused"] is False
+    assert body["answer"] == "answer for What is RoPE?"
+    assert body["citations"][0]["chunk_id"] == 1
+    assert body["citations"][0]["note_path"] == "DLS2/RoPE.md"
+    assert body["method"] == "hybrid"
+    assert runtime.search_calls == 1
+    assert runtime.query_logs == []
+
+
+def test_generate_empty_query_returns_422() -> None:
+    runtime = FakeRuntime()
+    with _client(runtime) as client:
+        response = client.post("/generate", json={"query": "  "})
+    assert response.status_code == 422
+    assert runtime.search_calls == 0
+
+
+def test_generate_refuses_without_context() -> None:
+    runtime = FakeRuntime(empty_hits=True)
+    with _client(runtime) as client:
+        response = client.post("/generate", json={"query": "unknown topic"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["refused"] is True
+    assert body["answer"] is None
+    assert body["refusal_reason"] == "no retrieved context"
+
+
+def test_generate_503_when_key_missing() -> None:
+    runtime = FakeRuntime(missing_llm_key=True)
+    with _client(runtime) as client:
+        response = client.post("/generate", json={"query": "attention"})
+    assert response.status_code == 503
+    assert "OPENROUTER_API_KEY" in response.json()["detail"]
+
+
+def test_generate_503_when_openrouter_down() -> None:
+    runtime = FakeRuntime(fail_llm=True)
+    with _client(runtime) as client:
+        response = client.post("/generate", json={"query": "attention"})
+    assert response.status_code == 503
+    assert "openrouter" in response.json()["detail"]
+
+
+def test_generate_503_when_qdrant_down() -> None:
+    runtime = FakeRuntime(qdrant_ok=False)
+    with _client(runtime) as client:
+        response = client.post("/generate", json={"query": "attention"})
+    assert response.status_code == 503
+    assert response.json()["detail"] == "qdrant is unreachable"
+    assert runtime.search_calls == 0

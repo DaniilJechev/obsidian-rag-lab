@@ -78,10 +78,10 @@ Backlog не является жёстким расписанием. Приор�
 | EVAL-002 | P0 | done | 7 | Реализовать nDCG@k и MRR@k | Sprint 18 completed: live `rag-cli eval run`; MLflow Compare dense/bm25/hybrid @5; PR [#47](https://github.com/DaniilJechev/obsidian-rag-lab/pull/47) merged (`6f82a00`), CI passed, Issue [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44) closed |
 | API-001 | P1 | done | 8 | FastAPI `/health`, `/search` и Docker-сервис `api` | Sprint 19 completed: lifespan с тёплым e5, JSON-контракты, compose `api`; PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51) merged (`0ecbe77`), CI passed, Issue [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49) closed |
 | API-002 | P1 | done | 8 | HTTP `/ingest` и PostgreSQL `query_logs` | Sprint 20 completed: `POST /ingest` 202/409, `GET /ingest/{run_id}`, `GET /ingest/current`, `query_logs`; live ingest 205 230/230; PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54) merged (`c664243`), CI passed, Issue [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) closed |
-| LLM-001 | P1 | idea | 9 | Подключить OpenRouter LLM | Ответы имеют structured output и citations |
+| LLM-001 | P1 | in-progress | 9 | Подключить OpenRouter LLM | Sprint 21 implementation on `sprint/21-openrouter-rag-generate`: `POST /generate`, `LLMProvider` + OpenRouter, structured JSON + citations + refuse; pin `openai/gpt-4o-mini`; bake-off — Phase 10; `docs/agile/sprint-21-openrouter-rag-generate.md` |
 | GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
 | ML-001 | P2 | idea | 12 | Добавить reranker и сравнить retrieval | nDCG/MRR до и после reranking измерены |
-| MLOPS-001 | P2 | idea | 10 | Добавить RAGAS и MLflow tracking | Generation metrics и experiment artifacts сохраняются |
+| MLOPS-001 | P2 | idea | 10 | Добавить RAGAS и MLflow tracking | Generation metrics и experiment artifacts сохраняются. Сюда же уходит бывший roadmap 9.5: сравнение моделей OpenRouter по RAGAS + tokens/latency/cost, не «на глаз» в Phase 9 |
 | CLOUD-001 | P2 | idea | 13 | Сравнить local и cloud storage | Latency, cost, reliability и operational effort измерены |
 | SERVE-001 | P3 | idea | 16 | Запустить локальную LLM через vLLM | API и vLLM сравнены на одном eval-наборе |
 | DEPLOY-001 | P3 | idea | 17 | Подготовить Kubernetes proof of concept | API/Qdrant/worker manifests и health probes описаны |
@@ -111,11 +111,12 @@ Backlog не является жёстким расписанием. Приор�
 pgvector experiment (`bd39d20`), в `main` не влита. Qdrant — единственный
 retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-baseline.md`.
 
-Следующая работа: **Phase 9** (`LLM-001` / OpenRouter). Sprint 20 не
-планирует следующий спринт в этом closeout. Фаза 8 (`API-001`, `API-002`)
-завершена на `main`: Sprint 19 PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51),
+Следующая работа: **Phase 9** / Sprint 21 (`LLM-001`, `in-progress` на
+`sprint/21-openrouter-rag-generate`;
+`docs/agile/sprint-21-openrouter-rag-generate.md`). GitHub Milestone/Issue
+ещё не созданы. Фаза 8 на `main` закрыта: Sprint 19 PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51),
 Sprint 20 PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54)
-(`c664243`). Milestone 9 закрывается в closeout (`open_issues=0`).
+(`c664243`); Milestone 9 closed.
 
 История завершённых спринтов:
 
