@@ -14,10 +14,12 @@
 
 ## Sprint Goal
 
-Сначала починить runtime пакета `ragas` и считать Faithfulness / Answer
-Relevancy **протоколом фреймворка**, не нашим JSON-судьёй. Затем на том
-же gold subset, том же k и **замороженном ragas-judge** сравнить 2–3
-generate-модели по RAGAS + tokens/latency/cost. Не «на глаз».
+Сначала владелец проставляет целые 0–5 в `evals/human/sprint22_sample.yaml`
+по pack `sprint22_review.yaml` (carry-over из Sprint 22). Затем починить
+runtime пакета `ragas` и считать Faithfulness / Answer Relevancy **протоколом
+фреймворка**, не нашим JSON-судьёй. Затем на том же gold subset, том же k
+и **замороженном ragas-judge** сравнить 2–3 generate-модели по RAGAS +
+tokens/latency/cost. Не «на глаз».
 
 ## Why
 
@@ -38,8 +40,16 @@ Milestone 10 закрыты).
 
 ## Scope
 
-Порядок обязательный: **сначала ragas runtime, потом bake-off**. Иначе
-таблица смешает два судьи.
+Порядок обязательный: **human scores → ragas runtime → bake-off**.
+Шкала human остаётся 0–5; ragas native 0–1 — не смешивать в одной таблице.
+
+### 0 — human sample (carry-over Sprint 22)
+
+- [ ] Владелец заполняет `evals/human/sprint22_sample.yaml` целыми 0–5
+      (`faithfulness`, `answer_relevancy`, `overall`) по
+      `evals/human/sprint22_review.yaml`. Не копировать пятёрки JSON-судьи.
+- [ ] Расхождение human vs judge зафиксировать в этом sprint-доке
+      (калибровка bias mini-as-judge). Фиктивные баллы не ставить.
 
 ### A — внедрение ragas framework
 
@@ -78,9 +88,8 @@ Milestone 10 закрыты).
       версию ragas, ни embedder).
 - [ ] Одна таблица в этом sprint-доке и MLflow Compare (несколько runs,
       теги `sprint=23`, `task=MLOPS-002`).
-- [ ] Повтор human не обязателен; если Sprint 22 не добил sample —
-      добить здесь. Human остаётся 0–5; ragas-числа 0–1 — в notes явно
-      написать, что шкалы разные.
+- [ ] Human 0–5 vs ragas 0–1 не класть в одну таблицу bake-off; калибровку
+      human vs JSON-судья Sprint 22 писать отдельно (раздел 0).
 - [ ] Регрессия harness только если сломается на второй модели
       (timeout, JSON parse) — точечный фикс, не третий eval-стек.
 
@@ -98,6 +107,7 @@ Milestone 10 закрыты).
 ## Expected Artifacts
 
 - `docs/agile/sprint-23-openrouter-model-bakeoff.md` — этот документ.
+- Заполненный `evals/human/sprint22_sample.yaml` (carry-over Sprint 22).
 - Рабочий `import ragas` + `GenerationJudge` на метриках пакета.
 - Правки YAML/матрицы моделей.
 - Таблица RAGAS + usage в Validation Evidence после live.
@@ -112,6 +122,7 @@ Milestone 10 закрыты).
 - [ ] Таблица RAGAS + tokens/latency/cost; числа только из реальных runs.
 - [ ] Контроль mini — ragas-прогон Sprint 23, не JSON-цифры Sprint 22.
 - [ ] CI по-прежнему без live ключа.
+- [ ] Human sample Sprint 22 заполнен целыми 0–5; фиктивных баллов нет.
 - [ ] Vault не изменён; секреты не в git.
 
 ## Definition of Done
@@ -156,6 +167,7 @@ Milestone 10 закрыты).
 |---|---|---|
 | 2026-08-24 | Planning | Документ создан вместе со Sprint 22; GitHub Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59); код не начат |
 | 2026-08-24 | Scope change | В Sprint 23 добавлен runtime ragas (Faithfulness / Answer Relevancy пакетом) **перед** bake-off. JSON-судья Sprint 22 остаётся v1 baseline, в одну таблицу с 23 не смешивать. |
+| 2026-08-24 | Carry-over | Human scores 0–5 из Sprint 22 перенесены сюда: сначала разметка `sprint22_sample.yaml`, потом ragas runtime, потом bake-off. |
 
 ## Validation Evidence
 
@@ -183,6 +195,7 @@ Bake-off таблица — только после реальных runs.
 
 ### Not Completed
 
+- Заполнить human scores 0–5 в `evals/human/sprint22_sample.yaml` (carry-over Sprint 22).
 - Починить `import ragas`; wiring Faithfulness / Answer Relevancy.
 - Выбор 1–2 моделей кроме mini; live bake-off на ragas-judge.
 
@@ -191,6 +204,7 @@ Bake-off таблица — только после реальных runs.
 - Bake-off вынесен из Sprint 22 в отдельный Sprint 23 / `MLOPS-002`.
 - Sprint 23 больше не «тот же JSON-judge, что 22»: сначала пакет ragas,
   контроль mini переснимается. Шкала ragas native 0–1, не целые 0–5 Sprint 22.
+- Human scores 0–5 — обязательный carry-over из Sprint 22, не optional.
 
 ### Technical Debt
 

@@ -14,8 +14,10 @@
 ## Sprint Goal
 
 На фиксированных gold-вопросах generate считает четыре RAGAS-метрики,
-пишет MLflow-run с версиями index/LLM/prompt/gold, и владелец размечает
-малый human sample целыми 0–5 (та же шкала, что JSON-судья). Модель generate: `openai/gpt-4o-mini`.
+пишет MLflow-run с версиями index/LLM/prompt/gold, и в репозитории лежит
+human-шаблон на 10 вопросов (шкала целые 0–5, как у JSON-судьи). Заполненные
+баллы владельца — carry-over в Sprint 23, не блокер merge. Модель generate:
+`openai/gpt-4o-mini`.
 
 ## Why
 
@@ -47,13 +49,16 @@ Phase 10 закрывается только после merge **обоих** с�
 - [x] MLflow: эксперимент `phase-10-ragas-generation`, теги `phase=10`,
       `sprint=22`, `task=MLOPS-001`.
 - [x] Human-шаблон `evals/human/sprint22_sample.yaml` на 10 вопросов, шкала
-      целые 0–5; баллы только после разметки владельца (не выдумывать).
+      целые 0–5. Заполненные баллы владельца перенесены в Sprint 23
+      (не выдумывать; pack `sprint22_review.yaml` в gitignore).
 - [x] Тесты с моками HTTP/судьи; CI без `OPENROUTER_API_KEY`.
 - [x] Live subset владельцем (VPN): RAGAS + tokens/latency записаны
       числами из реального прогона.
 
 ## Out of Scope
 
+- Заполненные human scores 0–5 в `sprint22_sample.yaml` (carry-over
+  Sprint 23 / `MLOPS-002`; шаблон остаётся артефактом этого спринта).
 - Bake-off 2–3 моделей и runtime пакета `ragas` (Sprint 23 / `MLOPS-002`).
 - LangGraph, rerank, cache, Telegram, vLLM.
 - Таблица `generation_logs`.
@@ -79,10 +84,10 @@ Gold остаётся `evals/gold/phase7_GT_note_level_v0.yaml`.
 - [x] Live subset записан (RAGAS + tokens/latency) числами из реального
       прогона; метрики не выдуманы. Канон: MLflow `4663f6d7fc804f2eb128cfd5db412300`.
 - [x] MLflow-run с версиями index/LLM/prompt/gold и тегами фазы/спринта.
-- [ ] Human-шаблон в репозитории; scores — если владелец успеет
-      разметить, иначе carry-over в Sprint 23, не фиктивные баллы.
-- [ ] CI зелёный без `OPENROUTER_API_KEY`.
-- [ ] Vault не изменён; секреты не в git.
+- [x] Human-шаблон в репозитории (`sprint22_sample.yaml`, 10 id, `null`).
+      Scores владельца — carry-over Sprint 23, не фиктивные баллы.
+- [ ] CI зелёный без `OPENROUTER_API_KEY` (после PR).
+- [x] Vault не изменён; секреты не в git.
 
 ## Definition of Done
 
@@ -127,6 +132,7 @@ Gold остаётся `evals/gold/phase7_GT_note_level_v0.yaml`.
 | 2026-08-24 | Planning | Документ создан на `sprint/22-ragas-generation-baseline`; GitHub Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58); реализация не начата |
 | 2026-08-24 | Implementation | Harness: `rag-cli ragas run` → `POST /generate` (concurrency 5, subset 15); note-level Context P/R; OpenRouter JSON judge; MLflow experiment `phase-10-ragas-generation`; human template. Live subset ещё не гоняли. `import ragas` в текущем venv падает. |
 | 2026-08-24 | Live baseline | VPN + `concurrency: 2`: 15/15 scored, skip 0. MLflow `4663f6d7fc804f2eb128cfd5db412300`. Human sample ещё не размечен. |
+| 2026-08-24 | Scope change | Владелец закрывает Sprint 22 без разметки: human scores 0–5 → Sprint 23. Шаблон и review-pack остаются. |
 
 ## Validation Evidence
 
@@ -180,9 +186,8 @@ Context P/R ~0.45: packed notes часто не совпадают с gold `rele
 
 ### Not Completed
 
-- Human scores 0–5 в `sprint22_sample.yaml` (владелец отложил разметку;
-  в репозитории шаблон с `null`, pack `sprint22_review.yaml` в gitignore).
-- PR/CI.
+- PR/CI (implementation commit `72edcfe` на remote; PR ещё не открыт).
+- Human scores 0–5 — **перенесены в Sprint 23**, не этот спринт.
 
 ### Changed Decisions
 
@@ -190,6 +195,7 @@ Context P/R ~0.45: packed notes часто не совпадают с gold `rele
 - JSON-судья и human: целые 0–5, не RAGAS-доля 0–1. Context P/R остаются [0, 1].
 - Live concurrency 2 вместо plan 5: через VPN пять параллельных `/generate`
   давали `openrouter is unreachable`.
+- Human scores 0–5 не блокер merge Sprint 22: шаблон в репо, разметка — Sprint 23.
 
 ### Technical Debt
 
