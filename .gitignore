@@ -9,6 +9,7 @@ mlruns/
 mlflow.db
 mlflow.db-*
 .cursor/
+generate-smoke.json
 
 # Keep intentional directory placeholders tracked.
 !.gitkeep
