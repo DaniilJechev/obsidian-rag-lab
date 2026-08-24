@@ -13,6 +13,7 @@ from sqlalchemy import (
     Table,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -227,8 +228,8 @@ index_versions = Table(
 )
 
 
-ingestion_states = Table(
-    "ingestion_states",
+ingestion_states_by_note = Table(
+    "ingestion_states_by_note",
     metadata,
     Column("state_id", BigInteger, Identity(), primary_key=True),
     Column(
@@ -268,12 +269,12 @@ ingestion_states = Table(
     UniqueConstraint(
         "note_id",
         "run_id",
-        name="uq_ingestion_states_note_run",
+        name="uq_ingestion_states_by_note_note_run",
     ),
     CheckConstraint(
         "status IN ('discovered', 'parsed', 'new', 'changed', "
         "'unchanged', 'failed', 'stale')",
-        name="ingestion_states_status_check",
+        name="ingestion_states_by_note_status_check",
     ),
 )
 
@@ -409,13 +410,59 @@ eval_items = Table(
 )
 
 
+query_logs = Table(
+    "query_logs",
+    metadata,
+    Column("query_log_id", BigInteger, Identity(), primary_key=True),
+    Column(
+        "created_at",
+        DateTime(timezone=True),
+        nullable=False,
+        # Plain "now()" is baked in as a constant at CREATE TABLE.
+        server_default=text("now()"),
+    ),
+    Column("query", Text, nullable=False),
+    Column("method", Text, nullable=False),
+    Column("top_k", Integer, nullable=False),
+    Column("latency_ms", Integer, nullable=False),
+    Column(
+        "result_count",
+        Integer,
+        nullable=False,
+        server_default="0",
+    ),
+    Column("error", Text, nullable=True),
+    CheckConstraint(
+        "char_length(query) > 0",
+        name="query_logs_query_not_empty_check",
+    ),
+    CheckConstraint(
+        "method IN ('dense', 'bm25', 'hybrid')",
+        name="query_logs_method_check",
+    ),
+    CheckConstraint(
+        "top_k > 0",
+        name="query_logs_top_k_positive_check",
+    ),
+    CheckConstraint(
+        "latency_ms >= 0",
+        name="query_logs_latency_ms_check",
+    ),
+    CheckConstraint(
+        "result_count >= 0",
+        name="query_logs_result_count_check",
+    ),
+)
+
+
 __all__ = [
     "chunks",
     "eval_items",
     "index_versions",
     "ingestion_runs",
-    "ingestion_states",
+    "ingestion_states_by_note",
     "metadata",
     "note_links",
     "notes",
+    "query_logs",
 ]

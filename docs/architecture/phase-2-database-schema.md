@@ -280,9 +280,11 @@ documents_succeeded + documents_failed + documents_skipped
 достаточно зафиксировать contract и unique identity constraint; выбор
 embedding model остаётся будущим решением.
 
-## Таблица `ingestion_states`
+## Таблица `ingestion_states_by_note`
 
 Одна строка — результат обработки конкретной note в конкретном run.
+Имя таблицы фиксирует зерно: это не статус всего job (`ingestion_runs.status`),
+а per-note audit внутри run.
 
 
 | Поле               | PostgreSQL type   | Ограничения                       | Назначение                                |
@@ -300,9 +302,9 @@ embedding model остаётся будущим решением.
 | `created_at`       | `TIMESTAMPTZ`     | `NOT NULL`, default `now()`       | Создание state row                        |
 
 
-`ingestion_states` — историческая таблица результатов, поэтому у одной note
-может быть много state rows в разных runs. Для текущего состояния используется
-последний актуальный результат, а не перезапись истории.
+`ingestion_states_by_note` — историческая таблица результатов, поэтому у одной
+note может быть много state rows в разных runs. Для текущего состояния
+используется последний актуальный результат, а не перезапись истории.
 
 Минимальное ограничение:
 

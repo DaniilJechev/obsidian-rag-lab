@@ -14,7 +14,7 @@ from rag_based_on_obsidian.db.schema import (
     chunks,
     index_versions,
     ingestion_runs,
-    ingestion_states,
+    ingestion_states_by_note,
     note_links,
     notes,
 )
@@ -194,7 +194,7 @@ def test_ingestion_persists_and_resolves_wikilinks(
     ) == 3
 
 
-def test_ingestion_states_require_valid_status_and_relationships(
+def test_ingestion_states_by_note_require_valid_status_and_relationships(
     database_connection,
 ) -> None:
     """State rows enforce status values and parent foreign keys."""
@@ -218,7 +218,7 @@ def test_ingestion_states_require_valid_status_and_relationships(
 
     with pytest.raises(IntegrityError), database_connection.begin_nested():
         database_connection.execute(
-            insert(ingestion_states).values(
+            insert(ingestion_states_by_note).values(
                 note_id=note_id,
                 run_id=run_id,
                 index_version_id=index_version_id,
@@ -230,7 +230,7 @@ def test_ingestion_states_require_valid_status_and_relationships(
 
     with pytest.raises(IntegrityError), database_connection.begin_nested():
         database_connection.execute(
-            insert(ingestion_states).values(
+            insert(ingestion_states_by_note).values(
                 note_id=note_id,
                 run_id=run_id,
                 index_version_id=999_999_999,
@@ -295,8 +295,8 @@ def test_ingestion_is_idempotent_and_reprocesses_parser_changes(
     ) == 1
     assert database_connection.scalar(
         select(func.count())
-        .select_from(ingestion_states)
-        .join(notes, ingestion_states.c.note_id == notes.c.note_id)
+        .select_from(ingestion_states_by_note)
+        .join(notes, ingestion_states_by_note.c.note_id == notes.c.note_id)
         .where(notes.c.relative_path == "Sprint6Idempotency/idempotent.md")
     ) == 3
 
@@ -332,13 +332,13 @@ def test_failed_note_isolated_and_stale_note_recorded(
     assert second.stale == 1
     assert database_connection.scalar(
         select(func.count())
-        .select_from(ingestion_states)
-        .where(ingestion_states.c.status == "failed")
+        .select_from(ingestion_states_by_note)
+        .where(ingestion_states_by_note.c.status == "failed")
     ) == 1
     assert database_connection.scalar(
         select(func.count())
-        .select_from(ingestion_states)
-        .where(ingestion_states.c.status == "stale")
+        .select_from(ingestion_states_by_note)
+        .where(ingestion_states_by_note.c.status == "stale")
     ) == 1
 
 
