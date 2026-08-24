@@ -1,6 +1,6 @@
 # Sprint 21 — OpenRouter RAG generate
 
-> Статус: `in-progress`
+> Статус: `completed`
 >
 > Ветка: `sprint/21-openrouter-rag-generate`
 >
@@ -73,22 +73,22 @@ RAGAS это cost/latency и взгляд «на глаз», не proper evaluat
       (юнит-тесты pipeline; live refuse на пустом индексе не гоняли).
 - [x] Нет ключа / OpenRouter недоступен → `503`; search/ingest живы
       (live: пустой ключ в контейнере; search 200 на том же процессе).
-- [ ] CI зелёный без `OPENROUTER_API_KEY` (ещё не пушили).
+- [x] CI зелёный без `OPENROUTER_API_KEY`.
 - [x] Vault не изменён; секреты не в git.
 - [x] Live smoke записан числами из реального вызова одной модели.
 
 ## Definition of Done
 
 - [x] Все задачи из Scope выполнены или явно перенесены в backlog.
-- [x] Acceptance Criteria проверены (кроме GitHub CI до push/PR).
+- [x] Acceptance Criteria проверены.
 - [x] Тесты добавлены или обновлены и проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит, если изменения отправлялись в remote.
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
 - [x] Документация и конфигурация обновлены, если это необходимо.
 - [x] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Пользователь подтвердил завершение спринта.
 
 ## Dependencies and risks
 
@@ -115,6 +115,7 @@ RAGAS это cost/latency и взгляд «на глаз», не proper evaluat
 | 2026-08-24 | Planning | Документ создан на `sprint/21-openrouter-rag-generate`; реализация не начата |
 | 2026-08-24 | Implementation | `LLMProvider`, OpenRouter adapter, pack/refuse, `POST /generate`; pin `openai/gpt-4o-mini` |
 | 2026-08-24 | Live smoke | `POST /generate` RoPE, hybrid, top_k=5; HTTP 200; pin/образ `openai/gpt-4o-mini`; без VPN Cloudflare DME отдавал 403 (`Access denied by security policy`) |
+| 2026-08-24 | Merge PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56) | `33bb50c` в `main`. GitHub Milestone/Issue для Phase 9 не создавались. |
 
 ## Validation Evidence
 
@@ -128,9 +129,11 @@ uv run pytest -q
 ### Test and Lint Results
 
 - Tests: `uv run pytest -q` — **181 passed**, 1 skipped, 18 deselected
-  (`not manual`), 1 Starlette/httpx warning, 79.78s, 2026-08-24.
+  (`not manual`), 1 Starlette/httpx warning, 94.88s, 2026-08-24.
 - Lint: `uv run ruff check .` — All checks passed, 2026-08-24.
-- CI: не публиковалось.
+- CI: PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56)
+  `Lint and test` SUCCESS, run
+  [32731717172](https://github.com/DaniilJechev/obsidian-rag-lab/actions/runs/32731717172).
 - Live smoke: 2026-08-24, compose `api` `:8000`, VPN on; query
   «Что такое RoPE в трансформерах?», `method=hybrid`, `top_k=5`.
   HTTP 200, `refused: false`, citations `chunk_id` 4245 и 4246
@@ -156,11 +159,14 @@ uv run pytest -q
 ### Completed
 
 - Planning: scope 9.1–9.4 + HTTP; bake-off моделей вынесен в Phase 10.
-- Implementation, unit tests, local ruff/pytest, live `/generate` smoke.
+- `POST /generate`, OpenRouter adapter, pack/refuse, pin `openai/gpt-4o-mini`.
+- Unit tests (мок OpenRouter), CI без ключа, live smoke с VPN.
+- Implementation merged PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56) (`33bb50c`).
 
 ### Not Completed
 
-- GitHub Milestone/Issue, commit/PR/CI, review, merge, closeout.
+- Нет. GitHub Milestone/Issue для Phase 9 так и не создавали (не блокер merge).
+  Следующий sprint в этом closeout не планировался.
 
 ### Changed Decisions
 
@@ -180,15 +186,21 @@ uv run pytest -q
 
 ### What Went Well
 
-- —
+- Тот же `RetrieverRuntime.search()`, что у `/search`; generate не переписывал retrieval.
+- Моки OpenRouter дали зелёный CI без `OPENROUTER_API_KEY`.
+- Live smoke после VPN подтвердил цитаты на реальных `chunk_id`.
 
 ### What Was Difficult
 
-- —
+- `.env` попадает в контейнер только при create: ключ после `--build` оставался пустым, пока не `--force-recreate`.
+- `configs/` в образе: хостовый Ox Alpha не уехал в `/generate` без `--build`.
+- 401 и 403 схлопнуты в `rejected the API key`; live 403 был Cloudflare DME, не кривой ключ.
 
 ### What We Will Change
 
-- —
+- После правки `.env` — recreate без `--build`; после YAML/кода — `--build`.
+- PowerShell: JSON через файл / `--data-binary`, не `curl -d "{...}"`.
+- Развести 401 и 403 в адаптере — follow-up, не этот спринт.
 
 ### Backlog Updates
 
@@ -198,13 +210,13 @@ uv run pytest -q
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён (owner merge PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56), `33bb50c`; GitHub review records на PR пустые).
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge implementation выполнены; closeout PR следует.
+- [x] Backlog обновлён (`LLM-001` → done).
+- [x] Следующий sprint выбран или запланирован. *(не планировался в этом closeout; Phase 9 закрыта, Phase 10 / `MLOPS-001` — только после phase gate)*
 
-**Итоговый статус:** `in-progress`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** —
+**Дата завершения:** `2026-08-24`

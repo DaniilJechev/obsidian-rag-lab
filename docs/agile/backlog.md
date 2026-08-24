@@ -78,7 +78,7 @@ Backlog не является жёстким расписанием. Приор�
 | EVAL-002 | P0 | done | 7 | Реализовать nDCG@k и MRR@k | Sprint 18 completed: live `rag-cli eval run`; MLflow Compare dense/bm25/hybrid @5; PR [#47](https://github.com/DaniilJechev/obsidian-rag-lab/pull/47) merged (`6f82a00`), CI passed, Issue [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44) closed |
 | API-001 | P1 | done | 8 | FastAPI `/health`, `/search` и Docker-сервис `api` | Sprint 19 completed: lifespan с тёплым e5, JSON-контракты, compose `api`; PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51) merged (`0ecbe77`), CI passed, Issue [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49) closed |
 | API-002 | P1 | done | 8 | HTTP `/ingest` и PostgreSQL `query_logs` | Sprint 20 completed: `POST /ingest` 202/409, `GET /ingest/{run_id}`, `GET /ingest/current`, `query_logs`; live ingest 205 230/230; PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54) merged (`c664243`), CI passed, Issue [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) closed |
-| LLM-001 | P1 | in-progress | 9 | Подключить OpenRouter LLM | Sprint 21 implementation on `sprint/21-openrouter-rag-generate`: `POST /generate`, `LLMProvider` + OpenRouter, structured JSON + citations + refuse; pin `openai/gpt-4o-mini`; bake-off — Phase 10; `docs/agile/sprint-21-openrouter-rag-generate.md` |
+| LLM-001 | P1 | done | 9 | Подключить OpenRouter LLM | Sprint 21 completed: `POST /generate`, `LLMProvider` + OpenRouter, structured JSON + citations + refuse; pin `openai/gpt-4o-mini`; live smoke 3640 ms / 1958+165 tokens; PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56) merged (`33bb50c`); bake-off — Phase 10; `docs/agile/sprint-21-openrouter-rag-generate.md` |
 | GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
 | ML-001 | P2 | idea | 12 | Добавить reranker и сравнить retrieval | nDCG/MRR до и после reranking измерены |
 | MLOPS-001 | P2 | idea | 10 | Добавить RAGAS и MLflow tracking | Generation metrics и experiment artifacts сохраняются. Сюда же уходит бывший roadmap 9.5: сравнение моделей OpenRouter по RAGAS + tokens/latency/cost, не «на глаз» в Phase 9 |
@@ -104,19 +104,17 @@ Backlog не является жёстким расписанием. Приор�
   холодный (~9 s на live check).
 - HTTP ingest (`materialize_policy`) не пишет `ingestion_states_by_note`;
   журнал job — только `ingestion_runs` (Sprint 20).
+- OpenRouter 401 и 403 схлопнуты в одно `rejected the API key` (Sprint 21).
 
 ## Текущий фокус
 
-Фазы 1–5, 7 и 8 завершены на `main`. Phase 6 (`PGV-001`) закрыта как branch-only
+Фазы 1–5 и 7–9 завершены на `main`. Phase 6 (`PGV-001`) закрыта как branch-only
 pgvector experiment (`bd39d20`), в `main` не влита. Qdrant — единственный
 retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-baseline.md`.
 
-Следующая работа: **Phase 9** / Sprint 21 (`LLM-001`, `in-progress` на
-`sprint/21-openrouter-rag-generate`;
-`docs/agile/sprint-21-openrouter-rag-generate.md`). GitHub Milestone/Issue
-ещё не созданы. Фаза 8 на `main` закрыта: Sprint 19 PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51),
-Sprint 20 PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54)
-(`c664243`); Milestone 9 closed.
+Следующая работа: **Phase 10** / `MLOPS-001` (RAGAS + бывший roadmap 9.5).
+Phase 9 на `main` закрыта: Sprint 21 PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56)
+(`33bb50c`). GitHub Milestone/Issue для Phase 9 не создавались.
 
 История завершённых спринтов:
 
@@ -188,6 +186,11 @@ Sprint 20 PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54)
     merged (`c664243`), CI passed, Issue
     [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) closed.
 
-Semantic evaluation и gold questions — Phase 7 (закрыта). RAGAS — живая
-Phase 10 после generate. OpenRouter generation — Phase 9. FastAPI — Phase 8.
+13. Sprint 21: OpenRouter RAG `POST /generate`
+    (`LLM-001`; `docs/agile/sprint-21-openrouter-rag-generate.md`)
+    — completed; PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56)
+    merged (`33bb50c`), CI passed. GitHub Issue/Milestone для Phase 9 не было.
+
+Semantic evaluation и gold questions — Phase 7 (закрыта). OpenRouter generation —
+Phase 9 (закрыта). RAGAS — живая Phase 10. FastAPI — Phase 8.
 LangGraph — Phase 11. Sprint 16 не заменяет Qdrant.
