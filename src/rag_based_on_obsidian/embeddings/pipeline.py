@@ -200,13 +200,16 @@ class BatchEmbeddingPipeline:
         repository: ChunkBatchReader,
         *,
         sink: EmbeddingSink | None = None,
+        log_mlflow: bool = True,
     ) -> BatchEmbeddingResult:
-        """Run, persist batches and log the completed MLflow run."""
+        """Run, persist batches and optionally log the completed MLflow run."""
         result = self._run_repository(
             repository,
             sink=sink,
             retain_embeddings=False,
         )
+        if not log_mlflow:
+            return result
         self._log_stage("Logging batch metrics to MLflow")
         run_id = log_batch_embedding_run(
             provider=self.provider,

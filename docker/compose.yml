@@ -51,10 +51,15 @@ services:
     environment:
       POSTGRES_HOST: postgres
       QDRANT_URL: http://qdrant:6333
+      # Host .env has a Windows path; the process inside Linux must see /vault.
+      OBSIDIAN_VAULT_ROOT: /vault
       HF_HOME: /models/hf
       QDRANT_TIMEOUT_SECONDS: "10"
       SEARCH_TIMEOUT_SECONDS: "30"
     volumes:
+      # Bind mount (not a named volume). Host path comes from --env-file .env
+      # interpolation. Inside Linux the process must use /vault, not C:/...
+      - ${OBSIDIAN_VAULT_ROOT}:/vault:ro
       - hf_cache:/models/hf
     depends_on:
       postgres:

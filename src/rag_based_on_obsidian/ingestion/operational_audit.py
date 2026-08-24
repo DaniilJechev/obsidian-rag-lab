@@ -9,7 +9,7 @@ from sqlalchemy import Connection, func, select
 from rag_based_on_obsidian.db.schema import (
     index_versions,
     ingestion_runs,
-    ingestion_states,
+    ingestion_states_by_note,
     notes,
 )
 from rag_based_on_obsidian.ingestion.contracts import RunCounters
@@ -108,44 +108,44 @@ def audit_run_consistency(
     duplicate_states = connection.execute(
         select(func.count())
         .select_from(
-            select(ingestion_states.c.note_id)
-            .where(ingestion_states.c.run_id == run_id)
-            .group_by(ingestion_states.c.note_id)
+            select(ingestion_states_by_note.c.note_id)
+            .where(ingestion_states_by_note.c.run_id == run_id)
+            .group_by(ingestion_states_by_note.c.note_id)
             .having(func.count() > 1)
             .subquery()
         )
     ).scalar_one()
     orphan_notes = connection.scalar(
         select(func.count())
-        .select_from(ingestion_states)
-        .outerjoin(notes, ingestion_states.c.note_id == notes.c.note_id)
+        .select_from(ingestion_states_by_note)
+        .outerjoin(notes, ingestion_states_by_note.c.note_id == notes.c.note_id)
         .where(
-            ingestion_states.c.run_id == run_id,
+            ingestion_states_by_note.c.run_id == run_id,
             notes.c.note_id.is_(None),
         )
     )
     orphan_runs = connection.scalar(
         select(func.count())
-        .select_from(ingestion_states)
+        .select_from(ingestion_states_by_note)
         .outerjoin(
             ingestion_runs,
-            ingestion_states.c.run_id == ingestion_runs.c.run_id,
+            ingestion_states_by_note.c.run_id == ingestion_runs.c.run_id,
         )
         .where(
-            ingestion_states.c.run_id == run_id,
+            ingestion_states_by_note.c.run_id == run_id,
             ingestion_runs.c.run_id.is_(None),
         )
     )
     orphan_indexes = connection.scalar(
         select(func.count())
-        .select_from(ingestion_states)
+        .select_from(ingestion_states_by_note)
         .outerjoin(
             index_versions,
-            ingestion_states.c.index_version_id
+            ingestion_states_by_note.c.index_version_id
             == index_versions.c.index_version_id,
         )
         .where(
-            ingestion_states.c.run_id == run_id,
+            ingestion_states_by_note.c.run_id == run_id,
             index_versions.c.index_version_id.is_(None),
         )
     )
@@ -158,8 +158,8 @@ def audit_run_consistency(
         ),
         states_in_run=connection.scalar(
             select(func.count())
-            .select_from(ingestion_states)
-            .where(ingestion_states.c.run_id == run_id)
+            .select_from(ingestion_states_by_note)
+            .where(ingestion_states_by_note.c.run_id == run_id)
         ),
         duplicate_note_paths=duplicate_paths,
         duplicate_note_run_states=duplicate_states,
@@ -176,9 +176,9 @@ def _run_counters(
 ) -> RunCounters:
     """Aggregate per-state outcomes without trusting only run counters."""
     rows = connection.execute(
-        select(ingestion_states.c.status, func.count())
-        .where(ingestion_states.c.run_id == run_id)
-        .group_by(ingestion_states.c.status)
+        select(ingestion_states_by_note.c.status, func.count())
+        .where(ingestion_states_by_note.c.run_id == run_id)
+        .group_by(ingestion_states_by_note.c.status)
     ).all()
     counts = {status: count for status, count in rows}
     return RunCounters(

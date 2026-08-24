@@ -1,6 +1,6 @@
 # Sprint 20 — HTTP /ingest and query logs
 
-> Статус: `planned`
+> Статус: `in-progress`
 >
 > Ветка: `sprint/20-fastapi-ingest-query-logs` (создаётся только при старте
 > реализации, после merge Sprint 19)
@@ -27,18 +27,20 @@ CLI (`chunk` + `upsert-dense-sparse`). Query logs нужны, чтобы вид�
 
 ## Scope
 
-- [ ] `POST /ingest` оркестрирует **существующие** chunk + upsert pipeline,
+- [x] `POST /ingest` оркестрирует **существующие** chunk + upsert pipeline,
       не новый алгоритм. Сразу отвечает «принят, `run_id`»; работа в фоне.
-- [ ] `GET /ingest/{run_id}` — статус запуска (опора на `ingestion_runs` /
+- [x] `GET /ingest/{run_id}` — статус запуска (опора на `ingestion_runs` /
       результат batch embedding, без отдельного job-фреймворка).
-- [ ] Один ingest в полёте; второй `POST /ingest` → `409`.
-- [ ] Read-only mount vault в контейнер `api` (нужен ingest, не search).
-- [ ] Таблица `query_logs` (Alembic): timestamp, query, method, top_k,
+- [x] Один ingest в полёте; второй `POST /ingest` → `409`.
+- [x] Read-only mount vault в контейнер `api` (нужен ingest, не search).
+- [x] Таблица `query_logs` (Alembic): timestamp, query, method, top_k,
       latency, result_count, error. Запись после каждого `/search`.
       Это не публичный URL `/query-logs`.
-- [ ] Короткий sync latency baseline на тёплом процессе — только числа из
+- [x] Короткий sync latency baseline на тёплом процессе — только числа из
       реального прогона, без выдуманных метрик.
-- [ ] Тесты: второй ingest не стартует; search пишет лог.
+- [x] Тесты: второй ingest не стартует; search пишет лог.
+- [x] `GET /ingest/current` — последний `ingestion_runs` без копирования
+      `run_id` (`/ingest/current` зарегистрирован до `/ingest/{run_id}`).
 
 ## Out of Scope
 
@@ -59,24 +61,25 @@ CLI (`chunk` + `upsert-dense-sparse`). Query logs нужны, чтобы вид�
 
 ## Acceptance Criteria
 
-- [ ] Клиент `/ingest` не обязан держать HTTP открытым до конца pipeline.
-- [ ] Параллельный второй ingest отвергается (`409`), пока первый не закончен.
-- [ ] CLI `chunk` / `upsert-dense-sparse` не сломаны.
-- [ ] После `/search` есть строка в `query_logs`.
-- [ ] Vault read-only; секреты не в git.
+- [x] Клиент `/ingest` не обязан держать HTTP открытым до конца pipeline.
+- [x] Параллельный второй ingest отвергается (`409`), пока первый не закончен.
+- [x] CLI `chunk` / `upsert-dense-sparse` не сломаны.
+- [x] После `/search` есть строка в `query_logs`.
+- [x] Vault read-only; секреты не в git.
 
 ## Definition of Done
 
-- [ ] Все задачи из Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
+- [x] Все задачи из Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
 - [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Документация и конфигурация обновлены, если это необходимо.
-- [ ] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Документация и конфигурация обновлены, если это необходимо.
+- [x] Результаты и ограничения записаны в этот sprint-документ.
+- [x] Пользователь подтвердил live-проверку ingest/`/ingest/current` (merge
+      и closeout — отдельный шаг после PR).
 
 ## Dependencies and risks
 
@@ -91,70 +94,117 @@ CLI (`chunk` + `upsert-dense-sparse`). Query logs нужны, чтобы вид�
 
 ## Proposed branch
 
-`sprint/20-fastapi-ingest-query-logs` — не создана этим planning-шагом.
+`sprint/20-fastapi-ingest-query-logs`
 
 ## Execution Log
 
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-21 | Planning на `main` | Документ создан; реализация не начата |
+| 2026-08-22 | Implementation | `POST /ingest` 202 + 409, `GET /ingest/{run_id}`, `query_logs` + Alembic, тёплый e5, bind mount vault |
+| 2026-08-23 | Schema rename | `ingestion_states` → `ingestion_states_by_note` (Alembic `a8c3e1f6b4d0`) |
+| 2026-08-24 | UX | `GET /ingest/current` — последний `ingestion_runs` без копирования `run_id` |
+| 2026-08-24 | Live | Owner: ingest `205` completed 230/230; `/ingest/current` совпал с `/ingest/205`; второй POST → already in progress |
+| 2026-08-24 | Schema | `query_logs.created_at` DEFAULT `now()` (`d5e1a7c3b9f2`); INSERT пишет UTC timestamp |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-(не заполнять до реализации)
+uv run ruff check .
+uv run pytest -q
+uv run pytest tests/api -q
 ```
+
+Live (владелец, после alembic + `--build api`):
+
+```text
+docker compose --env-file .env -f docker/compose.yml up -d --build api
+curl.exe http://127.0.0.1:8000/health
+curl.exe -X POST http://127.0.0.1:8000/ingest -H "Content-Type: application/json" --data-raw "{}"
+curl.exe http://127.0.0.1:8000/ingest/205
+curl.exe http://127.0.0.1:8000/ingest/current
+```
+
+Сразу после recreate `curl /health` может дать `Empty reply from server` (e5
+ещё грузится). Повтор после warmup: `"status":"ok"`.
+
+`GET /ingest` без id → `Method Not Allowed` (нужен POST или `/ingest/current`).
 
 ### Test and Lint Results
 
-- Tests: не запускались (planning only)
-- Lint: не запускался (planning only)
-- CI: не относится
+- Tests: `uv run pytest -q` — **158 passed**, 1 skipped, 18 deselected
+  (`not manual`), 1 Starlette/httpx warning, 2026-08-24.
+- Lint: `uv run ruff check .` — All checks passed, 2026-08-24.
+- CI: после публикации ветки / PR.
 
 ### Metrics
 
+Только наблюдаемые прогоны. Wall ingest = `finished_at - started_at`.
+
 | Metric | Value | Context |
 |---|---:|---|
-| — | — | Нет live-прогонов в planning |
+| POST `/ingest` → 202 | 0.396 s (curl) | run 203; HTTP не ждёт pipeline |
+| ingest 203 wall | 274 s | DLS1+DLS2, 230/230/0/0, `completed` |
+| ingest 204 wall | 248 s | повторный полный прогон, 230/230/0/0 |
+| ingest 205 wall | 298 s | owner live, 08:07:32Z–08:12:30Z, 230/230/0/0 |
+| second POST while running | 409 | owner: `an ingest run is already in progress` |
+| hybrid `/search` during ingest | 0.414 s curl / 368 ms log | search не падает на фоне upsert |
+| hybrid `/search` after ingest | 0.266 s curl / 215 ms log | probe `sprint20-query-log-probe` |
+| empty query | 422 | не пишется в `query_logs` |
+| `/ingest/current` | same JSON as `/ingest/205` | owner, after rebuild, 205 `completed` |
 
 ## Review
 
 ### Completed
 
-- Планирование Sprint 20.
+- HTTP `POST /ingest` 202 + `run_id`, фон, `GET /ingest/{run_id}`, `GET /ingest/current`.
+- `409` на второй ingest, пока первый `running`.
+- `query_logs` + Alembic; `created_at` через SQL `now()` и UTC в INSERT.
+- Read-only vault bind `ML_NLP`; live ingest 205 230/230.
+- Latency baseline записан из live-прогонов.
 
 ### Not Completed
 
-- HTTP ingest, query logs, latency baseline.
+- CI / review / merge / closeout (после PR).
 
 ### Changed Decisions
 
 - Ingest — фоновый job (`run_id`), не blocking POST до конца pipeline.
+- `GET /ingest/current` — последний run по `run_id`, не 404 когда job уже
+  `completed`.
 
 ### Technical Debt
 
-- —
+- HTTP ingest (`materialize_policy`) не пишет `ingestion_states_by_note`;
+  статус job — только `ingestion_runs`.
+- Старые `query_logs` строки до `d5e1a7c3b9f2` сохранили застывший
+  `created_at`; новые INSERT — живое время.
 
 ## Retrospective
 
 ### What Went Well
 
-- —
+- Один FastAPI-процесс закрыл и search, и ingest без Celery.
+- Owner смог прогнать ingest/`current` без копирования `run_id` после UX-правки.
 
 ### What Was Difficult
 
-- —
+- Bind mount: корень должен быть `ML_NLP` (дети DLS1/DLS2), не весь vault.
+- PowerShell ломает JSON в `-d "{\"query\":...}"`; нужен файл или `--data-raw "{}"`.
+- `server_default="now()"` в Alembic запек константу timestamptz.
 
 ### What We Will Change
 
-- —
+- Compose `--env-file .env` и путь vault проверять до первого HTTP ingest.
+- Для DateTime defaults в миграциях использовать `sa.text("now()")`.
 
 ### Backlog Updates
 
 - Перенести: bounded asyncio — после профилирования, не в этом спринте.
 - Изменить приоритет: нет.
+- Не в этом спринте: per-note audit на HTTP `--to-pg` path.
 
 ## Completion
 
@@ -165,6 +215,6 @@ CLI (`chunk` + `upsert-dense-sparse`). Query logs нужны, чтобы вид�
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `in-progress`
 
 **Дата завершения:** —

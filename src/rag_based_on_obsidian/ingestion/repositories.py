@@ -12,7 +12,7 @@ from rag_based_on_obsidian.corpus.markdown_entities import Wikilink
 from rag_based_on_obsidian.db.schema import (
     index_versions,
     ingestion_runs,
-    ingestion_states,
+    ingestion_states_by_note,
     note_links,
     notes,
 )
@@ -37,11 +37,11 @@ class NoteRepository:
                 notes.c.relative_path,
                 notes.c.content_hash,
                 notes.c.parser_version,
-                select(ingestion_states.c.status)
-                .where(ingestion_states.c.note_id == notes.c.note_id)
+                select(ingestion_states_by_note.c.status)
+                .where(ingestion_states_by_note.c.note_id == notes.c.note_id)
                 .order_by(
-                    ingestion_states.c.created_at.desc(),
-                    ingestion_states.c.state_id.desc(),
+                    ingestion_states_by_note.c.created_at.desc(),
+                    ingestion_states_by_note.c.state_id.desc(),
                 )
                 .limit(1)
                 .scalar_subquery()
@@ -89,11 +89,11 @@ class NoteRepository:
                 notes.c.relative_path,
                 notes.c.content_hash,
                 notes.c.parser_version,
-                select(ingestion_states.c.status)
-                .where(ingestion_states.c.note_id == notes.c.note_id)
+                select(ingestion_states_by_note.c.status)
+                .where(ingestion_states_by_note.c.note_id == notes.c.note_id)
                 .order_by(
-                    ingestion_states.c.created_at.desc(),
-                    ingestion_states.c.state_id.desc(),
+                    ingestion_states_by_note.c.created_at.desc(),
+                    ingestion_states_by_note.c.state_id.desc(),
                 )
                 .limit(1)
                 .scalar_subquery()
@@ -299,7 +299,7 @@ class IngestionStateRepository:
     ) -> int:
         """Record the outcome while preserving one row per note and run."""
         return self.connection.execute(
-            insert(ingestion_states)
+            insert(ingestion_states_by_note)
             .values(
                 note_id=note_id,
                 run_id=run_id,
@@ -311,7 +311,7 @@ class IngestionStateRepository:
                 error_message=error_message,
                 processed_at=datetime.now(UTC),
             )
-            .returning(ingestion_states.c.state_id)
+            .returning(ingestion_states_by_note.c.state_id)
         ).scalar_one()
 
 

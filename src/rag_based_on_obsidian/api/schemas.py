@@ -1,5 +1,6 @@
 """Pydantic request and response models for the retriever HTTP API."""
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
@@ -75,3 +76,24 @@ class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     qdrant: str
+
+
+class IngestAccepted(BaseModel):
+    """Immediate ack for ``POST /ingest``. Work continues in the background."""
+
+    run_id: int
+    status: str
+
+
+class IngestStatus(BaseModel):
+    """One ``ingestion_runs`` row for ``GET /ingest/{run_id}``."""
+
+    run_id: int
+    status: str
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    corpus_scope: str | None = None
+    documents_total: int | None = None
+    documents_succeeded: int | None = None
+    documents_failed: int | None = None
+    documents_skipped: int | None = None

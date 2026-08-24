@@ -1,1 +1,1 @@
-"""HTTP retriever service: health and search over the existing pipeline."""
+"""HTTP retriever service: health, search, ingest, and query logs."""
