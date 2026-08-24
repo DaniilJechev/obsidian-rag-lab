@@ -81,7 +81,8 @@ Backlog не является жёстким расписанием. Приор�
 | LLM-001 | P1 | done | 9 | Подключить OpenRouter LLM | Sprint 21 completed: `POST /generate`, `LLMProvider` + OpenRouter, structured JSON + citations + refuse; pin `openai/gpt-4o-mini`; live smoke 3640 ms / 1958+165 tokens; PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56) merged (`33bb50c`); bake-off — Phase 10; `docs/agile/sprint-21-openrouter-rag-generate.md` |
 | GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
 | ML-001 | P2 | idea | 12 | Добавить reranker и сравнить retrieval | nDCG/MRR до и после reranking измерены |
-| MLOPS-001 | P2 | idea | 10 | Добавить RAGAS и MLflow tracking | Generation metrics и experiment artifacts сохраняются. Сюда же уходит бывший roadmap 9.5: сравнение моделей OpenRouter по RAGAS + tokens/latency/cost, не «на глаз» в Phase 9 |
+| MLOPS-001 | P1 | ready | 10 | RAGAS harness + gpt-4o-mini baseline + human sample (Sprint 22) | Четыре RAGAS-метрики на subset gold, MLflow с версиями index/LLM/prompt/gold, human-шаблон ~10 вопросов; generate pin `openai/gpt-4o-mini`; CI без ключа. Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58). Bake-off моделей — `MLOPS-002` |
+| MLOPS-002 | P1 | ready | 10 | Bake-off 2–3 OpenRouter generate-моделей (Sprint 23) | Тот же gold/subset/judge, что Sprint 22; таблица RAGAS + tokens/latency/cost; контроль mini. Код только после merge Sprint 22. Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) |
 | CLOUD-001 | P2 | idea | 13 | Сравнить local и cloud storage | Latency, cost, reliability и operational effort измерены |
 | SERVE-001 | P3 | idea | 16 | Запустить локальную LLM через vLLM | API и vLLM сравнены на одном eval-наборе |
 | DEPLOY-001 | P3 | idea | 17 | Подготовить Kubernetes proof of concept | API/Qdrant/worker manifests и health probes описаны |
@@ -112,7 +113,12 @@ Backlog не является жёстким расписанием. Приор�
 pgvector experiment (`bd39d20`), в `main` не влита. Qdrant — единственный
 retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-baseline.md`.
 
-Следующая работа: **Phase 10** / `MLOPS-001` (RAGAS + бывший roadmap 9.5).
+Следующая работа: **Phase 10** — два спринта под
+[Milestone Phase 10](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/10).
+Sprint 22 / `MLOPS-001` (Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58)):
+RAGAS harness + baseline `openai/gpt-4o-mini`. Sprint 23 / `MLOPS-002`
+(Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59)):
+bake-off 2–3 моделей; код после merge 22.
 Phase 9 на `main` закрыта: Sprint 21 PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56)
 (`33bb50c`). GitHub Milestone/Issue для Phase 9 не создавались.
 
@@ -192,5 +198,5 @@ Phase 9 на `main` закрыта: Sprint 21 PR [#56](https://github.com/Daniil
     merged (`33bb50c`), CI passed. GitHub Issue/Milestone для Phase 9 не было.
 
 Semantic evaluation и gold questions — Phase 7 (закрыта). OpenRouter generation —
-Phase 9 (закрыта). RAGAS — живая Phase 10. FastAPI — Phase 8.
+Phase 9 (закрыта). RAGAS — живая Phase 10 (спринты 22–23). FastAPI — Phase 8.
 LangGraph — Phase 11. Sprint 16 не заменяет Qdrant.
