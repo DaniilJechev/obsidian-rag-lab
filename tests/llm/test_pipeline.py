@@ -79,6 +79,13 @@ def test_pipeline_returns_answer_and_rewrites_citation_path() -> None:
     assert payload["refused"] is False
     assert payload["answer"] == "RoPE rotates embeddings."
     assert payload["citations"] == [{"chunk_id": 1, "note_path": "DLS2/RoPE.md"}]
+    assert payload["contexts"] == [
+        {
+            "chunk_id": 1,
+            "note_path": "DLS2/RoPE.md",
+            "text": "RoPE applies a rotation to query and key vectors.",
+        }
+    ]
 
 
 def test_pipeline_refuses_without_calling_llm() -> None:
@@ -102,3 +109,4 @@ def test_pipeline_refuses_without_calling_llm() -> None:
     )
     assert payload["refused"] is True
     assert payload["refusal_reason"] == "no retrieved context"
+    assert payload["contexts"] == []

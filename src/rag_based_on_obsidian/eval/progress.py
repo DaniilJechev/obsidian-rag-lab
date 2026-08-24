@@ -6,6 +6,8 @@ import logging
 import sys
 from time import perf_counter
 
+from tqdm import tqdm
+
 LOGGER_NAME = "rag.eval"
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -19,6 +21,18 @@ def configure_eval_logging() -> None:
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
     logger.propagate = False
+
+
+def eval_tqdm(*, total: int, desc: str, unit: str) -> tqdm:
+    """Progress bar on stderr. Disabled when stderr is not a TTY (pytest)."""
+    return tqdm(
+        total=total,
+        desc=desc,
+        unit=unit,
+        file=sys.stderr,
+        dynamic_ncols=True,
+        disable=not sys.stderr.isatty(),
+    )
 
 
 class EvalProgress:

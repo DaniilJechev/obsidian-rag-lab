@@ -84,6 +84,7 @@ class FakeRuntime:
                 "model": None,
                 "latency_ms": None,
                 "usage": None,
+                "contexts": [],
             }
         return {
             "query": query,
@@ -91,6 +92,13 @@ class FakeRuntime:
             "top_k": top_k,
             "answer": f"answer for {query}",
             "citations": [{"chunk_id": 1, "note_path": "DLS2/RoPE.md"}],
+            "contexts": [
+                {
+                    "chunk_id": 1,
+                    "note_path": "DLS2/RoPE.md",
+                    "text": f"hit for {query}",
+                }
+            ],
             "confidence": 0.8,
             "refused": False,
             "refusal_reason": None,
@@ -311,6 +319,8 @@ def test_generate_returns_structured_answer() -> None:
     assert body["answer"] == "answer for What is RoPE?"
     assert body["citations"][0]["chunk_id"] == 1
     assert body["citations"][0]["note_path"] == "DLS2/RoPE.md"
+    assert body["contexts"][0]["chunk_id"] == 1
+    assert body["contexts"][0]["note_path"] == "DLS2/RoPE.md"
     assert body["method"] == "hybrid"
     assert runtime.search_calls == 1
     assert runtime.query_logs == []

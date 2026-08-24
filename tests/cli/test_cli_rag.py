@@ -76,6 +76,21 @@ def test_rag_cli_dispatches_eval_arguments(
     assert received == ["score", "--rankings", "ranks.json"]
 
 
+def test_rag_cli_dispatches_ragas_arguments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    received: list[str] = []
+
+    def fake_ragas_main(arguments: list[str]) -> int:
+        received.extend(arguments)
+        return 9
+
+    monkeypatch.setattr(cli_rag, "ragas_main", fake_ragas_main)
+
+    assert cli_rag.main(["ragas", "run", "--full-set"]) == 9
+    assert received == ["run", "--full-set"]
+
+
 def test_rag_cli_rejects_unknown_command() -> None:
     with pytest.raises(SystemExit):
         cli_rag.main(["unknown"])

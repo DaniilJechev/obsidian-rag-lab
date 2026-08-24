@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from rag_based_on_obsidian.chunking.chunking_cli import main as chunking_main
 from rag_based_on_obsidian.embeddings.cli.batch import main as embedding_main
 from rag_based_on_obsidian.eval.cli import main as eval_main
+from rag_based_on_obsidian.eval.ragas_cli import main as ragas_main
 from rag_based_on_obsidian.retrieval.cli import main as retrieval_main
 from rag_based_on_obsidian.vector_store.cli import main as vector_store_main
 
@@ -41,6 +42,10 @@ def build_parser() -> argparse.ArgumentParser:
         "eval",
         help="Load gold items, score rankings, or run live retrieval eval.",
     )
+    subparsers.add_parser(
+        "ragas",
+        help="Score POST /generate answers with RAGAS-style metrics.",
+    )
     return parser
 
 
@@ -62,6 +67,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return retrieval_main(command_arguments)
     if command == "eval":
         return eval_main(command_arguments)
+    if command == "ragas":
+        return ragas_main(command_arguments)
 
     build_parser().error(f"unknown command: {command}")
     return 2

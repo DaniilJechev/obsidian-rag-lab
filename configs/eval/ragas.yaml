@@ -1,0 +1,14 @@
+name: sprint22-ragas-generation-baseline
+gold_path: evals/gold/phase7_GT_note_level_v0.yaml
+dataset_version: phase7_GT_note_level_v0
+api_base_url: http://127.0.0.1:8000
+method: hybrid
+top_k: 5
+subset_size: 15
+full_set: false
+concurrency: 2
+judge_model: openai/gpt-4o-mini
+# JSON-judge Faithfulness / Answer Relevancy: integers 0–5 (not RAGAS 0–1).
+generate_timeout_seconds: 60
+human_sample_path: evals/human/sprint22_sample.yaml
+human_review_path: evals/human/sprint22_review.yaml

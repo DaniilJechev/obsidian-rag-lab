@@ -81,6 +81,14 @@ class GenerateCitation(BaseModel):
     note_path: str
 
 
+class PackedContext(BaseModel):
+    """One chunk actually packed into the generate prompt."""
+
+    chunk_id: int
+    note_path: str
+    text: str
+
+
 class GenerateUsage(BaseModel):
     """Token counts from the LLM provider for this call."""
 
@@ -96,6 +104,7 @@ class GenerateResponse(BaseModel):
     top_k: int
     answer: str | None
     citations: list[GenerateCitation]
+    contexts: list[PackedContext] = Field(default_factory=list)
     confidence: float
     refused: bool
     refusal_reason: str | None = None
