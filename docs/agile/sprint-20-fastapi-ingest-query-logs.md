@@ -1,6 +1,6 @@
 # Sprint 20 — HTTP /ingest and query logs
 
-> Статус: `in-progress`
+> Статус: `completed`
 >
 > Ветка: `sprint/20-fastapi-ingest-query-logs` (создаётся только при старте
 > реализации, после merge Sprint 19)
@@ -73,13 +73,14 @@ CLI (`chunk` + `upsert-dense-sparse`). Query logs нужны, чтобы вид�
 - [x] Acceptance Criteria проверены.
 - [x] Тесты добавлены или обновлены и проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит, если изменения отправлялись в remote.
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
 - [x] Документация и конфигурация обновлены, если это необходимо.
 - [x] Результаты и ограничения записаны в этот sprint-документ.
-- [x] Пользователь подтвердил live-проверку ingest/`/ingest/current` (merge
-      и closeout — отдельный шаг после PR).
+- [x] Пользователь подтвердил live-проверку ingest/`/ingest/current`;
+      implementation PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54)
+      merged.
 
 ## Dependencies and risks
 
@@ -106,6 +107,7 @@ CLI (`chunk` + `upsert-dense-sparse`). Query logs нужны, чтобы вид�
 | 2026-08-24 | UX | `GET /ingest/current` — последний `ingestion_runs` без копирования `run_id` |
 | 2026-08-24 | Live | Owner: ingest `205` completed 230/230; `/ingest/current` совпал с `/ingest/205`; второй POST → already in progress |
 | 2026-08-24 | Schema | `query_logs.created_at` DEFAULT `now()` (`d5e1a7c3b9f2`); INSERT пишет UTC timestamp |
+| 2026-08-24 | Merge PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54) | `c664243` в `main`; Issue [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) closed. Milestone 9: `open_issues=0` (закрывается в closeout). |
 
 ## Validation Evidence
 
@@ -135,9 +137,12 @@ curl.exe http://127.0.0.1:8000/ingest/current
 ### Test and Lint Results
 
 - Tests: `uv run pytest -q` — **158 passed**, 1 skipped, 18 deselected
-  (`not manual`), 1 Starlette/httpx warning, 2026-08-24.
+  (`not manual`), 1 Starlette/httpx warning, 2026-08-24 (closeout rerun:
+  158 passed, 1 skipped, 18 deselected, 1 warning in 58.83s).
 - Lint: `uv run ruff check .` — All checks passed, 2026-08-24.
-- CI: после публикации ветки / PR.
+- CI: PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54)
+  `Lint and test` SUCCESS, run
+  [32708806228](https://github.com/DaniilJechev/obsidian-rag-lab/actions/runs/32708806228).
 
 ### Metrics
 
@@ -167,7 +172,7 @@ curl.exe http://127.0.0.1:8000/ingest/current
 
 ### Not Completed
 
-- CI / review / merge / closeout (после PR).
+- Нет. Implementation merged; следующий sprint не планировался в этом closeout.
 
 ### Changed Decisions
 
@@ -208,13 +213,13 @@ curl.exe http://127.0.0.1:8000/ingest/current
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён (owner merge PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54), `c664243`; GitHub review records на PR пустые).
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge implementation выполнены; closeout PR следует.
+- [x] Backlog обновлён (`API-002` → done).
+- [x] Следующий sprint выбран или запланирован. *(не планировался в этом closeout; Phase 8 закрыта, Phase 9 / `LLM-001` — только после phase gate)*
 
-**Итоговый статус:** `in-progress`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** —
+**Дата завершения:** `2026-08-24`

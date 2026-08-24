@@ -77,7 +77,7 @@ Backlog не является жёстким расписанием. Приор�
 | EVAL-001 | P0 | done | 7 | Создать gold eval-набор | Sprint 17 completed: 50 note-level вопросов, owner review, `eval_items` loader; PR [#45](https://github.com/DaniilJechev/obsidian-rag-lab/pull/45) merged (`59188fb`); freeze `phase7_GT_note_level_v0` в Sprint 18 |
 | EVAL-002 | P0 | done | 7 | Реализовать nDCG@k и MRR@k | Sprint 18 completed: live `rag-cli eval run`; MLflow Compare dense/bm25/hybrid @5; PR [#47](https://github.com/DaniilJechev/obsidian-rag-lab/pull/47) merged (`6f82a00`), CI passed, Issue [#44](https://github.com/DaniilJechev/obsidian-rag-lab/issues/44) closed |
 | API-001 | P1 | done | 8 | FastAPI `/health`, `/search` и Docker-сервис `api` | Sprint 19 completed: lifespan с тёплым e5, JSON-контракты, compose `api`; PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51) merged (`0ecbe77`), CI passed, Issue [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49) closed |
-| API-002 | P1 | in-progress | 8 | HTTP `/ingest` и PostgreSQL `query_logs` | Sprint 20 implementation on `sprint/20-fastapi-ingest-query-logs`; live ingest 205 230/230; `GET /ingest/current`; awaiting PR/CI/merge; `docs/agile/sprint-20-fastapi-ingest-query-logs.md`; GitHub [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) |
+| API-002 | P1 | done | 8 | HTTP `/ingest` и PostgreSQL `query_logs` | Sprint 20 completed: `POST /ingest` 202/409, `GET /ingest/{run_id}`, `GET /ingest/current`, `query_logs`; live ingest 205 230/230; PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54) merged (`c664243`), CI passed, Issue [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) closed |
 | LLM-001 | P1 | idea | 9 | Подключить OpenRouter LLM | Ответы имеют structured output и citations |
 | GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
 | ML-001 | P2 | idea | 12 | Добавить reranker и сравнить retrieval | nDCG/MRR до и после reranking измерены |
@@ -102,18 +102,20 @@ Backlog не является жёстким расписанием. Приор�
 - Держать embedding model в долгоживущем процессе: частично закрыто Sprint 19
   (FastAPI lifespan грузит e5 один раз). CLI `rag-cli search` с хоста по-прежнему
   холодный (~9 s на live check).
+- HTTP ingest (`materialize_policy`) не пишет `ingestion_states_by_note`;
+  журнал job — только `ingestion_runs` (Sprint 20).
 
 ## Текущий фокус
 
-Фазы 1–5 и 7 завершены на `main`. Phase 6 (`PGV-001`) закрыта как branch-only
+Фазы 1–5, 7 и 8 завершены на `main`. Phase 6 (`PGV-001`) закрыта как branch-only
 pgvector experiment (`bd39d20`), в `main` не влита. Qdrant — единственный
 retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-baseline.md`.
 
-Следующая работа: **Phase 8**. Sprint 19 (`API-001`) completed on `main`
-(PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51)).
-Sprint 20 / `API-002` на `sprint/20-fastapi-ingest-query-logs` (не на
-`main`): live ingest проверен, реализация ждёт PR/merge. Milestone 9 остаётся
-open, пока открыт Issue [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50).
+Следующая работа: **Phase 9** (`LLM-001` / OpenRouter). Sprint 20 не
+планирует следующий спринт в этом closeout. Фаза 8 (`API-001`, `API-002`)
+завершена на `main`: Sprint 19 PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51),
+Sprint 20 PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54)
+(`c664243`). Milestone 9 закрывается в closeout (`open_issues=0`).
 
 История завершённых спринтов:
 
@@ -178,9 +180,12 @@ open, пока открыт Issue [#50](https://github.com/DaniilJechev/obsidian
     — completed; PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51)
     merged (`0ecbe77`), CI passed, Issue
     [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49) closed.
-12. Sprint 20 (in-progress): HTTP `/ingest` + `query_logs`
+12. Sprint 20: HTTP `/ingest` + `query_logs`
     (`API-002`; `docs/agile/sprint-20-fastapi-ingest-query-logs.md`;
-    GitHub [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50)).
+    GitHub [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50))
+    — completed; PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54)
+    merged (`c664243`), CI passed, Issue
+    [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) closed.
 
 Semantic evaluation и gold questions — Phase 7 (закрыта). RAGAS — живая
 Phase 10 после generate. OpenRouter generation — Phase 9. FastAPI — Phase 8.
