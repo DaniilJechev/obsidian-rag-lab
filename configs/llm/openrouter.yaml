@@ -1,0 +1,12 @@
+name: sprint21-openrouter-generate
+# Pin chosen at Sprint 21 implementation start. Swap the OpenRouter id here;
+# bake-off of several models is Phase 10 / RAGAS, not this sprint.
+model: openai/gpt-4o-mini
+base_url: https://openrouter.ai/api/v1
+timeout_seconds: 30
+temperature: 0.2
+max_output_tokens: 1024
+max_context_tokens: 1800
+min_retrieval_score: 0.0
+http_referer: https://github.com/DaniilJechev/obsidian-rag-lab
+app_title: obsidian-rag-lab

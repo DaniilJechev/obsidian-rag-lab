@@ -20,6 +20,7 @@ from rag_based_on_obsidian.api.schemas import IngestAccepted, IngestStatus
 from rag_based_on_obsidian.config import (
     DEFAULT_BATCH_EMBEDDING_CONFIG_PATH,
     DEFAULT_EMBEDDING_MODEL_CONFIG_PATH,
+    DEFAULT_LLM_CONFIG_PATH,
     DEFAULT_QDRANT_CONFIG_PATH,
     DEFAULT_RETRIEVAL_CONFIG_PATH,
     load_config,
@@ -33,6 +34,9 @@ from rag_based_on_obsidian.embeddings.settings import (
 from rag_based_on_obsidian.embeddings.transformers_provider import (
     TransformersEmbeddingProvider,
 )
+from rag_based_on_obsidian.llm.openrouter import OpenRouterLLMProvider
+from rag_based_on_obsidian.llm.pipeline import run_rag_generate
+from rag_based_on_obsidian.llm.settings import LLMConfig, load_llm_config
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod, RetrievedChunk
 from rag_based_on_obsidian.retrieval.dense import QdrantDenseRetriever
 from rag_based_on_obsidian.retrieval.lexical import QdrantSparseRetriever
@@ -68,6 +72,7 @@ class RetrieverRuntime:
         search_timeout_seconds: float,
         batch_config: BatchEmbeddingConfig,
         qdrant_config: QdrantConfig,
+        llm_config: LLMConfig,
         model_loaded: bool = True,
     ) -> None:
         self._client = client
@@ -79,6 +84,7 @@ class RetrieverRuntime:
         self.search_timeout_seconds = search_timeout_seconds
         self._batch_config = batch_config
         self._qdrant_config = qdrant_config
+        self._llm_config = llm_config
         self.model_loaded = model_loaded
         self.default_top_k = retrieval_config.top_k
         self._engine = None
@@ -154,6 +160,25 @@ class RetrieverRuntime:
             candidate_k=candidate_k,
             rrf_k=rrf_k,
             filters=filters,
+        )
+
+    async def generate(
+        self,
+        query: str,
+        *,
+        method: RetrievalMethod,
+        top_k: int,
+    ) -> dict[str, object]:
+        """Retrieve, then call OpenRouter or refuse. Search stays available."""
+        api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+        provider = OpenRouterLLMProvider(self._llm_config, api_key=api_key)
+        return await run_rag_generate(
+            self.search,
+            provider,
+            self._llm_config,
+            query,
+            method=method,
+            top_k=top_k,
         )
 
     def start_ingest(self) -> IngestAccepted:
@@ -258,6 +283,12 @@ def build_runtime() -> RetrieverRuntime:
             str(DEFAULT_RETRIEVAL_CONFIG_PATH),
         )
     )
+    llm_config_path = Path(
+        os.environ.get(
+            "LLM_CONFIG_PATH",
+            str(DEFAULT_LLM_CONFIG_PATH),
+        )
+    )
     qdrant_timeout = float(
         os.environ.get(
             "QDRANT_TIMEOUT_SECONDS",
@@ -278,6 +309,7 @@ def build_runtime() -> RetrieverRuntime:
     if qdrant_url:
         qdrant_config = replace(qdrant_config, url=qdrant_url)
     retrieval_config = load_retrieval_config(retrieval_config_path)
+    llm_config = load_llm_config(llm_config_path)
 
     client = QdrantClient(url=qdrant_config.url, timeout=qdrant_timeout)
     try:
@@ -312,6 +344,7 @@ def build_runtime() -> RetrieverRuntime:
             search_timeout_seconds=search_timeout,
             batch_config=batch_config,
             qdrant_config=qdrant_config,
+            llm_config=llm_config,
         )
     except Exception:
         client.close()

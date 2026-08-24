@@ -16,6 +16,8 @@ from rag_based_on_obsidian.api.runtime import (
     build_runtime,
 )
 from rag_based_on_obsidian.api.schemas import (
+    GenerateRequest,
+    GenerateResponse,
     HealthResponse,
     IngestAccepted,
     IngestStatus,
@@ -23,11 +25,12 @@ from rag_based_on_obsidian.api.schemas import (
     SearchRequest,
     SearchResponse,
 )
+from rag_based_on_obsidian.llm.contracts import LLMUnavailableError
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod, RetrievedChunk
 
 
 class AppRuntime(Protocol):
-    """HTTP surface: search, ingest, and query logs. Tests inject a fake."""
+    """HTTP surface: search, ingest, generate, and query logs. Tests inject a fake."""
 
     model_loaded: bool
     default_top_k: int
@@ -73,6 +76,16 @@ class AppRuntime(Protocol):
 
     def close(self) -> None:
         """Release backend clients."""
+        ...
+
+    async def generate(
+        self,
+        query: str,
+        *,
+        method: RetrievalMethod,
+        top_k: int,
+    ) -> dict[str, object]:
+        """Return a structured RAG answer or a refusal payload."""
         ...
 
 
@@ -182,6 +195,29 @@ def _build_router() -> APIRouter:
             top_k=top_k,
             results=[SearchHit.from_chunk(chunk) for chunk in chunks],
         )
+
+    @router.post("/generate")
+    async def generate(body: GenerateRequest, request: Request) -> GenerateResponse:
+        runtime = _require_runtime(request)
+        top_k = runtime.default_top_k if body.top_k is None else body.top_k
+        if not runtime.model_loaded:
+            raise HTTPException(
+                status_code=503,
+                detail="embedding model is not loaded",
+            )
+        if not runtime.ping_qdrant():
+            raise HTTPException(status_code=503, detail="qdrant is unreachable")
+        try:
+            payload = await runtime.generate(
+                body.query,
+                method=body.method,
+                top_k=top_k,
+            )
+        except RetrieverUnavailableError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except LLMUnavailableError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        return GenerateResponse.model_validate(payload)
 
     @router.post("/ingest")
     async def ingest(request: Request) -> JSONResponse:

@@ -1,1 +1,1 @@
-"""HTTP retriever service: health, search, ingest, and query logs."""
+"""HTTP retriever service: health, search, ingest, generate, and query logs."""

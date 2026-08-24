@@ -70,6 +70,40 @@ class SearchResponse(BaseModel):
     results: list[SearchHit]
 
 
+class GenerateRequest(SearchRequest):
+    """JSON body for ``POST /generate``. Same query fields as ``/search``."""
+
+
+class GenerateCitation(BaseModel):
+    """One chunk the model cited. ``note_path`` is filled from retrieval."""
+
+    chunk_id: int
+    note_path: str
+
+
+class GenerateUsage(BaseModel):
+    """Token counts from the LLM provider for this call."""
+
+    prompt_tokens: int
+    generated_tokens: int
+
+
+class GenerateResponse(BaseModel):
+    """Structured RAG answer, or a refusal that never called the LLM."""
+
+    query: str
+    method: RetrievalMethod
+    top_k: int
+    answer: str | None
+    citations: list[GenerateCitation]
+    confidence: float
+    refused: bool
+    refusal_reason: str | None = None
+    model: str | None = None
+    latency_ms: int | None = None
+    usage: GenerateUsage | None = None
+
+
 class HealthResponse(BaseModel):
     """Liveness plus whether the warm model and Qdrant can serve search."""
 
