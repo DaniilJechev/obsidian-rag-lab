@@ -65,6 +65,14 @@ async def run_rag_generate(
         "top_k": top_k,
         "answer": answer,
         "citations": citations,
+        "contexts": [
+            {
+                "chunk_id": item.chunk_id,
+                "note_path": item.note_path,
+                "text": item.text,
+            }
+            for item in packed
+        ],
         "confidence": confidence,
         "refused": False,
         "refusal_reason": None,
@@ -87,6 +95,7 @@ def _refused(
         "top_k": top_k,
         "answer": None,
         "citations": [],
+        "contexts": [],
         "confidence": 0.0,
         "refused": True,
         "refusal_reason": reason,

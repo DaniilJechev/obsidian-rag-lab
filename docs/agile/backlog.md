@@ -81,8 +81,8 @@ Backlog не является жёстким расписанием. Приор�
 | LLM-001 | P1 | done | 9 | Подключить OpenRouter LLM | Sprint 21 completed: `POST /generate`, `LLMProvider` + OpenRouter, structured JSON + citations + refuse; pin `openai/gpt-4o-mini`; live smoke 3640 ms / 1958+165 tokens; PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56) merged (`33bb50c`); bake-off — Phase 10; `docs/agile/sprint-21-openrouter-rag-generate.md` |
 | GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
 | ML-001 | P2 | idea | 12 | Добавить reranker и сравнить retrieval | nDCG/MRR до и после reranking измерены |
-| MLOPS-001 | P1 | ready | 10 | RAGAS harness + gpt-4o-mini baseline + human sample (Sprint 22) | Четыре RAGAS-метрики на subset gold, MLflow с версиями index/LLM/prompt/gold, human-шаблон ~10 вопросов; generate pin `openai/gpt-4o-mini`; CI без ключа. Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58). Bake-off моделей — `MLOPS-002` |
-| MLOPS-002 | P1 | ready | 10 | Bake-off 2–3 OpenRouter generate-моделей (Sprint 23) | Тот же gold/subset/judge, что Sprint 22; таблица RAGAS + tokens/latency/cost; контроль mini. Код только после merge Sprint 22. Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) |
+| MLOPS-001 | P1 | in-progress | 10 | RAGAS harness + gpt-4o-mini baseline + human sample (Sprint 22) | Четыре метрики на subset gold: Faithfulness/Relevancy целые 0–5 (JSON-judge), Context P/R в [0, 1]; MLflow с версиями index/LLM/prompt/gold, human-шаблон ~10 вопросов 0–5; generate pin `openai/gpt-4o-mini`; CI без ключа. Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58). Bake-off и runtime ragas — `MLOPS-002` |
+| MLOPS-002 | P1 | ready | 10 | RAGAS runtime + bake-off 2–3 OpenRouter generate-моделей (Sprint 23) | Сначала `import ragas` + Faithfulness/Answer Relevancy пакетом (Context P/R остаются note-level proxy). Затем таблица 2–3 моделей на том же gold/k/ragas-judge; контроль mini — новый ragas-прогон, не JSON Sprint 22. Код только после merge Sprint 22. Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) |
 | CLOUD-001 | P2 | idea | 13 | Сравнить local и cloud storage | Latency, cost, reliability и operational effort измерены |
 | SERVE-001 | P3 | idea | 16 | Запустить локальную LLM через vLLM | API и vLLM сравнены на одном eval-наборе |
 | DEPLOY-001 | P3 | idea | 17 | Подготовить Kubernetes proof of concept | API/Qdrant/worker manifests и health probes описаны |
@@ -116,9 +116,9 @@ retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-ba
 Следующая работа: **Phase 10** — два спринта под
 [Milestone Phase 10](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/10).
 Sprint 22 / `MLOPS-001` (Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58)):
-RAGAS harness + baseline `openai/gpt-4o-mini`. Sprint 23 / `MLOPS-002`
-(Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59)):
-bake-off 2–3 моделей; код после merge 22.
+RAGAS harness + JSON-judge baseline `openai/gpt-4o-mini`. Sprint 23 /
+`MLOPS-002` (Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59)):
+runtime пакета ragas, затем bake-off 2–3 моделей; код после merge 22.
 Phase 9 на `main` закрыта: Sprint 21 PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56)
 (`33bb50c`). GitHub Milestone/Issue для Phase 9 не создавались.
 

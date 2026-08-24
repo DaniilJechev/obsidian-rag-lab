@@ -36,6 +36,7 @@ DEFAULT_CHUNK_INGESTION_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "ingestion" / "chunk_ingestion.yaml"
 )
 DEFAULT_EVAL_CONFIG_PATH = PROJECT_ROOT / "configs" / "eval" / "eval.yaml"
+DEFAULT_RAGAS_CONFIG_PATH = PROJECT_ROOT / "configs" / "eval" / "ragas.yaml"
 
 
 def _load_eval_defaults() -> tuple[Path, str]:
@@ -55,6 +56,7 @@ def _load_eval_defaults() -> tuple[Path, str]:
 
 DEFAULT_EVAL_GOLD_PATH, DEFAULT_EVAL_DATASET_VERSION = _load_eval_defaults()
 EVAL_EXPERIMENT_NAME = "phase-7-retrieval-eval"
+RAGAS_EXPERIMENT_NAME = "phase-10-ragas-generation"
 from rag_based_on_obsidian.chunking.policy import ChunkingPolicy
 
 
