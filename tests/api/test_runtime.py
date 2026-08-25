@@ -1,6 +1,7 @@
-"""Runtime wiring tests. No live e5 download."""
+from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Self
 
 from rag_based_on_obsidian.api import runtime as runtime_module
 
@@ -48,6 +49,22 @@ class _FakeHybrid:
         return None
 
 
+class _FakePostgresEngine:
+    def connect(self) -> _FakePostgresConnection:
+        return _FakePostgresConnection()
+
+
+class _FakePostgresConnection:
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        return None
+
+    def execute(self, _statement: object) -> None:
+        return None
+
+
 def test_build_runtime_uses_qdrant_url_env(monkeypatch) -> None:
     @dataclass(frozen=True)
     class FakeModel:
@@ -79,6 +96,19 @@ def test_build_runtime_uses_qdrant_url_env(monkeypatch) -> None:
         rrf_k: int = 60
         filters: dict[str, object] = field(default_factory=dict)
 
+    @dataclass(frozen=True)
+    class FakeLlm:
+        name: str = "test-llm"
+        model: str = "openai/gpt-4o-mini"
+        base_url: str = "https://openrouter.ai/api/v1"
+        timeout_seconds: float = 30.0
+        temperature: float = 0.0
+        max_output_tokens: int = 256
+        max_context_tokens: int = 1024
+        min_retrieval_score: float = 0.0
+        http_referer: str = "https://example.test"
+        app_title: str = "test"
+
     captured: dict[str, object] = {}
 
     def fake_client(url: str, timeout: float | None = None) -> _FakeClient:
@@ -97,6 +127,10 @@ def test_build_runtime_uses_qdrant_url_env(monkeypatch) -> None:
     monkeypatch.setattr(
         runtime_module, "load_retrieval_config", lambda _p: FakeRetrieval()
     )
+    monkeypatch.setattr(runtime_module, "load_llm_config", lambda _p: FakeLlm())
+    monkeypatch.setattr(
+        runtime_module, "_read_judge_model_pin", lambda: "openai/gpt-4o-mini"
+    )
     monkeypatch.setattr(runtime_module, "QdrantClient", fake_client)
     monkeypatch.setattr(runtime_module, "TransformersEmbeddingProvider", _FakeProvider)
     monkeypatch.setattr(runtime_module, "QdrantDenseRetriever", _FakeDense)
@@ -113,6 +147,22 @@ def test_build_runtime_uses_qdrant_url_env(monkeypatch) -> None:
         assert captured["url"] == "http://qdrant:6333"
         assert built.model_loaded is True
         assert built.default_top_k == 5
+        assert built.retrieval_embedding_model == "e5"
+        assert built.generate_model == "openai/gpt-4o-mini"
+        assert built.judge_model == "openai/gpt-4o-mini"
+        assert built.evaluation_embedding_model == "e5"
         assert built.ping_qdrant() is True
+        monkeypatch.setattr(
+            built,
+            "_ensure_engine",
+            lambda: _FakePostgresEngine(),
+        )
+        assert built.ping_postgres() is True
+        monkeypatch.setattr(
+            built,
+            "_ensure_engine",
+            lambda: (_ for _ in ()).throw(RuntimeError("postgres down")),
+        )
+        assert built.ping_postgres() is False
     finally:
         built.close()

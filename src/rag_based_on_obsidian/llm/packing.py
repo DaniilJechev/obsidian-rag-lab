@@ -7,12 +7,33 @@ from rag_based_on_obsidian.llm.contracts import LLMMessage
 from rag_based_on_obsidian.retrieval.contracts import RetrievedChunk
 
 SYSTEM_PROMPT = (
-    "You answer questions about an Obsidian ML/NLP vault. 1) Use only the provided "
-    "chunks. 2) Cite notes as [[note title]] in the answer. 3) Return a JSON object "
-    "with keys: answer (string), citations (array of {chunk_id, note_path}), "
-    "confidence (number 0 to 1). 4) Do not invent chunk ids. If the chunks do "
-    "not contain the answer, still return JSON with a short honest answer and "
-    "low confidence."
+    "You answer questions about an Obsidian ML/NLP vault.\n"
+    "Rules:\n"
+    "1) Use only the provided chunks.\n"
+    "2) Cite notes as [[note title]] inside the answer string.\n"
+    "3) Reply with ONE JSON object and nothing else: no markdown fences, "
+    "no preamble, no trailing text.\n"
+    "4) Required keys: answer (string), citations (array of objects with "
+    "integer chunk_id and string note_path copied from the chunk headers), "
+    "confidence (number from 0 to 1 = how sure you are the answer is "
+    "supported by the chunks).\n"
+    "5) Do not invent chunk ids. If chunks are insufficient, still return "
+    "JSON with a short honest answer and low confidence.\n"
+    "6) Keep answer concise (a few short paragraphs max). Prefer plain text "
+    "over long lecture-style lists.\n"
+    "7) JSON escaping is mandatory. Inside answer, use \\n for newlines. "
+    "Never write a single backslash before a letter: sequences like "
+    "\\approx, \\ge, \\int, \\log, \\sim are invalid JSON and will fail "
+    "parsing. For math write ASCII words (approx, >=, integral, log, ~) "
+    "or Unicode symbols (≈, ≥) with no backslashes. Do not use LaTeX "
+    "backslash commands.\n"
+    "8) Always finish a complete JSON object: close all quotes and braces, "
+    "and always include citations and confidence before stopping.\n"
+    "\n"
+    "Example of a valid reply (shape only; invent nothing beyond chunks):\n"
+    '{"answer":"RoPE rotates query/key vectors by position. See [[RoPE]].",'
+    '"citations":[{"chunk_id":2046,"note_path":"DLS2/RoPE.md"}],'
+    '"confidence":0.9}'
 )
 
 

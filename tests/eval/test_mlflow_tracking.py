@@ -1,3 +1,5 @@
+import json
+
 from rag_based_on_obsidian.eval import mlflow_tracking
 from rag_based_on_obsidian.eval.contracts import DatasetMetrics
 
@@ -49,8 +51,8 @@ def test_log_eval_harness_run_writes_note_level_tags(monkeypatch) -> None:
     )
     monkeypatch.setattr(
         mlflow_tracking.mlflow,
-        "log_dict",
-        lambda payload, path: logged.setdefault("artifact", (payload, path)),
+        "log_text",
+        lambda text, path: logged.setdefault("artifact", (text, path)),
     )
     monkeypatch.setattr(mlflow_tracking, "process_rss_mb", lambda: 128.0)
 
@@ -119,8 +121,8 @@ def test_log_eval_harness_run_accepts_live_kind(monkeypatch) -> None:
     )
     monkeypatch.setattr(
         mlflow_tracking.mlflow,
-        "log_dict",
-        lambda payload, path: logged.setdefault("artifact", (payload, path)),
+        "log_text",
+        lambda text, path: logged.setdefault("artifact", (text, path)),
     )
     monkeypatch.setattr(mlflow_tracking, "process_rss_mb", lambda: 128.0)
     metrics = DatasetMetrics(
@@ -139,7 +141,7 @@ def test_log_eval_harness_run_accepts_live_kind(monkeypatch) -> None:
         run_kind="live",
         metrics=metrics,
         duration_seconds=1.0,
-        artifact={"items": [{"item_id": "q001"}]},
+        artifact={"items": [{"item_id": "q001", "question": "Как?"}]},
         extra_params={"rrf_k": 10},
         extra_metrics={"rrf_k": 10.0},
         extra_tags={"retrieval_method": "dense"},
@@ -153,7 +155,11 @@ def test_log_eval_harness_run_accepts_live_kind(monkeypatch) -> None:
     assert logged["tags"]["retrieval_method"] == "dense"
     assert logged["metrics"]["ndcg_at_5"] == 0.2
     assert logged["metrics"]["rrf_k"] == 10.0
-    assert logged["artifact"][1] == "per_question.json"
+    text, path = logged["artifact"]
+    assert path == "per_question.json"
+    assert "Как?" in text
+    assert "\\u04" not in text
+    assert json.loads(text)["items"][0]["item_id"] == "q001"
 
 
 def test_log_eval_harness_run_rejects_unknown_kind() -> None:

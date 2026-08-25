@@ -23,7 +23,9 @@ class RagasRunConfig:
     subset_size: int
     full_set: bool
     concurrency: int
+    generate_model: str
     judge_model: str
+    judge_backend: str
     generate_timeout_seconds: float
     human_sample_path: Path | None = None
     human_review_path: Path | None = None
@@ -61,6 +63,9 @@ def load_ragas_config(path: Path) -> RagasRunConfig:
         raise ValueError(
             "human_sample_path and human_review_path must be set together"
         )
+    judge_backend = raw_config.get("judge_backend", "json")
+    if judge_backend not in {"json", "ragas"}:
+        raise ValueError("judge_backend must be 'json' or 'ragas'")
     return RagasRunConfig(
         name=_required_str(raw_config, "name"),
         gold_path=resolved_gold,
@@ -71,7 +76,9 @@ def load_ragas_config(path: Path) -> RagasRunConfig:
         subset_size=subset_size,
         full_set=full_set,
         concurrency=concurrency,
+        generate_model=_required_str(raw_config, "generate_model"),
         judge_model=_required_str(raw_config, "judge_model"),
+        judge_backend=str(judge_backend),
         generate_timeout_seconds=float(timeout),
         human_sample_path=human_sample_path,
         human_review_path=human_review_path,

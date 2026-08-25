@@ -13,61 +13,61 @@ instructions: >
 items:
   - id: q001
     question: "Как dropout во время обучения ломает коадаптацию нейронов и борется с переобучением, и чем он отличается от других способов регуляризации, которые не отключают нейроны случайно?"
-    faithfulness: null
-    answer_relevancy: null
-    overall: null
+    faithfulness: 4
+    answer_relevancy: 5
+    overall: 5
     notes: ""
   - id: q002
     question: "Чем отличаются полный GD, SGD по одному примеру и mini-batch SGD: что именно усредняется, как меняется шум градиента и когда какой режим уместен?"
-    faithfulness: null
-    answer_relevancy: null
-    overall: null
+    faithfulness: 5
+    answer_relevancy: 5
+    overall: 5
     notes: ""
   - id: q003
     question: "Почему при backpropagation через много слоёв градиент затухает из-за цепного правила и производных активаций, и как те же «нули в градиенте» проявляются в saturating GAN, где для генератора придумали non-saturating heuristic?"
-    faithfulness: null
-    answer_relevancy: null
-    overall: null
+    faithfulness: 5
+    answer_relevancy: 5
+    overall: 5
     notes: ""
   - id: q004
     question: "Почему линейная модель не решает XOR, зачем между слоями нелинейные активации, и почему глубокая сеть без нелинейностей математически схлопывается в одну линейную регрессию?"
-    faithfulness: null
-    answer_relevancy: null
-    overall: null
+    faithfulness: 4
+    answer_relevancy: 5
+    overall: 5
     notes: ""
   - id: q005
     question: "Зачем в U-Net skip connections между encoder и decoder, как это связано с encoder–decoder схемой сегментации и какую задачу сегментации это вообще решает?"
-    faithfulness: null
-    answer_relevancy: null
-    overall: null
+    faithfulness: 5
+    answer_relevancy: 5
+    overall: 5
     notes: ""
   - id: q006
     question: "Как NMS по confidence и IoU оставляет одну рамку на объект, чем IoU-based bounding box loss отличается от MSE по координатам, и где оба шага стоят в анатомии детектора?"
-    faithfulness: null
-    answer_relevancy: null
-    overall: null
+    faithfulness: 5
+    answer_relevancy: 5
+    overall: 5
     notes: ""
   - id: q007
     question: "Что измеряет mAP в детекции, как это стыкуется с общими метриками классификации/регрессии и почему без понимания анатомии детектора (рамки, скоры, пороги) mAP легко неправильно прочитать?"
-    faithfulness: null
-    answer_relevancy: null
-    overall: null
+    faithfulness: 5
+    answer_relevancy: 4
+    overall: 5
     notes: ""
   - id: q009
     question: "Чем VAE отличается от классического autoencoder: какая роль латентного распределения и KL, и когда reconstruction error того же семейства моделей используют для anomaly / OOD detection?"
-    faithfulness: null
-    answer_relevancy: null
-    overall: null
+    faithfulness: 3
+    answer_relevancy: 5
+    overall: 4
     notes: ""
   - id: q010
     question: "В чём идея GAN, как устроена минимаксная игра генератора и дискриминатора, и что оптимальный дискриминатор говорит про JS-дивергенцию между реальным и сгенерированным распределением?"
-    faithfulness: null
-    answer_relevancy: null
-    overall: null
+    faithfulness: 5
+    answer_relevancy: 5
+    overall: 5
     notes: ""
   - id: q011
     question: "Зачем делают cross-validation, чем hold-out Train/Validation/Test от него отличается, и как оба приёма связаны с оценкой обобщения и риском переобучения?"
-    faithfulness: null
-    answer_relevancy: null
-    overall: null
+    faithfulness: 4
+    answer_relevancy: 5
+    overall: 5
     notes: ""

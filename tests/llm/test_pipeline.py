@@ -2,6 +2,8 @@
 
 import asyncio
 
+import pytest
+
 from rag_based_on_obsidian.llm.contracts import LLMMessage, LLMMetadata, LLMResult
 from rag_based_on_obsidian.llm.pipeline import run_rag_generate
 from rag_based_on_obsidian.llm.settings import LLMConfig
@@ -110,3 +112,34 @@ def test_pipeline_refuses_without_calling_llm() -> None:
     assert payload["refused"] is True
     assert payload["refusal_reason"] == "no retrieved context"
     assert payload["contexts"] == []
+
+
+def test_pipeline_attaches_raw_generation_on_parse_failure() -> None:
+    from rag_based_on_obsidian.llm.contracts import LLMUnavailableError
+
+    class _BadJson:
+        async def generate(self, messages: list[LLMMessage]) -> LLMResult:
+            return LLMResult(
+                content='{"answer":"x \\approx 0","citations":[',
+                model="fake",
+                latency_ms=1,
+            )
+
+        @property
+        def metadata(self) -> LLMMetadata:
+            return LLMMetadata(provider="fake", model="fake")
+
+    with pytest.raises(LLMUnavailableError) as caught:
+        asyncio.run(
+            run_rag_generate(
+                _search_one,
+                _BadJson(),
+                _CONFIG,
+                "What is RoPE?",
+                method=RetrievalMethod.HYBRID,
+                top_k=5,
+            )
+        )
+    assert "valid JSON" in str(caught.value)
+    assert caught.value.raw_generation is not None
+    assert "\\approx" in caught.value.raw_generation

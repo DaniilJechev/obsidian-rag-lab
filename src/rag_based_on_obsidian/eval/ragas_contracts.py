@@ -16,15 +16,16 @@ class PackedContext:
 class RagasItemMetrics:
     """Four v1 metrics for one gold question, or a skip.
 
-    Faithfulness and answer_relevancy are JSON-judge integers 0–5.
+    Faithfulness and answer_relevancy follow the active judge backend:
+    JSON integers 0–5, or ragas floats in [0, 1]. Do not mix in one mean.
     Context precision/recall stay in [0, 1] (note-level proxy).
     """
 
     item_id: str
     skipped: bool
     skip_reason: str | None = None
-    faithfulness: int | None = None
-    answer_relevancy: int | None = None
+    faithfulness: float | None = None
+    answer_relevancy: float | None = None
     context_precision: float | None = None
     context_recall: float | None = None
     refused: bool = False

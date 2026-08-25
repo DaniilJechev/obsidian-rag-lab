@@ -1,6 +1,8 @@
 """Packing and refuse heuristics. No network."""
 
 from rag_based_on_obsidian.llm.packing import (
+    SYSTEM_PROMPT,
+    build_messages,
     estimate_tokens,
     pack_chunks,
     should_refuse,
@@ -18,6 +20,19 @@ def _chunk(*, chunk_id: int = 1, text: str = "hello world", score: float = 0.9) 
         chunking_version="sprint9-policy-512-v2",
         rank=1,
     )
+
+
+def test_system_prompt_includes_one_shot_json_example() -> None:
+    assert '"answer"' in SYSTEM_PROMPT
+    assert '"citations"' in SYSTEM_PROMPT
+    assert '"confidence"' in SYSTEM_PROMPT
+    assert "no markdown fences" in SYSTEM_PROMPT
+    assert "invalid JSON" in SYSTEM_PROMPT
+    assert "concise" in SYSTEM_PROMPT
+    messages = build_messages("What is RoPE?", pack_chunks([_chunk()], max_context_tokens=50))
+    assert messages[0].role == "system"
+    assert messages[0].content == SYSTEM_PROMPT
+    assert "Question: What is RoPE?" in messages[1].content
 
 
 def test_should_refuse_empty_hits() -> None:

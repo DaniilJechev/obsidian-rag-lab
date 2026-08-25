@@ -17,6 +17,7 @@ top_k: 5
 subset_size: 15
 full_set: false
 concurrency: 5
+generate_model: openai/gpt-4o-mini
 judge_model: openai/gpt-4o-mini
 generate_timeout_seconds: 60
 """,
@@ -28,8 +29,54 @@ generate_timeout_seconds: 60
     assert config.concurrency == 5
     assert config.method.value == "hybrid"
     assert config.api_base_url == "http://127.0.0.1:8000"
+    assert config.generate_model == "openai/gpt-4o-mini"
     assert config.human_sample_path is None
     assert config.human_review_path is None
+    assert config.judge_backend == "json"
+
+
+def test_load_ragas_config_reads_ragas_backend(tmp_path: Path) -> None:
+    path = tmp_path / "ragas.yaml"
+    path.write_text(
+        """name: sprint23
+gold_path: gold.yaml
+dataset_version: v0
+api_base_url: http://127.0.0.1:8000
+method: hybrid
+top_k: 5
+subset_size: 15
+full_set: false
+concurrency: 2
+generate_model: openai/gpt-4o-mini
+judge_model: openai/gpt-4o-mini
+judge_backend: ragas
+""",
+        encoding="utf-8",
+    )
+    config = load_ragas_config(path)
+    assert config.judge_backend == "ragas"
+
+
+def test_load_ragas_config_rejects_unknown_backend(tmp_path: Path) -> None:
+    path = tmp_path / "ragas.yaml"
+    path.write_text(
+        """name: sprint23
+gold_path: gold.yaml
+dataset_version: v0
+api_base_url: http://127.0.0.1:8000
+method: hybrid
+top_k: 5
+subset_size: 15
+full_set: false
+concurrency: 2
+generate_model: openai/gpt-4o-mini
+judge_model: openai/gpt-4o-mini
+judge_backend: openai
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="judge_backend"):
+        load_ragas_config(path)
 
 
 def test_load_ragas_config_rejects_concurrency_above_ten(tmp_path: Path) -> None:
@@ -44,6 +91,7 @@ top_k: 5
 subset_size: 15
 full_set: false
 concurrency: 11
+generate_model: openai/gpt-4o-mini
 judge_model: openai/gpt-4o-mini
 """,
         encoding="utf-8",
@@ -64,6 +112,7 @@ top_k: 5
 subset_size: 15
 full_set: false
 concurrency: 5
+generate_model: openai/gpt-4o-mini
 judge_model: openai/gpt-4o-mini
 human_sample_path: evals/human/sprint22_sample.yaml
 """,

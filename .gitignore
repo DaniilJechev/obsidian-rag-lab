@@ -11,6 +11,7 @@ mlflow.db-*
 .cursor/
 generate-smoke.json
 evals/human/sprint22_review.yaml
+evals/human/sprint23_review.yaml
 
 # Keep intentional directory placeholders tracked.
 !.gitkeep

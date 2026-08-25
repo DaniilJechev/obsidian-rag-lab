@@ -135,6 +135,7 @@ async def _score_one(
                 query=item.question,
                 method=config.method,
                 top_k=config.top_k,
+                model=config.generate_model,
             )
         except GenerateApiError as exc:
             metrics = RagasItemMetrics(
@@ -143,7 +144,12 @@ async def _score_one(
                 skip_reason=str(exc),
                 packed_note_paths=(),
             )
-            return metrics, _artifact(item, metrics, packed_paths=())
+            return metrics, _artifact(
+                item,
+                metrics,
+                packed_paths=(),
+                raw_generation=exc.raw_generation,
+            )
 
     packed_paths = tuple(context.note_path for context in generated.contexts)
     packed_contexts = tuple(
@@ -287,8 +293,9 @@ def _artifact(
     packed_paths: tuple[str, ...],
     answer: str | None = None,
     contexts: Sequence[Mapping[str, object]] = (),
+    raw_generation: str | None = None,
 ) -> dict[str, object]:
-    return {
+    row: dict[str, object] = {
         "item_id": item.item_id,
         "question": item.question,
         "answer": answer,
@@ -307,3 +314,6 @@ def _artifact(
         "prompt_tokens": metrics.prompt_tokens,
         "generated_tokens": metrics.generated_tokens,
     }
+    if raw_generation is not None:
+        row["raw_generation"] = raw_generation
+    return row

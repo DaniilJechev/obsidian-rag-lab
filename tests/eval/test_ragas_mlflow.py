@@ -1,3 +1,5 @@
+import json
+
 from rag_based_on_obsidian.eval import ragas_mlflow
 from rag_based_on_obsidian.eval.ragas_contracts import RagasDatasetMetrics
 
@@ -27,11 +29,11 @@ def test_log_ragas_run_writes_phase_10_tags(monkeypatch) -> None:
         lambda uri: logged.setdefault("uri", uri),
     )
     monkeypatch.setattr(ragas_mlflow, "_configure_ragas_experiment", lambda: None)
-    monkeypatch.setattr(
-        ragas_mlflow.mlflow,
-        "start_run",
-        lambda **_kwargs: _FakeRun(),
-    )
+    def fake_start_run(**kwargs: object) -> _FakeRun:
+        logged["start_run_kwargs"] = kwargs
+        return _FakeRun()
+
+    monkeypatch.setattr(ragas_mlflow.mlflow, "start_run", fake_start_run)
     monkeypatch.setattr(
         ragas_mlflow.mlflow,
         "log_params",
@@ -53,8 +55,8 @@ def test_log_ragas_run_writes_phase_10_tags(monkeypatch) -> None:
     )
     monkeypatch.setattr(
         ragas_mlflow.mlflow,
-        "log_dict",
-        lambda payload, path: logged.setdefault("artifact", (payload, path)),
+        "log_text",
+        lambda text, path: logged.setdefault("texts", []).append((path, text)),
     )
     monkeypatch.setattr(ragas_mlflow, "process_rss_mb", lambda: 64.0)
 
@@ -81,10 +83,15 @@ def test_log_ragas_run_writes_phase_10_tags(monkeypatch) -> None:
         metrics=metrics,
         duration_seconds=12.0,
         extra_params={"top_k": 5},
+        prompts={
+            "generate_system": "GEN_PROMPT",
+            "evaluation_system": "EVAL_PROMPT",
+        },
         artifact={
             "items": [
                 {
                     "item_id": "q001",
+                    "question": "ok?",
                     "skipped": False,
                     "faithfulness": 3,
                     "answer_relevancy": 5,
@@ -93,20 +100,38 @@ def test_log_ragas_run_writes_phase_10_tags(monkeypatch) -> None:
                 },
                 {
                     "item_id": "q002",
+                    "question": "ok2?",
                     "skipped": False,
                     "faithfulness": 5,
                     "answer_relevancy": 3,
                     "context_precision": 0.5,
                     "context_recall": 0.6,
                 },
+                {
+                    "item_id": "q003",
+                    "question": "плохой json?",
+                    "skipped": True,
+                    "skip_reason": (
+                        "generate API failed (503): structured output is not "
+                        "valid JSON"
+                    ),
+                    "raw_generation": '{"answer":"x \\approx 0", "citations":[',
+                    "answer": None,
+                    "model": None,
+                },
             ]
         },
+        run_name="ragas-framework-sprint23-generate-openai-gpt-4o-mini",
     )
 
     assert run_id == "ragas-run"
+    assert (
+        logged["start_run_kwargs"]["run_name"]
+        == "ragas-framework-sprint23-generate-openai-gpt-4o-mini"
+    )
     assert logged["tags"]["phase"] == "10"
-    assert logged["tags"]["sprint"] == "22"
-    assert logged["tags"]["task"] == "MLOPS-001"
+    assert logged["tags"]["sprint"] == "23"
+    assert logged["tags"]["task"] == "MLOPS-002"
     assert logged["metrics"]["faithfulness"] == 3.5
     assert logged["metrics"]["answer_relevancy"] == 4.0
     assert logged["metrics"]["judge_faithfulness"] == 3.5
@@ -125,3 +150,27 @@ def test_log_ragas_run_writes_phase_10_tags(monkeypatch) -> None:
     assert logged["metrics"]["median_generated_tokens"] == 2.0
     assert logged["params"]["run_kind"] == "ragas_live"
     assert logged["params"]["notes_processed"] == "7"
+    assert "prompt_generate_system_sha256" in logged["params"]
+    assert "prompt_evaluation_system_sha256" in logged["params"]
+    assert ("prompts/generate_system.txt", "GEN_PROMPT") in logged["texts"]
+    assert ("prompts/evaluation_system.txt", "EVAL_PROMPT") in logged["texts"]
+    text_by_path = {path: text for path, text in logged["texts"]}
+    assert "per_question.json" in text_by_path
+    assert "failed_generations.json" in text_by_path
+    assert "\\u04" not in text_by_path["failed_generations.json"]
+    assert "плохой" in text_by_path["failed_generations.json"]
+    failed_payload = json.loads(text_by_path["failed_generations.json"])
+    assert failed_payload["items"][0]["item_id"] == "q003"
+    assert "valid JSON" in failed_payload["items"][0]["skip_reason"]
+    assert "\\approx" in failed_payload["items"][0]["raw_generation"]
+
+
+def test_mlflow_generate_run_name_sanitizes_model_id() -> None:
+    assert (
+        ragas_mlflow.mlflow_generate_run_name("openai/gpt-4o-mini")
+        == "ragas-framework-sprint23-generate-openai-gpt-4o-mini"
+    )
+    assert (
+        ragas_mlflow.mlflow_generate_run_name("google/gemini-3.7-flash")
+        == "ragas-framework-sprint23-generate-google-gemini-3.7-flash"
+    )

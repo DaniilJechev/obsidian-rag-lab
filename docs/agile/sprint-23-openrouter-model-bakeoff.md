@@ -1,9 +1,8 @@
 # Sprint 23 — RAGAS runtime + OpenRouter model bake-off
 
-> Статус: `planned`
+> Статус: `in-progress`
 >
-> Ветка: `sprint/23-openrouter-model-bakeoff` (создаётся только при старте
-> реализации, после merge Sprint 22)
+> Ветка: `sprint/23-openrouter-model-bakeoff`
 >
 > Связанная фаза roadmap: `Фаза 10`
 >
@@ -15,11 +14,12 @@
 ## Sprint Goal
 
 Сначала владелец проставляет целые 0–5 в `evals/human/sprint22_sample.yaml`
-по pack `sprint22_review.yaml` (carry-over из Sprint 22). Затем починить
-runtime пакета `ragas` и считать Faithfulness / Answer Relevancy **протоколом
-фреймворка**, не нашим JSON-судьёй. Затем на том же gold subset, том же k
-и **замороженном ragas-judge** сравнить 2–3 generate-модели по RAGAS +
-tokens/latency/cost. Не «на глаз».
+по pack `sprint22_review.yaml` (carry-over из Sprint 22). Затем **добавить**
+runtime пакета `ragas` как второй judge-backend (шкала native 0–1). JSON-судья
+`OpenRouterJsonJudge` **не удаляется**: человеческая разметка и калибровка
+остаются на целых 0–5. Затем на том же gold subset, том же k и **замороженном
+ragas-judge** сравнить 2–3 generate-модели по RAGAS + tokens/latency/cost.
+Не «на глаз». Не смешивать 0–5 и 0–1 в одной таблице.
 
 ## Why
 
@@ -33,7 +33,8 @@ v1 — один JSON-complete с теми же именами осей. Паке
 
 Пока bake-off идёт на JSON-судье, сравнивать модели дешевле, но слабее
 по смыслу Faithfulness (нет claim-decomposition). Поэтому Sprint 23
-сначала чинит runtime ragas, потом гоняет bake-off уже на нём.
+сначала чинит runtime ragas **рядом** с JSON 0–5, потом гоняет bake-off
+уже на ragas 0–1. JSON остаётся кнопкой `judge_backend: json`.
 
 Phase 10 закрывается после merge **этого** спринта (оба Issue на
 Milestone 10 закрыты).
@@ -45,53 +46,57 @@ Milestone 10 закрыты).
 
 ### 0 — human sample (carry-over Sprint 22)
 
-- [ ] Владелец заполняет `evals/human/sprint22_sample.yaml` целыми 0–5
+- [x] Владелец заполняет `evals/human/sprint22_sample.yaml` целыми 0–5
       (`faithfulness`, `answer_relevancy`, `overall`) по
       `evals/human/sprint22_review.yaml`. Не копировать пятёрки JSON-судьи.
-- [ ] Расхождение human vs judge зафиксировать в этом sprint-доке
+- [x] Расхождение human vs judge зафиксировать в этом sprint-доке
       (калибровка bias mini-as-judge). Фиктивные баллы не ставить.
 
 ### A — внедрение ragas framework
 
-- [ ] `import ragas` проходит в нашем venv/CI без Google Vertex.
+- [x] `import ragas` проходит в нашем venv/CI без Google Vertex.
       Предпочтительный путь: bump `ragas`, если вышла версия с lazy
       Vertex-import ([issue #2745](https://github.com/vibrantlabsai/ragas/issues/2745)).
       Не ставить `langchain-google-vertexai` «чтобы импорт завёлся» —
       мы Vertex не зовём, а 0.4.3 всё равно импортирует старый путь.
       Даунгрейд всего LangChain стека до 0.2/0.3 **не** делать: проект
-      уже на `langchain-core>=1.5.4` (chunking).
-- [ ] `OpenRouterJsonJudge` заменить реализацией `GenerationJudge`,
-      которая гоняет **ragas Faithfulness** и **ragas Answer Relevancy**
-      на packed contexts из `/generate`. LLM судьи — OpenRouter
+      уже на `langchain-core>=1.5.4` (chunking). Workaround Sprint 23:
+      stub `ChatVertexAI` / `VertexAI` перед `import ragas`
+      (`eval/ragas_import.py`).
+- [x] **Добавить** (не заменить) `GenerationJudge` на **ragas Faithfulness**
+      и **ragas Answer Relevancy** по packed contexts из `/generate`.
+      `OpenRouterJsonJudge` остаётся: целые 0–5, тот же контракт
+      `judge.score()`. Выбор — `judge_backend: json | ragas` в
+      `configs/eval/ragas.yaml`. LLM судьи — OpenRouter
       (pin отдельным `judge_model`, как сейчас).
-- [ ] Для Answer Relevancy нужен embedder: default — уже стоящий
+- [x] Для Answer Relevancy нужен embedder: default — уже стоящий
       local `multilingual-e5-small`, не OpenAI embeddings. Иначе bake-off
       платит за эмбеддинги судейских вопросов.
-- [ ] Context Precision / Recall **оставить note-level proxy**
+- [x] Context Precision / Recall **оставить note-level proxy**
       (`source_path` ∈ gold `relevant_notes`). В gold нет reference
       answer, ragas Context Recall из коробки считать нечем.
-- [ ] CI по-прежнему без live `evaluate()` и без `OPENROUTER_API_KEY`:
+- [x] CI по-прежнему без live `evaluate()` и без `OPENROUTER_API_KEY`:
       моки/контракт судьи. Импорт ragas в тестах допустим только если
       он стабильно зелёный в Linux CI.
-- [ ] В MLflow явно тегировать `judge_backend=ragas` и `judge_scale=0-1`
-      (Sprint 22 JSON-судья — целые 0–5; числа **не** класть в одну таблицу
-      без пересчёта). Native ragas 0–1 не рескейлить в 0–5.
+- [x] В MLflow явно тегировать `judge_backend` и `judge_scale`
+      (`0-5` для JSON, `0-1` для ragas). Числа **не** класть в одну таблицу
+      без пересчёта. Native ragas 0–1 не рескейлить в 0–5.
 
 ### B — bake-off generate-моделей
 
-- [ ] YAML-список моделей. Рекомендация: `openai/gpt-4o-mini` как
-      контроль + 1–2 других id, которые выбираем при старте реализации.
-      Не Ox Alpha по умолчанию (stealth/latency).
-- [ ] Контроль mini — **новый** прогон на ragas-judge, не цифры JSON
-      из Sprint 22. Те нельзя класть в одну таблицу.
-- [ ] Judge **не** менять между строками bake-off (ни модель, ни
-      версию ragas, ни embedder).
-- [ ] Одна таблица в этом sprint-доке и MLflow Compare (несколько runs,
-      теги `sprint=23`, `task=MLOPS-002`).
-- [ ] Human 0–5 vs ragas 0–1 не класть в одну таблицу bake-off; калибровку
-      human vs JSON-судья Sprint 22 писать отдельно (раздел 0).
-- [ ] Регрессия harness только если сломается на второй модели
-      (timeout, JSON parse) — точечный фикс, не третий eval-стек.
+- [x] YAML-список моделей: ровно **2** —
+      `openai/gpt-4o-mini` (контроль) + `google/gemini-3.7-flash`.
+      Третью не берём (Out of Scope).
+- [x] Контроль mini — ragas-прогон Sprint 23
+      (`7278da5caefc418382d762a8ed7ec155`), не JSON Sprint 22.
+- [x] Judge freeze между строками: `openai/gpt-4o-mini` +
+      `judge_backend: ragas` + local e5.
+- [x] Одна таблица в Validation Evidence; MLflow runs с тегами
+      `sprint=23`, `task=MLOPS-002`.
+- [x] Human 0–5 vs ragas 0–1 не смешаны; калибровка human vs JSON —
+      отдельно выше.
+- [x] Регрессия harness на Gemini: JSON parse / LaTeX escapes —
+      починен parser + `raw_generation` в `failed_generations`.
 
 ## Out of Scope
 
@@ -108,22 +113,25 @@ Milestone 10 закрыты).
 
 - `docs/agile/sprint-23-openrouter-model-bakeoff.md` — этот документ.
 - Заполненный `evals/human/sprint22_sample.yaml` (carry-over Sprint 22).
-- Рабочий `import ragas` + `GenerationJudge` на метриках пакета.
+- Рабочий `import ragas` + второй `GenerationJudge` на метриках пакета
+  (JSON 0–5 не удалён).
 - Правки YAML/матрицы моделей.
 - Таблица RAGAS + usage в Validation Evidence после live.
 
 ## Acceptance Criteria
 
-- [ ] `import ragas` не падает; live считает Faithfulness / Answer
-      Relevancy через пакет, не через `_JUDGE_SYSTEM` JSON.
-- [ ] Context P/R по-прежнему note-level proxy; это записано в report.
-- [ ] ≥2 generate-модели прогнаны на одном subset, одном gold version,
-      одном k, одном ragas-judge.
-- [ ] Таблица RAGAS + tokens/latency/cost; числа только из реальных runs.
-- [ ] Контроль mini — ragas-прогон Sprint 23, не JSON-цифры Sprint 22.
-- [ ] CI по-прежнему без live ключа.
-- [ ] Human sample Sprint 22 заполнен целыми 0–5; фиктивных баллов нет.
-- [ ] Vault не изменён; секреты не в git.
+- [x] `import ragas` не падает (тест + Vertex-stub). JSON 0–5 остаётся
+      через `judge_backend: json` (human sample).
+- [x] Live `rag-cli ragas run` с `judge_backend: ragas` считает
+      Faithfulness / Answer Relevancy через пакет (mini + Gemini).
+- [x] Context P/R по-прежнему note-level proxy; это записано в report.
+- [x] ≥2 generate-модели прогнаны на одном subset, одном gold version,
+      одном k, одном ragas-judge (валидная пара ниже).
+- [x] Таблица RAGAS + tokens/latency; числа только из реальных runs.
+- [x] Контроль mini — ragas-прогон Sprint 23, не JSON-цифры Sprint 22.
+- [x] CI по-прежнему без live ключа (live OpenRouter только локально).
+- [x] Human sample Sprint 22 заполнен целыми 0–5; фиктивных баллов нет.
+- [x] Vault не изменён; секреты не в git.
 
 ## Definition of Done
 
@@ -168,47 +176,134 @@ Milestone 10 закрыты).
 | 2026-08-24 | Planning | Документ создан вместе со Sprint 22; GitHub Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59); код не начат |
 | 2026-08-24 | Scope change | В Sprint 23 добавлен runtime ragas (Faithfulness / Answer Relevancy пакетом) **перед** bake-off. JSON-судья Sprint 22 остаётся v1 baseline, в одну таблицу с 23 не смешивать. |
 | 2026-08-24 | Carry-over | Human scores 0–5 из Sprint 22 перенесены сюда: сначала разметка `sprint22_sample.yaml`, потом ragas runtime, потом bake-off. |
+| 2026-08-25 | Human sample | Owner заполнил 10 id в `sprint22_sample.yaml`. Калибровка vs JSON-судья — в Validation Evidence. |
+| 2026-08-25 | Live control mini | `rag-cli ragas run`, generate=`openai/gpt-4o-mini`, judge ragas 0–1. 15/15, skip 0. MLflow `7278da5caefc418382d762a8ed7ec155`. |
+| 2026-08-25 | Live Gemini | generate=`google/gemini-3.7-flash`, 15/15 after LaTeX-tolerant JSON parser. MLflow `d0918cf63a3b4f6384bb271b1b6cd2b0`. packed_paths совпали с mini 15/15. |
+| 2026-08-25 | Rejected mini reruns | `563bd04c…` (14/15, retrieval 503) и `70b78ead…` (15/15) — **не** bake-off: packed_paths разъехались с Gemini (Jaccard ~0.31), ctx P/R ~0.45/0.51. Индекс/выдача дрейфанули без нового ingest владельцем. |
+| 2026-08-25 | Bake-off freeze | Валидная пара: mini `7278da5c…` + Gemini `d0918cf6…` (одинаковый retrieval). Третью модель не берём. |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-(ожидается после реализации; не раньше merge Sprint 22)
+uv run rag-cli ragas run --generate-model openai/gpt-4o-mini
+uv run rag-cli ragas run --generate-model google/gemini-3.7-flash
 ```
+
+Judge freeze: `openai/gpt-4o-mini`, `judge_backend: ragas`, subset 15, hybrid k=5.
+JSON Sprint 22 сюда не класть.
 
 ### Test and Lint Results
 
-- Tests: не запускались
-- Lint: не запускался
-- CI: нет
+- Tests: `uv run pytest -q --tb=line` → 215 passed, 1 skipped, 18 deselected.
+- Lint: `uv run ruff check src/ tests/` → all checks passed.
+- Human scores: `evals/human/sprint22_sample.yaml` (не `sprint22_review.yaml`).
+  Review Sprint 22 — pack + JSON-судья; sample — owner.
+  Live ragas пишет pack в `evals/human/sprint23_review.yaml`, чтобы не
+  затереть JSON-pack, по которому уже стоят human 0–5.
 
 ### Metrics
 
-Bake-off таблица — только после реальных runs.
+JSON-судья Sprint 22 (канон MLflow `4663f6d7…`, 15 вопросов): faithfulness 4.6,
+answer_relevancy 4.667. Ниже — только пересечение **тех же 10 id**, human vs
+`judge:` в `sprint22_review.yaml`. Шкала целые 0–5. Pearson не считаем: n=10
+и потолок пятёрок делают корреляцию бессмысленной.
+
+Сводка (n=10):
+
+| | Human mean | Judge mean | MAE | Exact match |
+|---|---:|---:|---:|---:|
+| Faithfulness | 4.5 | 4.7 | 0.8 | 5/10 |
+| Answer relevancy | 4.9 | 4.7 | 0.4 | 8/10 |
+| Overall (human only) | 4.9 | — | — | — |
+
+По вопросам (human − judge):
+
+| id | H F | J F | ΔF | H AR | J AR | ΔAR | H overall |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| q001 | 4 | 5 | −1 | 5 | 5 | 0 | 5 |
+| q002 | 5 | 5 | 0 | 5 | 5 | 0 | 5 |
+| q003 | 5 | 5 | 0 | 5 | 5 | 0 | 5 |
+| q004 | 4 | 5 | −1 | 5 | 5 | 0 | 5 |
+| q005 | 5 | 5 | 0 | 5 | 5 | 0 | 5 |
+| q006 | 5 | 2 | +3 | 5 | 2 | +3 | 5 |
+| q007 | 5 | 5 | 0 | 4 | 5 | −1 | 5 |
+| q009 | 3 | 5 | −2 | 5 | 5 | 0 | 4 |
+| q010 | 5 | 5 | 0 | 5 | 5 | 0 | 5 |
+| q011 | 4 | 5 | −1 | 5 | 5 | 0 | 5 |
+
+Вывод: **AR почти совпадает** (потолок 5; единственный крупный разъезд —
+q006). **F совпадает умеренно**: MAE 0.8 тянут q006 (+3) и q009 (−2), плюс
+мелкие −1 на q001/q004/q011. На «лёгких» пересказах (q002, q003, q005, q010)
+оба ставят 5.
+
+- **q001:** в pack есть `DLS1/Dropout.md`; ответ с него списан. H F=4
+  (не 0): утверждения ответа опираются на контекст. Overall=5.
+- **q006:** модель отказалась по NMS и гадает MSE/IoU. Judge 2/2 ловит провал
+  retrieval. H 5/5/5 — щедрый «честный отказ»; по протоколу AR должен быть
+  низким (вопрос не закрыт).
+- **q009:** H F=3 ближе к «учебниковый VAE при слабом pack», чем judge 5.
+
+JSON-mini **не** калиброван как строгий F-судья: на 9/10 id он ставит 5.
+Human sample это подтверждает; q006 ещё и расходится с согласованным
+определением осей. Для bake-off Sprint 23 это аргумент считать ragas 0–1
+**рядом** с JSON 0–5, а не усреднять шкалы и не выкидывать JSON.
+
+Bake-off generate (ragas 0–1, один судья `openai/gpt-4o-mini`, тот же gold/k).
+**Валидная пара** (packed_paths совпали 15/15; ctx P/R идентичны):
+
+| generate | F | AR | ctx P | ctx R | scored/skip | mean gen ms | mean gen tok | duration s | MLflow |
+|---|---:|---:|---:|---:|---|---:|---:|---:|---|
+| openai/gpt-4o-mini | 0.779 | 0.898 | 0.785 | 0.622 | 15/0 | 4017 | 215 | 516 | `7278da5caefc418382d762a8ed7ec155` |
+| google/gemini-3.7-flash | 0.870 | 0.887 | 0.785 | 0.622 | 15/0 | 7636 | 957 | 696 | `d0918cf63a3b4f6384bb271b1b6cd2b0` |
+
+Вывод: Gemini выше по Faithfulness (~+0.09), AR почти паритет, контекст тот же;
+цена — ~4.5× generated tokens и ~1.9× latency. Третью модель не гоняли.
+
+Отбракованы (не сравнимы с этой парой из‑за retrieval drift): `563bd04c…`,
+`70b78ead…`.
+
+Context P/R — note-level proxy; на одном retriever должны быть близки между строками (меняется только generate). F/AR — native ragas, не Likert 0–5.
 
 ## Review
 
 ### Completed
 
 - Планирование Sprint 23 зафиксировано.
+- Human sample 10×0–5 в `sprint22_sample.yaml`; калибровка vs JSON-судья записана.
+- JSON 0–5 сохранён; ragas 0–1 добавлен как `judge_backend: ragas`.
+  `import ragas` в тестах проходит через Vertex-stub.
+- Bake-off 2 моделей (mini + Gemini) на одном retrieval; таблица выше.
+- LaTeX-tolerant generate parser; `raw_generation` в failed_generations;
+  MLflow JSON с `ensure_ascii=False`.
 
 ### Not Completed
 
-- Заполнить human scores 0–5 в `evals/human/sprint22_sample.yaml` (carry-over Sprint 22).
-- Починить `import ragas`; wiring Faithfulness / Answer Relevancy.
-- Выбор 1–2 моделей кроме mini; live bake-off на ragas-judge.
+- Formal Git closeout (DoD checkbox Completion / PR merge) — post-implementation.
+- Расследование retrieval drift после Gemini (без явного re-ingest) — tech debt /
+  backlog, не блокер валидной пары.
 
 ### Changed Decisions
 
 - Bake-off вынесен из Sprint 22 в отдельный Sprint 23 / `MLOPS-002`.
-- Sprint 23 больше не «тот же JSON-judge, что 22»: сначала пакет ragas,
-  контроль mini переснимается. Шкала ragas native 0–1, не целые 0–5 Sprint 22.
+- Sprint 23 **добавляет** пакет ragas (0–1), а не заменяет JSON-судью
+  (0–5). Контроль mini на bake-off — новый ragas-прогон, не JSON-цифры
+  Sprint 22. Шкалы не класть в одну таблицу без явной метки backend/scale.
 - Human scores 0–5 — обязательный carry-over из Sprint 22, не optional.
 
 ### Technical Debt
 
-- Нет (реализация не начата).
+- `ragas==0.4.3` жёстко импортирует удалённый Vertex-модуль
+  `langchain_community`. Workaround: stub в `eval/ragas_import.py`, пока
+  upstream не выпустит lazy import. Не ставить `langchain-google-vertexai`.
+- `from ragas.metrics import faithfulness, answer_relevancy` deprecated
+  к v1.0 в пользу `ragas.metrics.collections`. Пока 0.4.3 — оставляем
+  старый import; миграция — когда bump ragas.
+- Retrieval drift между live runs без явного re-ingest владельцем: после
+  валидной пары mini+Gemini последующие mini дали другие `packed_paths`.
+  Нужен probe `/search` vs артефакт перед следующим bake-off; корневая
+  причина (Qdrant volume / BM25 rebuild / API recreate) не зафиксирована.
 
 ## Retrospective
 
@@ -223,6 +318,6 @@ Bake-off таблица — только после реальных runs.
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `in-progress`
 
 **Дата завершения:** —

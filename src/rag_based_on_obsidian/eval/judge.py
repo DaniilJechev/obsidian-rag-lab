@@ -13,7 +13,7 @@ from rag_based_on_obsidian.llm.contracts import (
     LLMUnavailableError,
 )
 
-_JUDGE_SYSTEM = (
+JUDGE_SYSTEM = (
     "You are a strict RAG evaluator. Use only the given question, answer, and "
     "contexts. Return a JSON object with keys faithfulness and answer_relevancy. "
     "Each value MUST be an integer 0, 1, 2, 3, 4, or 5 — never a fraction. "
@@ -34,8 +34,12 @@ class GenerationJudge(Protocol):
         question: str,
         answer: str,
         contexts: Sequence[PackedContext],
-    ) -> tuple[int, int]:
-        """Return (faithfulness, answer_relevancy) as integers 0–5."""
+    ) -> tuple[float, float]:
+        """Return (faithfulness, answer_relevancy).
+
+        JSON backend: integers 0–5. Ragas backend: floats in [0, 1].
+        Never rescale one scale into the other.
+        """
 
 
 class OpenRouterJsonJudge:
@@ -63,7 +67,7 @@ class OpenRouterJsonJudge:
             blocks.append("(none)")
         result = await self._provider.generate(
             [
-                LLMMessage(role="system", content=_JUDGE_SYSTEM),
+                LLMMessage(role="system", content=JUDGE_SYSTEM),
                 LLMMessage(role="user", content="\n\n".join(blocks)),
             ]
         )

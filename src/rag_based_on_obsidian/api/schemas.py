@@ -71,7 +71,23 @@ class SearchResponse(BaseModel):
 
 
 class GenerateRequest(SearchRequest):
-    """JSON body for ``POST /generate``. Same query fields as ``/search``."""
+    """JSON body for ``POST /generate``. Same query fields as ``/search``.
+
+    ``model`` overrides the process default from ``configs/llm/openrouter.yaml``
+    for this request only (bake-off / rag-cli ``--generate-model``).
+    """
+
+    model: str | None = None
+
+    @field_validator("model")
+    @classmethod
+    def model_must_not_be_blank(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("model must not be empty when set")
+        return stripped
 
 
 class GenerateCitation(BaseModel):
@@ -113,12 +129,28 @@ class GenerateResponse(BaseModel):
     usage: GenerateUsage | None = None
 
 
+class PinnedModels(BaseModel):
+    """Model pins this stack is configured to use.
+
+    ``judge`` and ``evaluation_embedding`` are applied by ``rag-cli ragas``,
+    not by ``POST /generate``. They still come from configs baked into this
+    process (Docker image until ``--build``).
+    """
+
+    retrieval_embedding: str | None = None
+    generate: str | None = None
+    judge: str | None = None
+    evaluation_embedding: str | None = None
+
+
 class HealthResponse(BaseModel):
-    """Liveness plus whether the warm model and Qdrant can serve search."""
+    """Liveness plus whether the warm model, Qdrant, and Postgres can serve."""
 
     status: str
     model_loaded: bool
     qdrant: str
+    postgres: str
+    models: PinnedModels
 
 
 class IngestAccepted(BaseModel):

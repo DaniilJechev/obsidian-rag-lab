@@ -52,7 +52,10 @@ async def run_rag_generate(
     try:
         answer, citations, confidence = parse_generation_json(result.content, packed)
     except LLMResponseError as exc:
-        raise LLMUnavailableError(str(exc)) from exc
+        raise LLMUnavailableError(
+            str(exc),
+            raw_generation=result.content,
+        ) from exc
     usage: dict[str, int] | None = None
     if result.usage is not None:
         usage = {

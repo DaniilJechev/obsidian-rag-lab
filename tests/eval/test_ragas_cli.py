@@ -32,6 +32,7 @@ top_k: 5
 subset_size: 1
 full_set: false
 concurrency: 5
+generate_model: openai/gpt-4o-mini
 judge_model: openai/gpt-4o-mini
 """,
         encoding="utf-8",
@@ -44,10 +45,6 @@ base_url: https://openrouter.ai/api/v1
 """,
         encoding="utf-8",
     )
-
-    class _FakeProvider:
-        def __init__(self, *_args: object, **_kwargs: object) -> None:
-            return None
 
     async def fake_run(*_args: object, **_kwargs: object) -> tuple:
         metrics = RagasDatasetMetrics(
@@ -65,9 +62,15 @@ base_url: https://openrouter.ai/api/v1
         )
         return metrics, [{"item_id": "q001"}]
 
-    monkeypatch.setattr(ragas_cli, "OpenRouterLLMProvider", _FakeProvider)
+    monkeypatch.setattr(ragas_cli, "build_generation_judge", lambda *_a, **_k: object())
     monkeypatch.setattr(ragas_cli, "run_ragas_eval", fake_run)
-    monkeypatch.setattr(ragas_cli, "log_ragas_run", lambda **_kwargs: "ragas-mlflow")
+    logged: dict[str, object] = {}
+
+    def fake_log(**kwargs: object) -> str:
+        logged.update(kwargs)
+        return "ragas-mlflow"
+
+    monkeypatch.setattr(ragas_cli, "log_ragas_run", fake_log)
 
     exit_code = ragas_cli.main(
         [
@@ -76,12 +79,28 @@ base_url: https://openrouter.ai/api/v1
             str(config),
             "--llm-config",
             str(llm),
+            "--generate-model",
+            "google/gemini-3.7-flash",
         ]
     )
     captured = capsys.readouterr()
     assert exit_code == 0
-    assert "ragas-mlflow" in captured.out
-    assert "4.0" in captured.out
+    stdout = json.loads(captured.out.splitlines()[-1])
+    assert stdout["mlflow_run_id"] == "ragas-mlflow"
+    assert stdout["generate_model"] == "google/gemini-3.7-flash"
+    assert stdout["faithfulness"] == 4.0
+    assert stdout["judge_backend"] == "json"
+    assert stdout["judge_scale"] == "0-5"
+    assert logged["extra_params"]["generate_model"] == "google/gemini-3.7-flash"
+    assert logged["extra_tags"]["generate_model"] == "google/gemini-3.7-flash"
+    assert (
+        logged["run_name"]
+        == "ragas-framework-sprint23-generate-google-gemini-3.7-flash"
+    )
+    assert logged["prompts"]["generate_system"]
+    assert "answer" in logged["prompts"]["generate_system"]
+    assert logged["prompts"]["evaluation_system"]
+    assert "faithfulness" in logged["prompts"]["evaluation_system"]
 
 
 def test_ragas_cli_writes_human_review_pack(tmp_path: Path, monkeypatch, capsys) -> None:
@@ -119,7 +138,9 @@ top_k: 5
 subset_size: 1
 full_set: false
 concurrency: 5
+generate_model: openai/gpt-4o-mini
 judge_model: openai/gpt-4o-mini
+judge_backend: ragas
 human_sample_path: "{sample.as_posix()}"
 human_review_path: "{review.as_posix()}"
 """,
@@ -133,10 +154,6 @@ base_url: https://openrouter.ai/api/v1
 """,
         encoding="utf-8",
     )
-
-    class _FakeProvider:
-        def __init__(self, *_args: object, **_kwargs: object) -> None:
-            return None
 
     async def fake_run(*_args: object, **_kwargs: object) -> tuple:
         metrics = RagasDatasetMetrics(
@@ -171,7 +188,7 @@ base_url: https://openrouter.ai/api/v1
             }
         ]
 
-    monkeypatch.setattr(ragas_cli, "OpenRouterLLMProvider", _FakeProvider)
+    monkeypatch.setattr(ragas_cli, "build_generation_judge", lambda *_a, **_k: object())
     monkeypatch.setattr(ragas_cli, "run_ragas_eval", fake_run)
     monkeypatch.setattr(ragas_cli, "log_ragas_run", lambda **_kwargs: "ragas-mlflow")
 
@@ -193,3 +210,6 @@ base_url: https://openrouter.ai/api/v1
     stdout = json.loads(captured.out.splitlines()[-1])
     assert stdout["human_review_path"] == str(review)
     assert stdout["human_review_count"] == 1
+    assert stdout["generate_model"] == "openai/gpt-4o-mini"
+    assert stdout["judge_backend"] == "ragas"
+    assert stdout["judge_scale"] == "0-1"
