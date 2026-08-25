@@ -135,6 +135,7 @@ async def _score_one(
                 query=item.question,
                 method=config.method,
                 top_k=config.top_k,
+                model=config.generate_model,
             )
         except GenerateApiError as exc:
             metrics = RagasItemMetrics(

@@ -24,17 +24,24 @@ from rag_based_on_obsidian.eval.human_review import (
     load_human_sample_ids,
     write_human_review,
 )
-from rag_based_on_obsidian.eval.judge import OpenRouterJsonJudge
+from rag_based_on_obsidian.eval.judge import JUDGE_SYSTEM
+from rag_based_on_obsidian.eval.judge_factory import (
+    build_generation_judge,
+    judge_scale,
+)
 from rag_based_on_obsidian.eval.progress import (
     EvalProgress,
     configure_eval_logging,
     eval_tqdm,
 )
-from rag_based_on_obsidian.eval.ragas_mlflow import log_ragas_run
+from rag_based_on_obsidian.eval.ragas_mlflow import (
+    log_ragas_run,
+    mlflow_generate_run_name,
+)
 from rag_based_on_obsidian.eval.ragas_runner import run_ragas_eval, select_gold_slice
 from rag_based_on_obsidian.eval.ragas_settings import RagasRunConfig, load_ragas_config
 from rag_based_on_obsidian.llm.contracts import LLMUnavailableError
-from rag_based_on_obsidian.llm.openrouter import OpenRouterLLMProvider
+from rag_based_on_obsidian.llm.packing import SYSTEM_PROMPT
 from rag_based_on_obsidian.llm.settings import LLMConfig, load_llm_config
 
 
@@ -42,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the RAGAS live-eval command."""
     parser = argparse.ArgumentParser(
         prog="rag-cli ragas",
-        description="Score generate answers via the HTTP API and a JSON judge.",
+        description="Score generate answers via the HTTP API and a JSON or ragas judge.",
     )
     subparsers = parser.add_subparsers(dest="operation", required=True)
     run_parser = subparsers.add_parser("run")
@@ -55,6 +62,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--llm-config",
         type=Path,
         default=DEFAULT_LLM_CONFIG_PATH,
+    )
+    run_parser.add_argument(
+        "--generate-model",
+        type=str,
+        default=None,
+        help=(
+            "OpenRouter model id for POST /generate. "
+            "Defaults to generate_model in ragas.yaml."
+        ),
     )
     run_parser.add_argument(
         "--full-set",
@@ -92,7 +108,18 @@ async def _run_live(args: argparse.Namespace) -> int:
         config = load_ragas_config(args.config)
         if args.full_set:
             config = replace(config, full_set=True)
-        progress.mark("load_config", name=config.name, full_set=config.full_set)
+        if args.generate_model is not None:
+            override = args.generate_model.strip()
+            if not override:
+                print("error: --generate-model must not be empty", file=sys.stderr)
+                return 2
+            config = replace(config, generate_model=override)
+        progress.mark(
+            "load_config",
+            name=config.name,
+            full_set=config.full_set,
+            generate_model=config.generate_model,
+        )
         tick("load_config")
         gold_version, items = load_gold_yaml(config.gold_path)
         if gold_version != config.dataset_version:
@@ -113,13 +140,12 @@ async def _run_live(args: argparse.Namespace) -> int:
         api_key = os.environ.get("OPENROUTER_API_KEY", "")
         llm_config = _judge_llm_config(load_llm_config(args.llm_config), config)
         try:
-            judge = OpenRouterJsonJudge(
-                OpenRouterLLMProvider(llm_config, api_key=api_key),
-            )
+            judge = build_generation_judge(config, llm_config, api_key)
         except LLMUnavailableError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
         tick("init_judge")
+        generate_model = config.generate_model
         started = perf_counter()
         summary, artifacts = await run_ragas_eval(
             selected,
@@ -139,7 +165,10 @@ async def _run_live(args: argparse.Namespace) -> int:
             "subset_size": len(selected),
             "full_set": config.full_set,
             "concurrency": config.concurrency,
+            "generate_model": generate_model,
             "judge_model": config.judge_model,
+            "judge_backend": config.judge_backend,
+            "judge_scale": judge_scale(config.judge_backend),
             "question_count": summary.question_count,
             "scored_count": summary.scored_count,
             "skipped_count": summary.skipped_count,
@@ -176,6 +205,7 @@ async def _run_live(args: argparse.Namespace) -> int:
             payload["human_review_count"] = written
         tick("human_review")
         if args.log_mlflow:
+            prompts = _run_prompts(config.judge_backend)
             payload["mlflow_run_id"] = log_ragas_run(
                 dataset_version=config.dataset_version,
                 metrics=summary,
@@ -188,19 +218,24 @@ async def _run_live(args: argparse.Namespace) -> int:
                     "subset_size": len(selected),
                     "full_set": config.full_set,
                     "concurrency": config.concurrency,
+                    "generate_model": generate_model,
                     "judge_model": config.judge_model,
-                    "judge_backend": "json",
-                    "judge_scale": "0-5",
+                    "judge_backend": config.judge_backend,
+                    "judge_scale": judge_scale(config.judge_backend),
                     "gold_path": str(config.gold_path),
                 },
                 extra_tags={
                     "generate_api": config.api_base_url,
+                    "generate_model": generate_model,
                     "judge_model": config.judge_model,
-                    "judge_backend": "json",
-                    "judge_scale": "0-5",
+                    "judge_backend": config.judge_backend,
+                    "judge_scale": judge_scale(config.judge_backend),
+                    "sprint": "23",
+                    "task": "MLOPS-002",
                 },
                 artifact={"items": artifacts},
-                run_name=f"ragas-{config.name}",
+                prompts=prompts,
+                run_name=mlflow_generate_run_name(generate_model),
             )
         tick("mlflow")
         progress.mark("done")
@@ -215,3 +250,17 @@ def _judge_llm_config(llm_config: LLMConfig, config: RagasRunConfig) -> LLMConfi
     if llm_config.model == config.judge_model:
         return llm_config
     return replace(llm_config, model=config.judge_model)
+
+
+def _run_prompts(judge_backend: str) -> dict[str, str]:
+    """Generate system prompt + evaluation prompts for MLflow artifacts."""
+    prompts = {"generate_system": SYSTEM_PROMPT}
+    if judge_backend == "json":
+        prompts["evaluation_system"] = JUDGE_SYSTEM
+        return prompts
+    # Lazy import: keep JSON-only paths from loading ragas at CLI import time
+    # when factory already loads it — still isolate dump helper.
+    from rag_based_on_obsidian.eval.ragas_judge import dump_ragas_metric_prompts
+
+    prompts["evaluation_system"] = dump_ragas_metric_prompts()
+    return prompts

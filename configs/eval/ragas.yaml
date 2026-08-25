@@ -1,4 +1,4 @@
-name: sprint22-ragas-generation-baseline
+name: sprint23-ragas-framework
 gold_path: evals/gold/phase7_GT_note_level_v0.yaml
 dataset_version: phase7_GT_note_level_v0
 api_base_url: http://127.0.0.1:8000
@@ -6,9 +6,15 @@ method: hybrid
 top_k: 5
 subset_size: 15
 full_set: false
+# Two parallel POST /generate. ragas.evaluate stays serial (lock in
+# RagasFrameworkJudge) so metric.llm does not race.
 concurrency: 2
+# Default generate pin for rag-cli. Override with --generate-model.
+# The API must accept optional body.model (rebuild once after that change).
+generate_model: google/gemini-3.7-flash
 judge_model: openai/gpt-4o-mini
-# JSON-judge Faithfulness / Answer Relevancy: integers 0–5 (not RAGAS 0–1).
-generate_timeout_seconds: 60
+judge_backend: ragas
+# json = integers 0–5 (human sample). ragas = native Faithfulness/Relevancy 0–1.
+generate_timeout_seconds: 180
 human_sample_path: evals/human/sprint22_sample.yaml
-human_review_path: evals/human/sprint22_review.yaml
+human_review_path: evals/human/sprint23_review.yaml

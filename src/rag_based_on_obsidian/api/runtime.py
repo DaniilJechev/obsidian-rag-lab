@@ -8,7 +8,9 @@ import os
 from dataclasses import replace
 from pathlib import Path
 
+import yaml
 from qdrant_client import QdrantClient
+from sqlalchemy import text
 
 from rag_based_on_obsidian.api.ingest import (
     IngestService,
@@ -22,6 +24,7 @@ from rag_based_on_obsidian.config import (
     DEFAULT_EMBEDDING_MODEL_CONFIG_PATH,
     DEFAULT_LLM_CONFIG_PATH,
     DEFAULT_QDRANT_CONFIG_PATH,
+    DEFAULT_RAGAS_CONFIG_PATH,
     DEFAULT_RETRIEVAL_CONFIG_PATH,
     load_config,
 )
@@ -87,6 +90,12 @@ class RetrieverRuntime:
         self._llm_config = llm_config
         self.model_loaded = model_loaded
         self.default_top_k = retrieval_config.top_k
+        self.retrieval_embedding_model = provider.metadata.model_name
+        self.generate_model = llm_config.model
+        self.judge_model = _read_judge_model_pin()
+        # Same e5 pin as retrieval today; exposed separately because ragas
+        # Answer Relevancy embeds on the host CLI, not inside /generate.
+        self.evaluation_embedding_model = provider.metadata.model_name
         self._engine = None
         self._ingest: IngestService | None = None
 
@@ -96,6 +105,17 @@ class RetrieverRuntime:
             self._client.get_collections()
         except Exception:
             logger.exception("qdrant ping failed")
+            return False
+        return True
+
+    def ping_postgres(self) -> bool:
+        """Return True when Postgres answers ``SELECT 1``."""
+        try:
+            engine = self._ensure_engine()
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+        except Exception:
+            logger.exception("postgres ping failed")
             return False
         return True
 
@@ -168,14 +188,18 @@ class RetrieverRuntime:
         *,
         method: RetrievalMethod,
         top_k: int,
+        model: str | None = None,
     ) -> dict[str, object]:
         """Retrieve, then call OpenRouter or refuse. Search stays available."""
         api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-        provider = OpenRouterLLMProvider(self._llm_config, api_key=api_key)
+        llm_config = self._llm_config
+        if model is not None and model.strip():
+            llm_config = replace(self._llm_config, model=model.strip())
+        provider = OpenRouterLLMProvider(llm_config, api_key=api_key)
         return await run_rag_generate(
             self.search,
             provider,
-            self._llm_config,
+            llm_config,
             query,
             method=method,
             top_k=top_k,
@@ -349,3 +373,27 @@ def build_runtime() -> RetrieverRuntime:
     except Exception:
         client.close()
         raise
+
+
+def _read_judge_model_pin(path: Path | None = None) -> str | None:
+    """Read ``judge_model`` from ragas YAML without loading gold or eval config.
+
+    The judge runs in ``rag-cli`` on the host. Health still reports the pin
+    baked into this process's configs (the Docker image until ``--build``).
+    """
+    config_path = path or DEFAULT_RAGAS_CONFIG_PATH
+    try:
+        with config_path.open(encoding="utf-8") as handle:
+            raw = yaml.safe_load(handle)
+    except FileNotFoundError:
+        logger.warning("judge pin missing: %s", config_path)
+        return None
+    except Exception:
+        logger.exception("failed to read judge pin from %s", config_path)
+        return None
+    if not isinstance(raw, dict):
+        return None
+    value = raw.get("judge_model")
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value.strip()

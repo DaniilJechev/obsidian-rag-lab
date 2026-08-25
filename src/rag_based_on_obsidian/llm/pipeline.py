@@ -52,7 +52,9 @@ async def run_rag_generate(
     try:
         answer, citations, confidence = parse_generation_json(result.content, packed)
     except LLMResponseError as exc:
-        raise LLMUnavailableError(str(exc)) from exc
+        preview = _raw_preview(result.content)
+        detail = str(exc) if not preview else f"{exc}; raw_preview={preview!r}"
+        raise LLMUnavailableError(detail) from exc
     usage: dict[str, int] | None = None
     if result.usage is not None:
         usage = {
@@ -80,6 +82,16 @@ async def run_rag_generate(
         "latency_ms": result.latency_ms,
         "usage": usage,
     }
+
+
+def _raw_preview(raw: str, *, limit: int = 800) -> str:
+    """Short excerpt for MLflow / 503 detail when JSON parse fails."""
+    text = raw.strip()
+    if not text:
+        return ""
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "…"
 
 
 def _refused(

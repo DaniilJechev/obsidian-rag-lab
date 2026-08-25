@@ -19,6 +19,11 @@ class FakeRuntime:
     model_loaded: bool = True
     default_top_k: int = 5
     qdrant_ok: bool = True
+    postgres_ok: bool = True
+    retrieval_embedding_model: str | None = "intfloat/multilingual-e5-small"
+    generate_model: str | None = "openai/gpt-4o-mini"
+    judge_model: str | None = "openai/gpt-4o-mini"
+    evaluation_embedding_model: str | None = "intfloat/multilingual-e5-small"
     search_calls: int = 0
     fail_search: bool = False
     ingest_busy: bool = False
@@ -33,6 +38,9 @@ class FakeRuntime:
 
     def ping_qdrant(self) -> bool:
         return self.qdrant_ok
+
+    def ping_postgres(self) -> bool:
+        return self.postgres_ok
 
     async def search(
         self,
@@ -65,6 +73,7 @@ class FakeRuntime:
         *,
         method: RetrievalMethod,
         top_k: int,
+        model: str | None = None,
     ) -> dict[str, object]:
         if self.missing_llm_key:
             raise LLMUnavailableError("OPENROUTER_API_KEY is not configured")
@@ -102,7 +111,7 @@ class FakeRuntime:
             "confidence": 0.8,
             "refused": False,
             "refusal_reason": None,
-            "model": "openai/gpt-4o-mini",
+            "model": model or "openai/gpt-4o-mini",
             "latency_ms": 12,
             "usage": {"prompt_tokens": 10, "generated_tokens": 4},
         }
@@ -170,7 +179,7 @@ def _client(runtime: FakeRuntime) -> TestClient:
     return TestClient(create_app(runtime=runtime))
 
 
-def test_health_ok_when_model_and_qdrant_ready() -> None:
+def test_health_ok_when_model_and_backends_ready() -> None:
     runtime = FakeRuntime()
     with _client(runtime) as client:
         response = client.get("/health")
@@ -180,6 +189,13 @@ def test_health_ok_when_model_and_qdrant_ready() -> None:
         "status": "ok",
         "model_loaded": True,
         "qdrant": "ok",
+        "postgres": "ok",
+        "models": {
+            "retrieval_embedding": "intfloat/multilingual-e5-small",
+            "generate": "openai/gpt-4o-mini",
+            "judge": "openai/gpt-4o-mini",
+            "evaluation_embedding": "intfloat/multilingual-e5-small",
+        },
     }
 
 
@@ -192,6 +208,19 @@ def test_health_503_when_qdrant_unreachable() -> None:
     assert body["status"] == "degraded"
     assert body["model_loaded"] is True
     assert body["qdrant"] == "unreachable"
+    assert body["postgres"] == "ok"
+
+
+def test_health_503_when_postgres_unreachable() -> None:
+    runtime = FakeRuntime(postgres_ok=False)
+    with _client(runtime) as client:
+        response = client.get("/health")
+    assert response.status_code == 503
+    body = response.json()
+    assert body["status"] == "degraded"
+    assert body["model_loaded"] is True
+    assert body["qdrant"] == "ok"
+    assert body["postgres"] == "unreachable"
 
 
 def test_search_empty_query_returns_422() -> None:
@@ -322,8 +351,33 @@ def test_generate_returns_structured_answer() -> None:
     assert body["contexts"][0]["chunk_id"] == 1
     assert body["contexts"][0]["note_path"] == "DLS2/RoPE.md"
     assert body["method"] == "hybrid"
+    assert body["model"] == "openai/gpt-4o-mini"
     assert runtime.search_calls == 1
     assert runtime.query_logs == []
+
+
+def test_generate_accepts_model_override() -> None:
+    runtime = FakeRuntime()
+    with _client(runtime) as client:
+        response = client.post(
+            "/generate",
+            json={
+                "query": "What is RoPE?",
+                "model": "google/gemini-3.7-flash",
+            },
+        )
+    assert response.status_code == 200
+    assert response.json()["model"] == "google/gemini-3.7-flash"
+
+
+def test_generate_rejects_blank_model() -> None:
+    runtime = FakeRuntime()
+    with _client(runtime) as client:
+        response = client.post(
+            "/generate",
+            json={"query": "What is RoPE?", "model": "  "},
+        )
+    assert response.status_code == 422
 
 
 def test_generate_empty_query_returns_422() -> None:

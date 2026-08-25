@@ -40,6 +40,7 @@ top_k: 5
 subset_size: 2
 full_set: false
 concurrency: 5
+generate_model: openai/gpt-4o-mini
 judge_model: openai/gpt-4o-mini
 """,
         encoding="utf-8",

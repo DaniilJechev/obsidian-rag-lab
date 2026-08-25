@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import subprocess
 from collections.abc import Mapping, Sequence
@@ -25,9 +26,9 @@ from rag_based_on_obsidian.eval.ragas_contracts import (
 RAGAS_EXPERIMENT_DESCRIPTION = (
     "Phase 10 generation evaluation: Faithfulness, Answer Relevancy, "
     "note-level Context Precision/Recall proxy, tokens and latency. "
-    "Generate is measured via POST /generate. Judge v1 uses OpenRouter JSON "
-    "on the RAGAS metric axes with integer scores 0–5 "
-    "(ragas 0.4.3 currently fails to import)."
+    "Generate is measured via POST /generate. JSON judge stays integers 0–5 "
+    "(human sample). Ragas framework metrics are native 0–1 and must not be "
+    "rescaled into the JSON Likert."
 )
 
 
@@ -39,6 +40,7 @@ def log_ragas_run(
     extra_params: Mapping[str, object] | None = None,
     extra_tags: Mapping[str, object] | None = None,
     artifact: Mapping[str, object] | None = None,
+    prompts: Mapping[str, str] | None = None,
     run_name: str | None = None,
 ) -> str | None:
     """Log one RAGAS harness run with Phase 10 experiment tags."""
@@ -62,12 +64,15 @@ def log_ragas_run(
         }
         if extra_params:
             params.update(extra_params)
+        if prompts:
+            for name, text in prompts.items():
+                params[f"prompt_{name}_sha256"] = _sha256_16(text)
         mlflow.log_params({key: str(value) for key, value in params.items()})
         tags: dict[str, str] = {
             "git_commit": _git_commit(),
             "phase": "10",
-            "sprint": "22",
-            "task": "MLOPS-001",
+            "sprint": "23",
+            "task": "MLOPS-002",
             "experiment_type": "ragas",
             "run_kind": "ragas_live",
         }
@@ -123,7 +128,55 @@ def log_ragas_run(
             mlflow.log_dict(dict(artifact), "per_question.json")
             if raw_items:
                 _log_per_question_metrics(raw_items)
+            failed = _failed_generation_rows(raw_items)
+            if failed:
+                mlflow.log_dict({"items": failed}, "failed_generations.json")
+        if prompts:
+            for name, text in prompts.items():
+                mlflow.log_text(text, f"prompts/{name}.txt")
         return run.info.run_id
+
+
+def mlflow_generate_run_name(generate_model: str) -> str:
+    """Stable MLflow run name: ragas-framework-sprint23-generate-<model>."""
+    safe = (
+        generate_model.strip()
+        .replace("/", "-")
+        .replace("\\", "-")
+        .replace(" ", "-")
+    )
+    if not safe:
+        safe = "unknown"
+    return f"ragas-framework-sprint23-generate-{safe}"
+
+
+def _failed_generation_rows(items: Sequence[Any]) -> list[dict[str, object]]:
+    """Skipped / refused rows for a dedicated failure artifact."""
+    failed: list[dict[str, object]] = []
+    for item in items:
+        if not isinstance(item, Mapping):
+            continue
+        if not item.get("skipped") and not item.get("refused"):
+            continue
+        failed.append(
+            {
+                "item_id": item.get("item_id"),
+                "question": item.get("question"),
+                "skipped": item.get("skipped"),
+                "refused": item.get("refused"),
+                "skip_reason": item.get("skip_reason"),
+                "answer": item.get("answer"),
+                "model": item.get("model"),
+                "latency_ms": item.get("latency_ms"),
+                "prompt_tokens": item.get("prompt_tokens"),
+                "generated_tokens": item.get("generated_tokens"),
+            }
+        )
+    return failed
+
+
+def _sha256_16(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
 _METRIC_ALIASES: dict[str, str] = {
@@ -181,8 +234,8 @@ def _configure_ragas_experiment() -> None:
     experiment_tags = {
         "mlflow.note.content": RAGAS_EXPERIMENT_DESCRIPTION,
         "phase": "10",
-        "sprint": "22",
-        "task": "MLOPS-001",
+        "sprint": "23",
+        "task": "MLOPS-002",
         "experiment_type": "ragas",
     }
     experiment = mlflow.get_experiment_by_name(RAGAS_EXPERIMENT_NAME)

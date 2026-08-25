@@ -21,6 +21,7 @@ from rag_based_on_obsidian.api.schemas import (
     HealthResponse,
     IngestAccepted,
     IngestStatus,
+    PinnedModels,
     SearchHit,
     SearchRequest,
     SearchResponse,
@@ -34,9 +35,17 @@ class AppRuntime(Protocol):
 
     model_loaded: bool
     default_top_k: int
+    retrieval_embedding_model: str | None
+    generate_model: str | None
+    judge_model: str | None
+    evaluation_embedding_model: str | None
 
     def ping_qdrant(self) -> bool:
         """Return whether Qdrant currently answers."""
+        ...
+
+    def ping_postgres(self) -> bool:
+        """Return whether Postgres currently answers."""
         ...
 
     async def search(
@@ -84,6 +93,7 @@ class AppRuntime(Protocol):
         *,
         method: RetrievalMethod,
         top_k: int,
+        model: str | None = None,
     ) -> dict[str, object]:
         """Return a structured RAG answer or a refusal payload."""
         ...
@@ -118,11 +128,14 @@ def _build_router() -> APIRouter:
         runtime = _optional_runtime(request)
         model_loaded = bool(runtime is not None and runtime.model_loaded)
         qdrant_ok = bool(runtime is not None and runtime.ping_qdrant())
-        ready = model_loaded and qdrant_ok
+        postgres_ok = bool(runtime is not None and runtime.ping_postgres())
+        ready = model_loaded and qdrant_ok and postgres_ok
         payload = HealthResponse(
             status="ok" if ready else "degraded",
             model_loaded=model_loaded,
             qdrant="ok" if qdrant_ok else "unreachable",
+            postgres="ok" if postgres_ok else "unreachable",
+            models=_pinned_models(runtime),
         )
         status_code = 200 if ready else 503
         return JSONResponse(
@@ -212,6 +225,7 @@ def _build_router() -> APIRouter:
                 body.query,
                 method=body.method,
                 top_k=top_k,
+                model=body.model,
             )
         except RetrieverUnavailableError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -280,6 +294,25 @@ def _record_search_log(
         result_count=result_count,
         error=error,
     )
+
+
+def _pinned_models(runtime: AppRuntime | None) -> PinnedModels:
+    if runtime is None:
+        return PinnedModels()
+    return PinnedModels(
+        retrieval_embedding=_optional_model_id(runtime.retrieval_embedding_model),
+        generate=_optional_model_id(runtime.generate_model),
+        judge=_optional_model_id(runtime.judge_model),
+        evaluation_embedding=_optional_model_id(
+            runtime.evaluation_embedding_model
+        ),
+    )
+
+
+def _optional_model_id(value: str | None) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value.strip()
 
 
 def _optional_runtime(request: Request) -> AppRuntime | None:
