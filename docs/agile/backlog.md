@@ -82,7 +82,7 @@ Backlog не является жёстким расписанием. Приор�
 | GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
 | ML-001 | P2 | idea | 12 | Добавить reranker и сравнить retrieval | nDCG/MRR до и после reranking измерены |
 | MLOPS-001 | P1 | done | 10 | RAGAS harness + gpt-4o-mini baseline + human template (Sprint 22) | Sprint 22 completed: `rag-cli ragas run`, JSON-judge 0–5, note-level P/R, live 15/15, MLflow `4663f6d7fc804f2eb128cfd5db412300`; human-шаблон 10 вопросов (`null`). PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60) merged (`25f924e`); Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58) closed. Заполненные scores — carry-over `MLOPS-002`. |
-| MLOPS-002 | P1 | in-progress | 10 | Human scores + RAGAS runtime + bake-off 2 OpenRouter generate-моделей (Sprint 23) | Human 10 id + ragas 0–1 runtime. Bake-off freeze: mini `7278da5c…` + Gemini `d0918cf6…` (одинаковый retrieval; F 0.779/0.870). Closeout/PR pending. Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) |
+| MLOPS-002 | P1 | done | 10 | Human scores + RAGAS runtime + bake-off 2 OpenRouter generate-моделей (Sprint 23) | Sprint 23 completed: human 10×0–5, `judge_backend: ragas` 0–1, bake-off mini `7278da5c…` (F/AR 0.779/0.898) vs Gemini `d0918cf6…` (0.870/0.887), ctx P/R 0.785/0.622. PR [#62](https://github.com/DaniilJechev/obsidian-rag-lab/pull/62) merged (`2c56d41`); Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) closed. |
 | CLOUD-001 | P2 | idea | 13 | Сравнить local и cloud storage | Latency, cost, reliability и operational effort измерены |
 | SERVE-001 | P3 | idea | 16 | Запустить локальную LLM через vLLM | API и vLLM сравнены на одном eval-наборе |
 | DEPLOY-001 | P3 | idea | 17 | Подготовить Kubernetes proof of concept | API/Qdrant/worker manifests и health probes описаны |
@@ -106,21 +106,25 @@ Backlog не является жёстким расписанием. Приор�
 - HTTP ingest (`materialize_policy`) не пишет `ingestion_states_by_note`;
   журнал job — только `ingestion_runs` (Sprint 20).
 - OpenRouter 401 и 403 схлопнуты в одно `rejected the API key` (Sprint 21).
+- Перед следующим model bake-off: probe `POST /search` vs эталонные
+  `packed_paths` (Sprint 23: retrieval drift без явного re-ingest).
 
 ## Текущий фокус
 
-Фазы 1–5 и 7–9 завершены на `main`. Phase 6 (`PGV-001`) закрыта как branch-only
+Фазы 1–5 и 7–10 завершены на `main`. Phase 6 (`PGV-001`) закрыта как branch-only
 pgvector experiment (`bd39d20`), в `main` не влита. Qdrant — единственный
 retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-baseline.md`.
+Канон generate eval: `docs/agile/sprint-23-openrouter-model-bakeoff.md`
+(ragas 0–1 + JSON 0–5 рядом).
 
-Следующая работа: **Phase 10** продолжается Sprint 23 / `MLOPS-002`
-(Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59)):
-human 0–5 по `sprint22_sample.yaml`, runtime ragas, затем bake-off 2–3 моделей.
-Sprint 22 закрыт: PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60)
-(`25f924e`), Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58)
-closed. Milestone 10 остаётся открытым, пока не закроется #59.
+Следующая работа: **Phase 11** / `GRAPH-001` — LangGraph workflow
+(state, nodes, branching, retry/refusal). Phase 10 закрыта: Sprint 22
+PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60), Sprint 23
+PR [#62](https://github.com/DaniilJechev/obsidian-rag-lab/pull/62) (`2c56d41`),
+Issues [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58) /
+[#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) closed.
 Phase 9 на `main` закрыта: Sprint 21 PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56)
-(`33bb50c`). GitHub Milestone/Issue для Phase 9 не создавались.
+(`33bb50c`).
 
 История завершённых спринтов:
 

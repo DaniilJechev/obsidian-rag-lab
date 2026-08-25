@@ -1,6 +1,6 @@
 # Sprint 23 — RAGAS runtime + OpenRouter model bake-off
 
-> Статус: `in-progress`
+> Статус: `completed`
 >
 > Ветка: `sprint/23-openrouter-model-bakeoff`
 >
@@ -181,6 +181,8 @@ Milestone 10 закрыты).
 | 2026-08-25 | Live Gemini | generate=`google/gemini-3.7-flash`, 15/15 after LaTeX-tolerant JSON parser. MLflow `d0918cf63a3b4f6384bb271b1b6cd2b0`. packed_paths совпали с mini 15/15. |
 | 2026-08-25 | Rejected mini reruns | `563bd04c…` (14/15, retrieval 503) и `70b78ead…` (15/15) — **не** bake-off: packed_paths разъехались с Gemini (Jaccard ~0.31), ctx P/R ~0.45/0.51. Индекс/выдача дрейфанули без нового ingest владельцем. |
 | 2026-08-25 | Bake-off freeze | Валидная пара: mini `7278da5c…` + Gemini `d0918cf6…` (одинаковый retrieval). Третью модель не берём. |
+| 2026-08-25 | Implementation merge | PR [#62](https://github.com/DaniilJechev/obsidian-rag-lab/pull/62) merged (`2c56d41`). Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) closed. |
+| 2026-08-25 | Closeout | Retrospective + Phase 10 milestone close; следующий фокус — Phase 11 LangGraph. |
 
 ## Validation Evidence
 
@@ -277,12 +279,13 @@ Context P/R — note-level proxy; на одном retriever должны быт�
 - Bake-off 2 моделей (mini + Gemini) на одном retrieval; таблица выше.
 - LaTeX-tolerant generate parser; `raw_generation` в failed_generations;
   MLflow JSON с `ensure_ascii=False`.
+- Implementation merged PR [#62](https://github.com/DaniilJechev/obsidian-rag-lab/pull/62)
+  (`2c56d41`); Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) closed.
 
 ### Not Completed
 
-- Formal Git closeout (DoD checkbox Completion / PR merge) — post-implementation.
 - Расследование retrieval drift после Gemini (без явного re-ingest) — tech debt /
-  backlog, не блокер валидной пары.
+  backlog, не блокер валидной пары / Phase 10.
 
 ### Changed Decisions
 
@@ -291,6 +294,9 @@ Context P/R — note-level proxy; на одном retriever должны быт�
   (0–5). Контроль mini на bake-off — новый ragas-прогон, не JSON-цифры
   Sprint 22. Шкалы не класть в одну таблицу без явной метки backend/scale.
 - Human scores 0–5 — обязательный carry-over из Sprint 22, не optional.
+- Bake-off зафиксирован на **2** моделях (не 3): mini + Gemini.
+- Валидная пара — mini `7278da5c…` + Gemini `d0918cf6…` (packed_paths 15/15);
+  поздние mini-reruns отбракованы из‑за retrieval drift.
 
 ### Technical Debt
 
@@ -307,17 +313,40 @@ Context P/R — note-level proxy; на одном retriever должны быт�
 
 ## Retrospective
 
-Заполняется при closeout.
+### What Went Well
+
+- Judge freeze + один gold/k дали сравнимый bake-off: ctx P/R совпали у валидной пары.
+- LaTeX-tolerant parser поднял Gemini с частичных skip до 15/15 без смены модели.
+- `raw_generation` / UTF-8 MLflow JSON ускорили отладку parse-fail.
+
+### What Was Difficult
+
+- Gemini ломал `json.loads` сырыми TeX-escape (`\approx`); сначала казалось, что «модель плохая».
+- После успешного Gemini retrieval drift на повторных mini (другие packed_paths)
+  без сознательного re-ingest — bake-off чуть не испортили невалидной строкой.
+- Warning ragas «1 generations instead of 3» шумел в логах, но не был hard fail.
+
+### What We Will Change
+
+- Перед следующим model bake-off: probe `/search` vs эталонный packed_paths.
+- Phase 11 (LangGraph) мерять «до/после» на уже замороженном ragas-judge, не на глаз.
+- Не смешивать JSON 0–5 и ragas 0–1 в одной таблице.
+
+### Backlog Updates
+
+- Добавить: optional tech-debt item на probe retrieval stability (можно в Phase 11 prep).
+- Перенести: нет незакрытого scope Sprint 23.
+- Изменить приоритет: `MLOPS-002` → done; следующий фокус `GRAPH-001` / Phase 11.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён (owner merge PR [#62](https://github.com/DaniilJechev/obsidian-rag-lab/pull/62), `2c56d41`).
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge implementation выполнены; этот closeout — отдельный PR.
+- [x] Backlog обновлён (`MLOPS-002` → done; Phase 10 closed).
+- [x] Следующий фокус: Phase 11 LangGraph / `GRAPH-001` (planning отдельно).
 
-**Итоговый статус:** `in-progress`
+**Итоговый статус:** `completed`
 
-**Дата завершения:** —
+**Дата завершения:** `2026-08-25`
