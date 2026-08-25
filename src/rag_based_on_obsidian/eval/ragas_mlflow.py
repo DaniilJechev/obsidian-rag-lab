@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import subprocess
 from collections.abc import Mapping, Sequence
@@ -125,16 +126,24 @@ def log_ragas_run(
                 logged_metrics.update(_item_score_spread(raw_items))
         mlflow.log_metrics(logged_metrics)
         if artifact is not None:
-            mlflow.log_dict(dict(artifact), "per_question.json")
+            _log_utf8_json(dict(artifact), "per_question.json")
             if raw_items:
                 _log_per_question_metrics(raw_items)
             failed = _failed_generation_rows(raw_items)
             if failed:
-                mlflow.log_dict({"items": failed}, "failed_generations.json")
+                _log_utf8_json({"items": failed}, "failed_generations.json")
         if prompts:
             for name, text in prompts.items():
                 mlflow.log_text(text, f"prompts/{name}.txt")
         return run.info.run_id
+
+
+def _log_utf8_json(payload: Mapping[str, Any], artifact_path: str) -> None:
+    """Write JSON artifacts with literal Unicode (no ``\\uXXXX`` escapes)."""
+    mlflow.log_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        artifact_path,
+    )
 
 
 def mlflow_generate_run_name(generate_model: str) -> str:
@@ -165,6 +174,7 @@ def _failed_generation_rows(items: Sequence[Any]) -> list[dict[str, object]]:
                 "skipped": item.get("skipped"),
                 "refused": item.get("refused"),
                 "skip_reason": item.get("skip_reason"),
+                "raw_generation": item.get("raw_generation"),
                 "answer": item.get("answer"),
                 "model": item.get("model"),
                 "latency_ms": item.get("latency_ms"),

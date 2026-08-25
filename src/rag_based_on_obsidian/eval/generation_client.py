@@ -14,6 +14,15 @@ from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod
 class GenerateApiError(Exception):
     """The generate API returned an error or an unexpected payload."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        raw_generation: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.raw_generation = raw_generation
+
 
 @dataclass(frozen=True)
 class GenerateCallResult:
@@ -58,9 +67,10 @@ async def call_generate(
     except httpx.HTTPError as exc:
         raise GenerateApiError("generate API is unreachable") from exc
     if response.status_code >= 400:
-        detail = _error_detail(response)
+        message, raw_generation = _error_detail(response)
         raise GenerateApiError(
-            f"generate API failed ({response.status_code}): {detail}"
+            f"generate API failed ({response.status_code}): {message}",
+            raw_generation=raw_generation,
         )
     try:
         response_body: Any = response.json()
@@ -140,13 +150,24 @@ def _parse_contexts(raw: object) -> list[PackedContext]:
     return packed
 
 
-def _error_detail(response: httpx.Response) -> str:
+def _error_detail(response: httpx.Response) -> tuple[str, str | None]:
+    """Return (message, raw_generation) from a FastAPI error body."""
     try:
         payload = response.json()
     except ValueError:
-        return response.text[:200]
-    if isinstance(payload, dict):
-        detail = payload.get("detail")
-        if isinstance(detail, str) and detail.strip():
-            return detail.strip()
-    return response.text[:200]
+        return response.text[:200], None
+    if not isinstance(payload, dict):
+        return response.text[:200], None
+    detail = payload.get("detail")
+    if isinstance(detail, dict):
+        message = detail.get("message")
+        raw = detail.get("raw_generation")
+        msg = message.strip() if isinstance(message, str) and message.strip() else ""
+        raw_generation = raw if isinstance(raw, str) and raw.strip() else None
+        if msg:
+            return msg, raw_generation
+        if raw_generation is not None:
+            return "structured output is not valid JSON", raw_generation
+    if isinstance(detail, str) and detail.strip():
+        return detail.strip(), None
+    return response.text[:200], None

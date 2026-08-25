@@ -8,6 +8,15 @@ from typing import Protocol
 class LLMUnavailableError(Exception):
     """The provider cannot be reached, authenticated, or scheduled."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        raw_generation: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.raw_generation = raw_generation
+
 
 class LLMResponseError(Exception):
     """The provider returned a body that is not usable structured output."""

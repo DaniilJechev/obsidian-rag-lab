@@ -230,7 +230,10 @@ def _build_router() -> APIRouter:
         except RetrieverUnavailableError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         except LLMUnavailableError as exc:
-            raise HTTPException(status_code=503, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=503,
+                detail=_llm_unavailable_detail(exc),
+            ) from exc
         return GenerateResponse.model_validate(payload)
 
     @router.post("/ingest")
@@ -307,6 +310,18 @@ def _pinned_models(runtime: AppRuntime | None) -> PinnedModels:
             runtime.evaluation_embedding_model
         ),
     )
+
+
+def _llm_unavailable_detail(exc: LLMUnavailableError) -> str | dict[str, str]:
+    """Keep a short message; attach full model text for parse debugging."""
+    message = str(exc)
+    raw = exc.raw_generation
+    if not isinstance(raw, str) or not raw.strip():
+        return message
+    return {
+        "message": message,
+        "raw_generation": raw,
+    }
 
 
 def _optional_model_id(value: str | None) -> str | None:

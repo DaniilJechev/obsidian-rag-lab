@@ -1,3 +1,5 @@
+import json
+
 from rag_based_on_obsidian.eval import ragas_mlflow
 from rag_based_on_obsidian.eval.ragas_contracts import RagasDatasetMetrics
 
@@ -50,11 +52,6 @@ def test_log_ragas_run_writes_phase_10_tags(monkeypatch) -> None:
             if step is None
             else logged.setdefault("steps", []).append((step, dict(metrics)))
         ),
-    )
-    monkeypatch.setattr(
-        ragas_mlflow.mlflow,
-        "log_dict",
-        lambda payload, path: logged.setdefault("dicts", []).append((path, payload)),
     )
     monkeypatch.setattr(
         ragas_mlflow.mlflow,
@@ -112,12 +109,13 @@ def test_log_ragas_run_writes_phase_10_tags(monkeypatch) -> None:
                 },
                 {
                     "item_id": "q003",
-                    "question": "bad json?",
+                    "question": "плохой json?",
                     "skipped": True,
                     "skip_reason": (
                         "generate API failed (503): structured output is not "
-                        "valid JSON; raw_preview='{not json'"
+                        "valid JSON"
                     ),
+                    "raw_generation": '{"answer":"x \\approx 0", "citations":[',
                     "answer": None,
                     "model": None,
                 },
@@ -156,14 +154,15 @@ def test_log_ragas_run_writes_phase_10_tags(monkeypatch) -> None:
     assert "prompt_evaluation_system_sha256" in logged["params"]
     assert ("prompts/generate_system.txt", "GEN_PROMPT") in logged["texts"]
     assert ("prompts/evaluation_system.txt", "EVAL_PROMPT") in logged["texts"]
-    dict_paths = [path for path, _payload in logged["dicts"]]
-    assert "per_question.json" in dict_paths
-    assert "failed_generations.json" in dict_paths
-    failed_payload = next(
-        payload for path, payload in logged["dicts"] if path == "failed_generations.json"
-    )
+    text_by_path = {path: text for path, text in logged["texts"]}
+    assert "per_question.json" in text_by_path
+    assert "failed_generations.json" in text_by_path
+    assert "\\u04" not in text_by_path["failed_generations.json"]
+    assert "плохой" in text_by_path["failed_generations.json"]
+    failed_payload = json.loads(text_by_path["failed_generations.json"])
     assert failed_payload["items"][0]["item_id"] == "q003"
-    assert "raw_preview" in failed_payload["items"][0]["skip_reason"]
+    assert "valid JSON" in failed_payload["items"][0]["skip_reason"]
+    assert "\\approx" in failed_payload["items"][0]["raw_generation"]
 
 
 def test_mlflow_generate_run_name_sanitizes_model_id() -> None:

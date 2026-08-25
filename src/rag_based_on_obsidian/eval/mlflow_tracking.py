@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from collections.abc import Mapping
+from typing import Any
 
 import mlflow
 from dotenv import load_dotenv
@@ -93,8 +95,16 @@ def log_eval_harness_run(
             logged_metrics.update(extra_metrics)
         mlflow.log_metrics(logged_metrics)
         if artifact is not None:
-            mlflow.log_dict(dict(artifact), "per_question.json")
+            _log_utf8_json(dict(artifact), "per_question.json")
         return run.info.run_id
+
+
+def _log_utf8_json(payload: Mapping[str, Any], artifact_path: str) -> None:
+    """Write JSON artifacts with literal Unicode (no ``\\uXXXX`` escapes)."""
+    mlflow.log_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        artifact_path,
+    )
 
 
 def _configure_eval_experiment() -> None:

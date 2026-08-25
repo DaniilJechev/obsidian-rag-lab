@@ -35,6 +35,7 @@ class FakeRuntime:
     empty_hits: bool = False
     fail_llm: bool = False
     missing_llm_key: bool = False
+    fail_parse_json: bool = False
 
     def ping_qdrant(self) -> bool:
         return self.qdrant_ok
@@ -79,6 +80,11 @@ class FakeRuntime:
             raise LLMUnavailableError("OPENROUTER_API_KEY is not configured")
         if self.fail_llm:
             raise LLMUnavailableError("openrouter is unreachable")
+        if self.fail_parse_json:
+            raise LLMUnavailableError(
+                "structured output is not valid JSON",
+                raw_generation='{"answer":"x \\approx 0","citations":[',
+            )
         chunks = await self.search(query, method=method, top_k=top_k)
         if not chunks:
             return {
@@ -413,6 +419,17 @@ def test_generate_503_when_openrouter_down() -> None:
         response = client.post("/generate", json={"query": "attention"})
     assert response.status_code == 503
     assert "openrouter" in response.json()["detail"]
+
+
+def test_generate_503_includes_raw_generation_on_parse_failure() -> None:
+    runtime = FakeRuntime(fail_parse_json=True)
+    with _client(runtime) as client:
+        response = client.post("/generate", json={"query": "attention"})
+    assert response.status_code == 503
+    detail = response.json()["detail"]
+    assert isinstance(detail, dict)
+    assert detail["message"] == "structured output is not valid JSON"
+    assert "\\approx" in detail["raw_generation"]
 
 
 def test_generate_503_when_qdrant_down() -> None:
