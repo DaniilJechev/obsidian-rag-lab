@@ -1,4 +1,4 @@
-"""Typed state for the Sprint 24 generate graph."""
+"""Typed state for the generate LangGraph (Sprint 24–25)."""
 
 from __future__ import annotations
 
@@ -14,17 +14,22 @@ class GenerateGraphState(TypedDict, total=False):
     ``chunks`` / ``packed`` stay as ``list[Any]`` so LangGraph can resolve
     hints without importing ``llm.packing`` (avoids a cycle with ``pipeline``).
 
-    ``path`` uses an add-reducer so each node appends its name without
-    clobbering earlier hops.
+    ``path`` and ``trace`` use add-reducers so nodes append without clobbering.
     """
 
     query: str
+    original_query: str
     method: RetrievalMethod
     top_k: int
     chunks: list[Any]
     packed: list[Any]
     refuse_reason: str | None
+    classify_label: str
+    retry_count: int
+    self_check_ok: bool | None
+    self_check_reason: str | None
     path: Annotated[list[str], operator.add]
+    trace: Annotated[list[dict[str, str]], operator.add]
     answer: str | None
     citations: list[dict[str, Any]]
     contexts: list[dict[str, Any]]

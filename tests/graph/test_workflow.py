@@ -1,7 +1,8 @@
-"""LangGraph generate path: answer vs refuse without live OpenRouter."""
+"""LangGraph generate path: classify, retry, refuse without live OpenRouter."""
 
 import asyncio
 
+from rag_based_on_obsidian.lang_graph.policies import MAX_SELF_CHECK_RETRIES
 from rag_based_on_obsidian.lang_graph.workflow import run_generate_graph
 from rag_based_on_obsidian.llm.contracts import LLMMessage, LLMMetadata, LLMResult
 from rag_based_on_obsidian.llm.settings import LLMConfig
@@ -33,12 +34,44 @@ class _FakeLLM:
         return LLMMetadata(provider="fake", model="openai/gpt-4o-mini")
 
 
+class _LowThenHighConfidenceLLM:
+    """First generate fails self-check; second passes after rewrite."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def generate(self, messages: list[LLMMessage]) -> LLMResult:
+        self.calls += 1
+        if self.calls == 1:
+            content = (
+                '{"answer":"weak",'
+                '"citations":[{"chunk_id":1,"note_path":"x"}],'
+                '"confidence":0.1}'
+            )
+        else:
+            content = (
+                '{"answer":"strong after rewrite",'
+                '"citations":[{"chunk_id":1,"note_path":"x"}],'
+                '"confidence":0.9}'
+            )
+        return LLMResult(
+            content=content,
+            model="openai/gpt-4o-mini",
+            latency_ms=3,
+        )
+
+    @property
+    def metadata(self) -> LLMMetadata:
+        return LLMMetadata(provider="fake", model="openai/gpt-4o-mini")
+
+
 async def _search_one(
     query: str,
     *,
     method: RetrievalMethod,
     top_k: int,
 ) -> list[RetrievedChunk]:
+    _ = query, top_k
     return [
         RetrievedChunk(
             chunk_id=1,
@@ -58,10 +91,11 @@ async def _search_empty(
     method: RetrievalMethod,
     top_k: int,
 ) -> list[RetrievedChunk]:
+    _ = query, method, top_k
     return []
 
 
-def test_graph_answer_path_is_retrieve_gate_generate() -> None:
+def test_graph_answer_path_includes_classify_and_self_check() -> None:
     payload = asyncio.run(
         run_generate_graph(
             _search_one,
@@ -73,7 +107,16 @@ def test_graph_answer_path_is_retrieve_gate_generate() -> None:
         )
     )
     assert payload["refused"] is False
-    assert payload["graph_path"] == ["retrieve", "gate", "generate"]
+    assert payload["graph_path"] == [
+        "classify",
+        "retrieve",
+        "gate",
+        "generate",
+        "self_check",
+    ]
+    assert payload["retry_count"] == 0
+    assert payload["rewritten_query"] is None
+    assert [step["node"] for step in payload["graph_trace"]] == payload["graph_path"]
 
 
 def test_graph_refuse_path_skips_llm() -> None:
@@ -90,11 +133,98 @@ def test_graph_refuse_path_skips_llm() -> None:
             _search_empty,
             _Boom(),
             _CONFIG,
-            "nothing",
+            "nothing useful here",
             method=RetrievalMethod.HYBRID,
             top_k=5,
         )
     )
     assert payload["refused"] is True
     assert payload["refusal_reason"] == "no retrieved context"
-    assert payload["graph_path"] == ["retrieve", "gate", "refuse"]
+    assert payload["graph_path"] == [
+        "classify",
+        "retrieve",
+        "gate",
+        "refuse",
+    ]
+
+
+def test_graph_classify_early_refuse() -> None:
+    class _Boom:
+        async def generate(self, messages: list[LLMMessage]) -> LLMResult:
+            raise AssertionError("LLM must not run on classify refuse")
+
+        @property
+        def metadata(self) -> LLMMetadata:
+            return LLMMetadata(provider="fake", model="x")
+
+    payload = asyncio.run(
+        run_generate_graph(
+            _search_one,
+            _Boom(),
+            _CONFIG,
+            "??",
+            method=RetrievalMethod.HYBRID,
+            top_k=5,
+        )
+    )
+    assert payload["refused"] is True
+    assert payload["graph_path"] == ["classify", "refuse"]
+    assert payload["graph_trace"][0]["node"] == "classify"
+
+
+def test_graph_self_check_retry_then_pass() -> None:
+    llm = _LowThenHighConfidenceLLM()
+    payload = asyncio.run(
+        run_generate_graph(
+            _search_one,
+            llm,
+            _CONFIG,
+            "What is RoPE?",
+            method=RetrievalMethod.HYBRID,
+            top_k=5,
+        )
+    )
+    assert llm.calls == 2
+    assert payload["refused"] is False
+    assert payload["retry_count"] == 1
+    assert payload["rewritten_query"] is not None
+    assert "rewrite" in payload["graph_path"]
+    assert payload["graph_path"].count("generate") == 2
+    assert payload["graph_path"].count("self_check") == 2
+    assert payload["answer"] == "strong after rewrite"
+
+
+def test_graph_self_check_retry_cap() -> None:
+    """After one rewrite, a second low-confidence answer is accepted (capped)."""
+
+    class _AlwaysLow:
+        async def generate(self, messages: list[LLMMessage]) -> LLMResult:
+            return LLMResult(
+                content=(
+                    '{"answer":"still weak",'
+                    '"citations":[{"chunk_id":1,"note_path":"x"}],'
+                    '"confidence":0.1}'
+                ),
+                model="fake",
+                latency_ms=1,
+            )
+
+        @property
+        def metadata(self) -> LLMMetadata:
+            return LLMMetadata(provider="fake", model="fake")
+
+    payload = asyncio.run(
+        run_generate_graph(
+            _search_one,
+            _AlwaysLow(),
+            _CONFIG,
+            "What is RoPE?",
+            method=RetrievalMethod.HYBRID,
+            top_k=5,
+        )
+    )
+    assert payload["retry_count"] == MAX_SELF_CHECK_RETRIES
+    assert payload["graph_path"].count("rewrite") == 1
+    assert payload["graph_path"].count("generate") == 2
+    assert payload["refused"] is False
+    assert payload["confidence"] == 0.1
