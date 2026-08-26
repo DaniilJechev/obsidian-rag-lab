@@ -1,6 +1,6 @@
 # Sprint 24 — LangGraph retrieve→generate/refuse
 
-> Статус: `planned`
+> Статус: `in-progress` (implementation done; PR/closeout ещё нет)
 >
 > Ветка: `sprint/24-langgraph-rag-workflow`
 >
@@ -27,15 +27,15 @@ roadmap — оркестрация (LangGraph), не rerank и не cache. Се�
 
 ## Scope
 
-- [ ] Добавить dependency `langgraph` (владелец: `uv add` вручную).
-- [ ] Typed graph state: query, method, top_k, chunks, packed, answer,
+- [x] Добавить dependency `langgraph` (владелец: `uv add` вручную).
+- [x] Typed graph state: query, method, top_k, chunks, packed, answer,
       refused, path/trace.
-- [ ] Nodes: `retrieve` → `gate` → `generate` | `refuse` (reuse packing,
+- [x] Nodes: `retrieve` → `gate` → `generate` | `refuse` (reuse packing,
       parser, OpenRouter из `llm/`).
-- [ ] Wire API/runtime: `/generate` вызывает граф (thin facade над старым
+- [x] Wire API/runtime: `/generate` вызывает граф (thin facade над старым
       pipeline ok).
-- [ ] Unit/smoke без live OpenRouter в CI.
-- [ ] Этот sprint-документ обновлять по ходу execution.
+- [x] Unit/smoke без live OpenRouter в CI.
+- [x] Этот sprint-документ обновлять по ходу execution.
 
 ## Out of Scope
 
@@ -47,37 +47,39 @@ roadmap — оркестрация (LangGraph), не rerank и не cache. Се�
 ## Expected Artifacts
 
 - `docs/agile/sprint-24-langgraph-rag-workflow.md` — этот документ.
-- Пакет графа (например `src/rag_based_on_obsidian/graph/`) — state, nodes,
-  compile.
-- Wiring в `api/runtime` / generate path.
-- Тесты графа с моками (без live ключа).
+- Пакет `src/rag_based_on_obsidian/lang_graph/` — state, workflow, compile
+  (имя `lang_graph`, не `graph`: на Windows/Cursor путь `graph` коллидирует).
+- Wiring: `llm/pipeline.run_rag_generate` → `run_generate_graph`; optional
+  `graph_path` в `GenerateResponse`.
+- Тесты: `tests/graph/test_workflow.py` + обновлённый `tests/llm/test_pipeline.py`.
 
 ## Acceptance Criteria
 
-- [ ] Граф выполняет retrieve→gate→generate/refuse; path виден в ответе или
-      логах.
-- [ ] Слабый контекст → refuse без hallucinated answer (семантика
+- [x] Граф выполняет retrieve→gate→generate/refuse; path виден в ответе
+      (`graph_path`).
+- [x] Слабый контекст → refuse без hallucinated answer (семантика
       `should_refuse`).
-- [ ] HTTP JSON `/generate` совместим с eval-клиентом (`rag-cli ragas`).
-- [ ] CI зелёный без `OPENROUTER_API_KEY`; Ruff/pytest проходят.
-- [ ] Vault / secrets не тронуты; ограничения записаны здесь.
+- [x] HTTP JSON `/generate` совместим с eval-клиентом (`rag-cli ragas`):
+      новые поля optional; клиент читает через `.get`.
+- [x] CI-локально: Ruff/pytest зелёные без `OPENROUTER_API_KEY`.
+- [x] Vault / secrets не тронуты; ограничения записаны здесь.
 
 ## Definition of Done
 
-- [ ] Все задачи из Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
+- [x] Все задачи из Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
 - [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Документация и конфигурация обновлены, если это необходимо.
-- [ ] Результаты и ограничения записаны в этот sprint-документ.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Документация и конфигурация обновлены, если это необходимо.
+- [x] Результаты и ограничения записаны в этот sprint-документ.
 - [ ] Пользователь подтвердил завершение спринта.
 
 ## Dependencies and risks
 
-- `uv add langgraph` только владелец (manual uv policy).
+- `uv add langgraph` только владелец (manual uv policy) — сделано до implementation.
 - Не сломать контракт `/generate` для live ragas harness.
 - Не тащить rewrite/self-check в этот спринт.
 - Tech debt Sprint 23: перед любым «до/после» eval — probe `/search` vs
@@ -96,44 +98,58 @@ roadmap — оркестрация (LangGraph), не rerank и не cache. Се�
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-26 | Planning | Документ создан; Issue [#64](https://github.com/DaniilJechev/obsidian-rag-lab/issues/64); Milestone 11 |
+| 2026-08-26 | Pre-impl commit | `c6d4142` docs + `langgraph` dep |
+| 2026-08-26 | Implementation | Пакет `lang_graph/`: retrieve→gate→generate\|refuse; facade `run_rag_generate`; `graph_path` в API schema |
+| 2026-08-26 | Studio/LangSmith deps | `langgraph-cli[inmem]` (dev), `langsmith`; `langgraph.json` + `studio.py` stub entrypoint |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-(заполняется при execution)
+uv run ruff check .
+uv run pytest -q
+uv run langgraph dev --allow-blocking   # live Studio (optional)
 ```
 
 ### Test and Lint Results
 
-- Tests: —
-- Lint: —
-- CI: —
+- Tests: `230 passed, 1 skipped, 18 deselected` (exit 0)
+- Lint: `uv run ruff check .` — All checks passed (after import fix)
+- CI: pending after push/PR
+- Studio live: retrieve→gate→generate with OpenRouter (`openai/gpt-4o-mini`); live needs `--allow-blocking` due to sync import of transformers in Agent Server
 
 ### Metrics
 
 | Metric | Value | Context |
 |---|---:|---|
-| — | — | — |
+| Graph answer path | retrieve→gate→generate | unit + Studio live |
+| Graph refuse path | retrieve→gate→refuse | unit mock |
+| Studio live model | openai/gpt-4o-mini | HyDE query, ~12s latency |
 
 ## Review
 
 ### Completed
 
 - Планирование Sprint 24 зафиксировано.
+- LangGraph каркас wired в generate path.
+- Path наблюдаем через `graph_path`.
 
 ### Not Completed
 
-- Implementation.
+- Push / implementation PR / remote CI.
+- User confirmation / closeout.
+- Sprint 25 (rewrite/self-check).
 
 ### Changed Decisions
 
 - Phase 11 = два спринта (24 каркас, 25 прокачка); rerank/cache не в фазе.
+- Пакет назван `lang_graph`, не `graph` (path collision).
 
 ### Technical Debt
 
-- —
+- Compile graph per request in `run_generate_graph` (простая корректность;
+  при latency-профиле можно кэшировать compiled app по config fingerprint).
 
 ## Retrospective
 
@@ -148,6 +164,6 @@ roadmap — оркестрация (LangGraph), не rerank и не cache. Се�
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `in-progress` (implementation complete locally)
 
 **Дата завершения:** —
