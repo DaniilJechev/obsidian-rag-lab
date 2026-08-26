@@ -1,15 +1,16 @@
 # Sprint 24 — LangGraph retrieve→generate/refuse
 
-> Статус: `in-progress` (implementation done; PR/closeout ещё нет)
+> Статус: `done`
 >
 > Ветка: `sprint/24-langgraph-rag-workflow`
 >
 > Связанная фаза roadmap: `Фаза 11`
 >
-> Backlog: `GRAPH-001`
+> Backlog: `GRAPH-001` (частично: каркас; остаток в Sprint 25)
 >
-> GitHub: [Issue #64](https://github.com/DaniilJechev/obsidian-rag-lab/issues/64),
-> [Milestone Phase 11](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/11)
+> GitHub: [Issue #64](https://github.com/DaniilJechev/obsidian-rag-lab/issues/64) (closed),
+> [PR #66](https://github.com/DaniilJechev/obsidian-rag-lab/pull/66) merged (`11555e2`),
+> [Milestone Phase 11](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/11) (open — Sprint 25)
 
 ## Sprint Goal
 
@@ -36,6 +37,7 @@ roadmap — оркестрация (LangGraph), не rerank и не cache. Се�
       pipeline ok).
 - [x] Unit/smoke без live OpenRouter в CI.
 - [x] Этот sprint-документ обновлять по ходу execution.
+- [x] Optional: Studio entrypoint + langsmith package (dev tooling).
 
 ## Out of Scope
 
@@ -47,11 +49,11 @@ roadmap — оркестрация (LangGraph), не rerank и не cache. Се�
 ## Expected Artifacts
 
 - `docs/agile/sprint-24-langgraph-rag-workflow.md` — этот документ.
-- Пакет `src/rag_based_on_obsidian/lang_graph/` — state, workflow, compile
-  (имя `lang_graph`, не `graph`: на Windows/Cursor путь `graph` коллидирует).
-- Wiring: `llm/pipeline.run_rag_generate` → `run_generate_graph`; optional
-  `graph_path` в `GenerateResponse`.
-- Тесты: `tests/graph/test_workflow.py` + обновлённый `tests/llm/test_pipeline.py`.
+- Пакет `src/rag_based_on_obsidian/lang_graph/` — state, workflow, studio.
+- Wiring: `llm/pipeline.run_rag_generate` → `run_generate_graph`; `graph_path`
+  в `GenerateResponse`.
+- Тесты: `tests/graph/`, обновлённый `tests/llm/test_pipeline.py`.
+- `langgraph.json` для optional local Studio.
 
 ## Acceptance Criteria
 
@@ -59,8 +61,7 @@ roadmap — оркестрация (LangGraph), не rerank и не cache. Се�
       (`graph_path`).
 - [x] Слабый контекст → refuse без hallucinated answer (семантика
       `should_refuse`).
-- [x] HTTP JSON `/generate` совместим с eval-клиентом (`rag-cli ragas`):
-      новые поля optional; клиент читает через `.get`.
+- [x] HTTP JSON `/generate` совместим с eval-клиентом (`rag-cli ragas`).
 - [x] CI-локально: Ruff/pytest зелёные без `OPENROUTER_API_KEY`.
 - [x] Vault / secrets не тронуты; ограничения записаны здесь.
 
@@ -70,16 +71,16 @@ roadmap — оркестрация (LangGraph), не rerank и не cache. Се�
 - [x] Acceptance Criteria проверены.
 - [x] Тесты добавлены или обновлены и проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит, если изменения отправлялись в remote (PR #66).
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
 - [x] Документация и конфигурация обновлены, если это необходимо.
 - [x] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Пользователь подтвердил завершение спринта (merge #66 + closeout).
 
 ## Dependencies and risks
 
-- `uv add langgraph` только владелец (manual uv policy) — сделано до implementation.
+- `uv add langgraph` только владелец (manual uv policy) — сделано.
 - Не сломать контракт `/generate` для live ragas harness.
 - Не тащить rewrite/self-check в этот спринт.
 - Tech debt Sprint 23: перед любым «до/после» eval — probe `/search` vs
@@ -99,8 +100,10 @@ roadmap — оркестрация (LangGraph), не rerank и не cache. Се�
 |---|---|---|
 | 2026-08-26 | Planning | Документ создан; Issue [#64](https://github.com/DaniilJechev/obsidian-rag-lab/issues/64); Milestone 11 |
 | 2026-08-26 | Pre-impl commit | `c6d4142` docs + `langgraph` dep |
-| 2026-08-26 | Implementation | Пакет `lang_graph/`: retrieve→gate→generate\|refuse; facade `run_rag_generate`; `graph_path` в API schema |
-| 2026-08-26 | Studio/LangSmith deps | `langgraph-cli[inmem]` (dev), `langsmith`; `langgraph.json` + `studio.py` stub entrypoint |
+| 2026-08-26 | Implementation | Пакет `lang_graph/`: retrieve→gate→generate\|refuse; facade; `graph_path` |
+| 2026-08-26 | Studio/LangSmith | `langgraph-cli[inmem]` (dev), `langsmith`; `langgraph.json` + `studio.py` |
+| 2026-08-26 | PR / merge | [PR #66](https://github.com/DaniilJechev/obsidian-rag-lab/pull/66) → `11555e2`; Issue #64 closed |
+| 2026-08-26 | Closeout | Этот документ + backlog; Milestone 11 остаётся open (Sprint 25) |
 
 ## Validation Evidence
 
@@ -115,9 +118,9 @@ uv run langgraph dev --allow-blocking   # live Studio (optional)
 ### Test and Lint Results
 
 - Tests: `230 passed, 1 skipped, 18 deselected` (exit 0)
-- Lint: `uv run ruff check .` — All checks passed (after import fix)
-- CI: pending after push/PR
-- Studio live: retrieve→gate→generate with OpenRouter (`openai/gpt-4o-mini`); live needs `--allow-blocking` due to sync import of transformers in Agent Server
+- Lint: `uv run ruff check .` — All checks passed
+- CI: PR #66 merged
+- Studio live: retrieve→gate→generate with OpenRouter (`openai/gpt-4o-mini`); live needs `--allow-blocking`
 
 ### Metrics
 
@@ -131,39 +134,52 @@ uv run langgraph dev --allow-blocking   # live Studio (optional)
 
 ### Completed
 
-- Планирование Sprint 24 зафиксировано.
-- LangGraph каркас wired в generate path.
-- Path наблюдаем через `graph_path`.
+- LangGraph каркас в generate path; `graph_path` в API.
+- Optional Studio stub/live entrypoint.
+- Issue #64 closed via PR #66.
 
-### Not Completed
+### Not Completed / carry-over
 
-- Push / implementation PR / remote CI.
-- User confirmation / closeout.
-- Sprint 25 (rewrite/self-check).
+- Sprint 25: classify, rewrite, self-check, richer trace (`GRAPH-001` остаток).
 
 ### Changed Decisions
 
 - Phase 11 = два спринта (24 каркас, 25 прокачка); rerank/cache не в фазе.
-- Пакет назван `lang_graph`, не `graph` (path collision).
+- Пакет `lang_graph`, не `graph` (path collision).
+- Studio — optional local tooling, не отдельный graph-microservice.
 
 ### Technical Debt
 
-- Compile graph per request in `run_generate_graph` (простая корректность;
-  при latency-профиле можно кэшировать compiled app по config fingerprint).
+- Compile graph per request in `run_generate_graph`.
+- Live Studio: `--allow-blocking` из‑за sync import transformers в Agent Server.
 
 ## Retrospective
 
-Заполняется при closeout.
+### What went well
+
+- Тонкий facade сохранил контракт `/generate` и eval harness.
+- Studio помог визуально подтвердить live path без смены архитектуры API.
+
+### Difficulties
+
+- `graph` vs `lang_graph` path collision на Windows/Cursor.
+- Live Studio + blockbuster BlockingError на import runtime.
+- Windows `git switch` / `.git/HEAD` иногда permission-locked.
+
+### Changes for next sprint
+
+- Сразу закладывать async-friendly / lazy heavy imports для Studio live.
+- Не смешивать Studio tooling с пониманием prod path в онбординге.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён.
+- [x] Следующий sprint выбран или запланирован (Sprint 25 / Issue #65).
 
-**Итоговый статус:** `in-progress` (implementation complete locally)
+**Итоговый статус:** `done`
 
-**Дата завершения:** —
+**Дата завершения:** 2026-08-26
