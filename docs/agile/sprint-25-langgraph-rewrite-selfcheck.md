@@ -1,6 +1,6 @@
 # Sprint 25 — LangGraph rewrite, self-check, observability
 
-> Статус: `in-progress` (implementation done locally; PR/closeout ещё нет)
+> Статус: `done`
 >
 > Ветка: `sprint/25-langgraph-rewrite-selfcheck`
 >
@@ -32,7 +32,7 @@
       (rewrite → retrieve).
 - [x] Structured trace в payload (`graph_trace` + `graph_path`).
 - [x] Тесты на ветки графа; обновить этот документ.
-- [ ] При closeout фазы: `GRAPH-001` → done в backlog (после merge/closeout).
+- [x] При closeout фазы: `GRAPH-001` → done в backlog.
 
 ## Out of Scope
 
@@ -62,12 +62,12 @@
 - [x] Acceptance Criteria проверены.
 - [x] Тесты добавлены или обновлены и проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит, если изменения отправлялись в remote.
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
 - [x] Документация и конфигурация обновлены, если это необходимо.
 - [x] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Пользователь подтвердил завершение спринта.
 
 ## Dependencies and risks
 
@@ -90,6 +90,8 @@
 |---|---|---|
 | 2026-08-26 | Planning | Документ создан; Issue [#65](https://github.com/DaniilJechev/obsidian-rag-lab/issues/65) |
 | 2026-08-26 | Implementation | classify→retrieve→gate→generate→self_check; rewrite max 1; `graph_trace` |
+| 2026-08-26 | PR / merge | [PR #68](https://github.com/DaniilJechev/obsidian-rag-lab/pull/68) → `5bf5b67`; Issue #65 closed; CI green |
+| 2026-08-26 | Closeout | Этот документ + backlog; Milestone 11 closed; Phase 11 complete |
 
 ## Validation Evidence
 
@@ -104,7 +106,7 @@ uv run pytest -q
 
 - Tests: `236 passed, 1 skipped, 18 deselected` (exit 0)
 - Lint: `uv run ruff check .` — All checks passed
-- CI: pending push/PR
+- CI: PR #68 `Lint and test` SUCCESS
 
 ### Metrics / limits
 
@@ -120,10 +122,12 @@ uv run pytest -q
 
 - Rule classify / rewrite / self-check wired.
 - Trace + retry fields on generate payload.
+- Issue #65 closed via PR #68; `GRAPH-001` → done; Milestone 11 closed.
 
-### Not Completed
+### Not Completed / carry-over
 
-- Push / PR / closeout / GRAPH-001 → done.
+- Нет обязательного carry-over в Phase 11.
+- Heuristic rewrite quality → опционально мерить на ragas в Phase 12 prep (не блокер).
 
 ### Changed Decisions
 
@@ -133,20 +137,36 @@ uv run pytest -q
 
 - Heuristic rewrite may not improve retrieval; measure later with ragas if needed.
 - After retry cap, low-confidence answer is still returned (not force-refuse).
+- Compile graph per request in `run_generate_graph` (from Sprint 24).
 
 ## Retrospective
 
-Заполняется при closeout.
+### What went well
+
+- Условные рёбра и retry cap без лишних LLM-вызовов на policies.
+- `graph_trace` дал тот же уровень прозрачности, что Studio-картинка, но в API.
+- Facade `run_rag_generate` сохранил контракт runtime/eval.
+
+### Difficulties
+
+- Studio/port 2024 conflict и Windows HEAD lock отвлекают от graph-логики.
+- Нужно явно разделять Studio tooling и prod FastAPI path при онбординге.
+
+### Changes for next sprint
+
+- Phase 12 (rerank): мерить nDCG/MRR до/после на замороженном Phase 7 gold;
+  не смешивать с generate-judge, пока retrieval delta не ясна.
+- Не тащить cache (Phase 13) в тот же спринт, что rerank.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён.
+- [x] Следующий sprint выбран или запланирован (Phase 12 / `ML-001` — planning).
 
-**Итоговый статус:** `in-progress` (implementation complete locally)
+**Итоговый статус:** `done`
 
-**Дата завершения:** —
+**Дата завершения:** 2026-08-26
