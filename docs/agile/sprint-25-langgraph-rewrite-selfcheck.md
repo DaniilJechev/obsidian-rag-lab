@@ -1,6 +1,6 @@
 # Sprint 25 — LangGraph rewrite, self-check, observability
 
-> Статус: `planned`
+> Статус: `in-progress` (implementation done locally; PR/closeout ещё нет)
 >
 > Ветка: `sprint/25-langgraph-rewrite-selfcheck`
 >
@@ -26,53 +26,54 @@
 
 ## Scope
 
-- [ ] Light classify (rule или маленький LLM-call): rag_qa vs early refuse
-      (не XGBoost).
-- [ ] Node rewrite на conditional edge.
-- [ ] Node self-check после generate; жёсткий max retries = 1
+- [x] Light classify (rule): rag_qa vs early refuse (не XGBoost / не LLM).
+- [x] Node rewrite на conditional edge после failed self-check.
+- [x] Node self-check после generate; жёсткий max retries = 1
       (rewrite → retrieve).
-- [ ] Structured trace в payload/logs (sequence + reasons).
-- [ ] Тесты на ветки графа; обновить этот документ.
-- [ ] При closeout фазы: `GRAPH-001` → done в backlog.
+- [x] Structured trace в payload (`graph_trace` + `graph_path`).
+- [x] Тесты на ветки графа; обновить этот документ.
+- [ ] При closeout фазы: `GRAPH-001` → done в backlog (после merge/closeout).
 
 ## Out of Scope
 
 - Rerank (`ML-001` / Phase 12), cache (Phase 13).
 - Multi-turn session memory, Telegram, vLLM.
 - Бесконечные agent loops; обязательный полный bake-off Phase 10 заново.
+- LLM-based classify/rewrite/judge (оставлены rule heuristics для CI/cost).
 
 ## Expected Artifacts
 
 - `docs/agile/sprint-25-langgraph-rewrite-selfcheck.md` — этот документ.
-- Расширение графа Sprint 24: classify / rewrite / self-check nodes.
-- Тесты conditional edges и retry cap.
-- Trace-поля, совместимые с отладкой (и опционально с MLflow позже).
+- `lang_graph/policies.py` + расширенный `workflow.py` / `state.py`.
+- API: optional `graph_trace`, `retry_count`, `rewritten_query`.
+- Тесты: policies, retry path, retry cap, classify refuse.
 
 ## Acceptance Criteria
 
-- [ ] Хотя бы один controlled retry path покрыт тестом.
-- [ ] Self-check не может зациклиться (max retries enforced).
-- [ ] Trace воспроизводим в unit-тестах.
-- [ ] CI / Ruff / pytest зелёные; vault / secrets ok.
-- [ ] Ограничения (latency/cost) записаны здесь.
+- [x] Хотя бы один controlled retry path покрыт тестом.
+- [x] Self-check не может зациклиться (max retries enforced).
+- [x] Trace воспроизводим в unit-тестах.
+- [x] Ruff / pytest зелёные локально; vault / secrets ok.
+- [x] Ограничения (latency/cost) записаны здесь.
 
 ## Definition of Done
 
-- [ ] Все задачи из Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
+- [x] Все задачи из Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
 - [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Документация и конфигурация обновлены, если это необходимо.
-- [ ] Результаты и ограничения записаны в этот sprint-документ.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Документация и конфигурация обновлены, если это необходимо.
+- [x] Результаты и ограничения записаны в этот sprint-документ.
 - [ ] Пользователь подтвердил завершение спринта.
 
 ## Dependencies and risks
 
-- **Жёсткая зависимость:** Sprint 24 merged в `main`.
-- Доп. LLM-вызовы (rewrite/check) ↑ latency/cost — держать max retries = 1.
+- Sprint 24 merged в `main` (`11555e2` / closeout `32c291d`).
+- Rule-based policies: zero extra LLM calls for classify/rewrite/self-check;
+  only retrieve+generate (and at most one retry generate) hit OpenRouter.
 - Не раздуть Phase 11 в rerank/cache.
 
 ## Estimate
@@ -87,45 +88,51 @@
 
 | Дата | Действие / решение | Результат |
 |---|---|---|
-| 2026-08-26 | Planning | Документ создан; Issue [#65](https://github.com/DaniilJechev/obsidian-rag-lab/issues/65); ждёт merge Sprint 24 |
+| 2026-08-26 | Planning | Документ создан; Issue [#65](https://github.com/DaniilJechev/obsidian-rag-lab/issues/65) |
+| 2026-08-26 | Implementation | classify→retrieve→gate→generate→self_check; rewrite max 1; `graph_trace` |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-(заполняется при execution)
+uv run ruff check .
+uv run pytest -q
 ```
 
 ### Test and Lint Results
 
-- Tests: —
-- Lint: —
-- CI: —
+- Tests: `236 passed, 1 skipped, 18 deselected` (exit 0)
+- Lint: `uv run ruff check .` — All checks passed
+- CI: pending push/PR
 
-### Metrics
+### Metrics / limits
 
 | Metric | Value | Context |
 |---|---:|---|
-| — | — | — |
+| Max self-check retries | 1 | hard cap |
+| Extra LLM for classify/rewrite/check | 0 | rule heuristics |
+| Worst-case generate calls | 2 | initial + one retry |
 
 ## Review
 
 ### Completed
 
-- Планирование Sprint 25 зафиксировано.
+- Rule classify / rewrite / self-check wired.
+- Trace + retry fields on generate payload.
 
 ### Not Completed
 
-- Implementation (после Sprint 24).
+- Push / PR / closeout / GRAPH-001 → done.
 
 ### Changed Decisions
 
-- —
+- Classify/rewrite/self-check = rules, not LLM (cost/CI determinism).
 
 ### Technical Debt
 
-- —
+- Heuristic rewrite may not improve retrieval; measure later with ragas if needed.
+- After retry cap, low-confidence answer is still returned (not force-refuse).
 
 ## Retrospective
 
@@ -140,6 +147,6 @@
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `in-progress` (implementation complete locally)
 
 **Дата завершения:** —

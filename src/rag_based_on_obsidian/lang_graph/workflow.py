@@ -1,7 +1,7 @@
-"""LangGraph: retrieve → gate → generate | refuse.
+"""LangGraph: classify → retrieve → gate → generate → self_check | refuse.
 
-Keeps packing, parser, and OpenRouter in ``llm/``; this module only
-orchestrates the same semantics as the former linear ``run_rag_generate``.
+Sprint 25 adds rule-based classify/rewrite/self-check with max one retry.
+Packing, parser, and OpenRouter stay in ``llm/``.
 """
 
 from __future__ import annotations
@@ -11,6 +11,12 @@ from typing import Literal
 
 from langgraph.graph import END, START, StateGraph
 
+from rag_based_on_obsidian.lang_graph.policies import (
+    MAX_SELF_CHECK_RETRIES,
+    classify_query,
+    rewrite_query,
+    self_check_generation,
+)
 from rag_based_on_obsidian.lang_graph.state import GenerateGraphState
 from rag_based_on_obsidian.llm.contracts import (
     LLMProvider,
@@ -27,7 +33,9 @@ from rag_based_on_obsidian.llm.settings import LLMConfig
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod, RetrievedChunk
 
 SearchFn = Callable[..., Awaitable[list[RetrievedChunk]]]
+RouteAfterClassify = Literal["retrieve", "refuse"]
 RouteAfterGate = Literal["generate", "refuse"]
+RouteAfterSelfCheck = Literal["pass", "rewrite"]
 
 
 def build_generate_graph(
@@ -35,7 +43,25 @@ def build_generate_graph(
     provider: LLMProvider,
     config: LLMConfig,
 ):
-    """Compile a retrieve→gate→generate|refuse graph closed over deps."""
+    """Compile classify→retrieve→gate→generate→self_check|refuse graph."""
+
+    async def classify(state: GenerateGraphState) -> dict[str, object]:
+        label, reason = classify_query(state["query"])
+        update: dict[str, object] = {
+            "classify_label": label,
+            "original_query": state.get("original_query") or state["query"],
+            "retry_count": int(state.get("retry_count") or 0),
+            "path": ["classify"],
+            "trace": [{"node": "classify", "reason": reason}],
+        }
+        if label == "refuse":
+            update["refuse_reason"] = reason
+        return update
+
+    def route_after_classify(state: GenerateGraphState) -> RouteAfterClassify:
+        if state.get("classify_label") == "refuse":
+            return "refuse"
+        return "retrieve"
 
     async def retrieve(state: GenerateGraphState) -> dict[str, object]:
         chunks = await search(
@@ -43,7 +69,11 @@ def build_generate_graph(
             method=state["method"],
             top_k=state["top_k"],
         )
-        return {"chunks": chunks, "path": ["retrieve"]}
+        return {
+            "chunks": chunks,
+            "path": ["retrieve"],
+            "trace": [{"node": "retrieve", "reason": f"chunks={len(chunks)}"}],
+        }
 
     async def gate(state: GenerateGraphState) -> dict[str, object]:
         chunks = state.get("chunks") or []
@@ -52,15 +82,27 @@ def build_generate_graph(
             min_retrieval_score=config.min_retrieval_score,
         )
         if reason is not None:
-            return {"refuse_reason": reason, "packed": [], "path": ["gate"]}
-        packed = pack_chunks(chunks, max_context_tokens=config.max_context_tokens)
-        if not packed:
             return {
-                "refuse_reason": "no retrieved context",
+                "refuse_reason": reason,
                 "packed": [],
                 "path": ["gate"],
+                "trace": [{"node": "gate", "reason": reason}],
             }
-        return {"refuse_reason": None, "packed": packed, "path": ["gate"]}
+        packed = pack_chunks(chunks, max_context_tokens=config.max_context_tokens)
+        if not packed:
+            reason = "no retrieved context"
+            return {
+                "refuse_reason": reason,
+                "packed": [],
+                "path": ["gate"],
+                "trace": [{"node": "gate", "reason": reason}],
+            }
+        return {
+            "refuse_reason": None,
+            "packed": packed,
+            "path": ["gate"],
+            "trace": [{"node": "gate", "reason": f"packed={len(packed)}"}],
+        }
 
     def route_after_gate(state: GenerateGraphState) -> RouteAfterGate:
         if state.get("refuse_reason"):
@@ -103,9 +145,59 @@ def build_generate_graph(
             "latency_ms": result.latency_ms,
             "usage": usage,
             "path": ["generate"],
+            "trace": [
+                {
+                    "node": "generate",
+                    "reason": f"confidence={confidence:.3f}",
+                }
+            ],
+        }
+
+    async def self_check(state: GenerateGraphState) -> dict[str, object]:
+        ok, reason = self_check_generation(
+            answer=state.get("answer"),
+            confidence=float(state.get("confidence") or 0.0),
+            citations=state.get("citations"),
+            refused=bool(state.get("refused")),
+        )
+        return {
+            "self_check_ok": ok,
+            "self_check_reason": reason,
+            "path": ["self_check"],
+            "trace": [{"node": "self_check", "reason": reason}],
+        }
+
+    def route_after_self_check(state: GenerateGraphState) -> RouteAfterSelfCheck:
+        if state.get("self_check_ok"):
+            return "pass"
+        retries = int(state.get("retry_count") or 0)
+        if retries >= MAX_SELF_CHECK_RETRIES:
+            return "pass"
+        return "rewrite"
+
+    async def rewrite(state: GenerateGraphState) -> dict[str, object]:
+        attempt = int(state.get("retry_count") or 0)
+        new_query = rewrite_query(state["query"], attempt=attempt)
+        return {
+            "query": new_query,
+            "retry_count": attempt + 1,
+            "answer": None,
+            "citations": [],
+            "contexts": [],
+            "confidence": 0.0,
+            "self_check_ok": None,
+            "self_check_reason": None,
+            "path": ["rewrite"],
+            "trace": [
+                {
+                    "node": "rewrite",
+                    "reason": f"retry={attempt + 1}/{MAX_SELF_CHECK_RETRIES}",
+                }
+            ],
         }
 
     async def refuse(state: GenerateGraphState) -> dict[str, object]:
+        reason = state.get("refuse_reason") or "refused"
         return {
             "answer": None,
             "citations": [],
@@ -116,21 +208,36 @@ def build_generate_graph(
             "latency_ms": None,
             "usage": None,
             "path": ["refuse"],
+            "trace": [{"node": "refuse", "reason": str(reason)}],
         }
 
     graph = StateGraph(GenerateGraphState)
+    graph.add_node("classify", classify)
     graph.add_node("retrieve", retrieve)
     graph.add_node("gate", gate)
     graph.add_node("generate", generate)
+    graph.add_node("self_check", self_check)
+    graph.add_node("rewrite", rewrite)
     graph.add_node("refuse", refuse)
-    graph.add_edge(START, "retrieve")
+    graph.add_edge(START, "classify")
+    graph.add_conditional_edges(
+        "classify",
+        route_after_classify,
+        {"retrieve": "retrieve", "refuse": "refuse"},
+    )
     graph.add_edge("retrieve", "gate")
     graph.add_conditional_edges(
         "gate",
         route_after_gate,
         {"generate": "generate", "refuse": "refuse"},
     )
-    graph.add_edge("generate", END)
+    graph.add_edge("generate", "self_check")
+    graph.add_conditional_edges(
+        "self_check",
+        route_after_self_check,
+        {"pass": END, "rewrite": "rewrite"},
+    )
+    graph.add_edge("rewrite", "retrieve")
     graph.add_edge("refuse", END)
     return graph.compile()
 
@@ -149,23 +256,34 @@ async def run_generate_graph(
     final: GenerateGraphState = await app.ainvoke(
         {
             "query": query,
+            "original_query": query,
             "method": method,
             "top_k": top_k,
             "path": [],
+            "trace": [],
+            "retry_count": 0,
         }
     )
+    refused = bool(final.get("refused"))
     return {
-        "query": query,
+        "query": final.get("original_query") or query,
         "method": method,
         "top_k": top_k,
         "answer": final.get("answer"),
         "citations": final.get("citations") or [],
         "contexts": final.get("contexts") or [],
         "confidence": float(final.get("confidence") or 0.0),
-        "refused": bool(final.get("refused")),
-        "refusal_reason": final.get("refuse_reason") if final.get("refused") else None,
+        "refused": refused,
+        "refusal_reason": final.get("refuse_reason") if refused else None,
         "model": final.get("model"),
         "latency_ms": final.get("latency_ms"),
         "usage": final.get("usage"),
         "graph_path": list(final.get("path") or []),
+        "graph_trace": list(final.get("trace") or []),
+        "retry_count": int(final.get("retry_count") or 0),
+        "rewritten_query": (
+            final.get("query")
+            if (final.get("original_query") or query) != final.get("query")
+            else None
+        ),
     }

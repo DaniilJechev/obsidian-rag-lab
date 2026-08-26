@@ -88,7 +88,13 @@ def test_pipeline_returns_answer_and_rewrites_citation_path() -> None:
             "text": "RoPE applies a rotation to query and key vectors.",
         }
     ]
-    assert payload["graph_path"] == ["retrieve", "gate", "generate"]
+    assert payload["graph_path"] == [
+        "classify",
+        "retrieve",
+        "gate",
+        "generate",
+        "self_check",
+    ]
 
 
 def test_pipeline_refuses_without_calling_llm() -> None:
@@ -113,7 +119,12 @@ def test_pipeline_refuses_without_calling_llm() -> None:
     assert payload["refused"] is True
     assert payload["refusal_reason"] == "no retrieved context"
     assert payload["contexts"] == []
-    assert payload["graph_path"] == ["retrieve", "gate", "refuse"]
+    assert payload["graph_path"] == [
+        "classify",
+        "retrieve",
+        "gate",
+        "refuse",
+    ]
 
 
 def test_pipeline_attaches_raw_generation_on_parse_failure() -> None:

@@ -128,6 +128,9 @@ class GenerateResponse(BaseModel):
     latency_ms: int | None = None
     usage: GenerateUsage | None = None
     graph_path: list[str] | None = None
+    graph_trace: list[dict[str, str]] | None = None
+    retry_count: int | None = None
+    rewritten_query: str | None = None
 
 
 class PinnedModels(BaseModel):

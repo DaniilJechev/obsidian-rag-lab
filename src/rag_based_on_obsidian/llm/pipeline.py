@@ -23,7 +23,7 @@ async def run_rag_generate(
 ) -> dict[str, object]:
     """Return a JSON-ready generate payload. May raise LLM errors.
 
-    Sprint 24: thin facade over ``run_generate_graph`` so API/runtime and
+    Sprint 24+: thin facade over ``run_generate_graph`` so API/runtime and
     existing tests keep calling this name while the control flow is a graph.
     """
 
