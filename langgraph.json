@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "rag_generate": "./src/rag_based_on_obsidian/lang_graph/studio.py:graph"
+  },
+  "env": ".env"
+}

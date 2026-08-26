@@ -127,6 +127,7 @@ class GenerateResponse(BaseModel):
     model: str | None = None
     latency_ms: int | None = None
     usage: GenerateUsage | None = None
+    graph_path: list[str] | None = None
 
 
 class PinnedModels(BaseModel):

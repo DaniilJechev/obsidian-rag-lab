@@ -79,7 +79,7 @@ Backlog не является жёстким расписанием. Приор�
 | API-001 | P1 | done | 8 | FastAPI `/health`, `/search` и Docker-сервис `api` | Sprint 19 completed: lifespan с тёплым e5, JSON-контракты, compose `api`; PR [#51](https://github.com/DaniilJechev/obsidian-rag-lab/pull/51) merged (`0ecbe77`), CI passed, Issue [#49](https://github.com/DaniilJechev/obsidian-rag-lab/issues/49) closed |
 | API-002 | P1 | done | 8 | HTTP `/ingest` и PostgreSQL `query_logs` | Sprint 20 completed: `POST /ingest` 202/409, `GET /ingest/{run_id}`, `GET /ingest/current`, `query_logs`; live ingest 205 230/230; PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54) merged (`c664243`), CI passed, Issue [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) closed |
 | LLM-001 | P1 | done | 9 | Подключить OpenRouter LLM | Sprint 21 completed: `POST /generate`, `LLMProvider` + OpenRouter, structured JSON + citations + refuse; pin `openai/gpt-4o-mini`; live smoke 3640 ms / 1958+165 tokens; PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56) merged (`33bb50c`); bake-off — Phase 10; `docs/agile/sprint-21-openrouter-rag-generate.md` |
-| GRAPH-001 | P1 | idea | 11 | Добавить LangGraph workflow | State, nodes, branching, retry и refusal наблюдаемы |
+| GRAPH-001 | P1 | in-progress | 11 | Добавить LangGraph workflow | Sprint 24 каркас locally done на `sprint/24-langgraph-rag-workflow` (`lang_graph/` retrieve→gate→generate\|refuse, `graph_path`); Issue [#64](https://github.com/DaniilJechev/obsidian-rag-lab/issues/64). Sprint 25 rewrite/self-check ещё впереди ([#65](https://github.com/DaniilJechev/obsidian-rag-lab/issues/65)). Milestone [11](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/11). |
 | ML-001 | P2 | idea | 12 | Добавить reranker и сравнить retrieval | nDCG/MRR до и после reranking измерены |
 | MLOPS-001 | P1 | done | 10 | RAGAS harness + gpt-4o-mini baseline + human template (Sprint 22) | Sprint 22 completed: `rag-cli ragas run`, JSON-judge 0–5, note-level P/R, live 15/15, MLflow `4663f6d7fc804f2eb128cfd5db412300`; human-шаблон 10 вопросов (`null`). PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60) merged (`25f924e`); Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58) closed. Заполненные scores — carry-over `MLOPS-002`. |
 | MLOPS-002 | P1 | done | 10 | Human scores + RAGAS runtime + bake-off 2 OpenRouter generate-моделей (Sprint 23) | Sprint 23 completed: human 10×0–5, `judge_backend: ragas` 0–1, bake-off mini `7278da5c…` (F/AR 0.779/0.898) vs Gemini `d0918cf6…` (0.870/0.887), ctx P/R 0.785/0.622. PR [#62](https://github.com/DaniilJechev/obsidian-rag-lab/pull/62) merged (`2c56d41`); Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) closed. |
@@ -117,14 +117,17 @@ retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-ba
 Канон generate eval: `docs/agile/sprint-23-openrouter-model-bakeoff.md`
 (ragas 0–1 + JSON 0–5 рядом).
 
-Следующая работа: **Phase 11** / `GRAPH-001` — LangGraph workflow
-(state, nodes, branching, retry/refusal). Phase 10 закрыта: Sprint 22
-PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60), Sprint 23
-PR [#62](https://github.com/DaniilJechev/obsidian-rag-lab/pull/62) (`2c56d41`),
-Issues [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58) /
-[#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) closed.
-Phase 9 на `main` закрыта: Sprint 21 PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56)
-(`33bb50c`).
+Следующая работа: **Phase 11** / `GRAPH-001` — LangGraph.
+Sprint 24 (каркас retrieve→gate→generate/refuse): Issue
+[#64](https://github.com/DaniilJechev/obsidian-rag-lab/issues/64),
+док `docs/agile/sprint-24-langgraph-rag-workflow.md`.
+Sprint 25 (rewrite/self-check/trace): Issue
+[#65](https://github.com/DaniilJechev/obsidian-rag-lab/issues/65),
+док `docs/agile/sprint-25-langgraph-rewrite-selfcheck.md`.
+Milestone [11](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/11).
+Phase 10 закрыта: Sprint 22–23, Issues [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58) /
+[#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59).
+Phase 9 закрыта: Sprint 21 PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56).
 
 История завершённых спринтов:
 
