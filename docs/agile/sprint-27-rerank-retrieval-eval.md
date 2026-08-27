@@ -1,6 +1,6 @@
 # Sprint 27 — Rerank retrieval eval
 
-> Статус: `in-progress` (implementation + evidence; PR pending user merge)
+> Статус: `done`
 >
 > Ветка: `sprint/27-rerank-retrieval-eval`
 >
@@ -54,12 +54,12 @@
 - [x] Acceptance Criteria проверены.
 - [x] Тесты добавлены или обновлены и проходят (если код менялся).
 - [x] Ruff/lint проходит (если код менялся).
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит, если изменения отправлялись в remote.
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
 - [x] Документация и конфигурация обновлены, если это необходимо.
 - [x] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта (merge PR).
+- [x] Пользователь подтвердил завершение спринта (PR #74 merged).
 
 ## Dependencies and risks
 
@@ -83,6 +83,8 @@
 | 2026-08-27 | Eval wiring | CLI `--enable-rerank`/`--no-enable-rerank`; MLflow `phase-12-rerank-retrieval-eval` |
 | 2026-08-27 | Live A/B | disable + enable runs on gold v0, k=5, candidate_k=20 |
 | 2026-08-27 | Default decision | keep `rerank.enabled: false` (CPU latency) |
+| 2026-08-27 | PR #74 | merged `12102b6`; Issue #71 closed; CI SUCCESS |
+| 2026-08-27 | Closeout | этот документ + backlog; Milestone 12 closed |
 
 ## Validation Evidence
 
@@ -99,7 +101,8 @@ uv run pytest -q   # one full suite before commit
 
 - Lint: `uv run ruff check` (sprint-27 paths) — All checks passed
 - Tests: `uv run pytest -q` — **242 passed**, 1 skipped, 18 deselected
-- CI: pending PR
+- CI: PR [#74](https://github.com/DaniilJechev/obsidian-rag-lab/pull/74) `Lint and test` SUCCESS
+  (merge `12102b6`)
 
 ### Setup (shared)
 
@@ -151,16 +154,18 @@ UI: http://127.0.0.1:5000/#/experiments/9
 
 - Live A/B + MLflow experiment + CLI flag.
 - Evidence table + default=false decision.
-- Sprint 26 CE wiring reused (no graph rewire).
+- PR [#74](https://github.com/DaniilJechev/obsidian-rag-lab/pull/74) merged (`12102b6`);
+  Issue [#71](https://github.com/DaniilJechev/obsidian-rag-lab/issues/71) closed.
+- Phase 12 / `ML-001` complete (Sprint 26 wire + Sprint 27 eval).
 
 ### Not Completed / carry-over
 
-- Generate/RAGAS impact of CE — out of scope.
+- Generate/RAGAS impact of CE — out of scope (future opt-in GPU).
 - GPU / Colab latency re-measure — optional later.
 
 ### Changed Decisions
 
-- Default CE **off** despite quality gains (latency gate).
+- Default CE **off** despite quality gains (latency gate on CPU).
 
 ### Technical Debt
 
@@ -168,17 +173,31 @@ UI: http://127.0.0.1:5000/#/experiments/9
 
 ## Retrospective
 
-Заполняется при closeout.
+### What went well
+
+- CLI flag без Docker restart для A/B.
+- Отдельный MLflow experiment + run names `enable_rerank` / `disable_rerank`.
+- Чёткий latency vs quality trade-off для default.
+
+### Difficulties
+
+- CE на CPU ~1.5h / 50 q — eval долгий, но reproducible.
+- Windows `.git/HEAD` lock мешает switch веток при closeout.
+
+### Changes for next sprint
+
+- Не включать CE default без GPU; Phase 13+ cache/storage по roadmap.
+- Опционально: generate-side impact CE — отдельный эксперимент.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён.
+- [x] Следующий sprint / phase transition зафиксированы (Phase 12 done).
 
-**Итоговый статус:** `in-progress` (awaiting PR merge)
+**Итоговый статус:** `done`
 
-**Дата завершения:** —
+**Дата завершения:** 2026-08-27
