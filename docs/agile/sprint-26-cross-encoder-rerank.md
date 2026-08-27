@@ -1,6 +1,6 @@
 # Sprint 26 — Cross-encoder rerank wiring
 
-> Статус: `in-progress` (implementation on branch; PR ещё нет)
+> Статус: `done`
 >
 > Ветка: `sprint/26-cross-encoder-rerank`
 >
@@ -66,12 +66,12 @@ Phase 7 gold и hybrid baseline (Sprint 18) уже есть. Rerank как яв�
 - [x] Acceptance Criteria проверены.
 - [x] Тесты добавлены или обновлены и проходят.
 - [x] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
+- [x] CI проходит, если изменения отправлялись в remote.
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
 - [x] Документация и конфигурация обновлены, если это необходимо.
 - [x] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Пользователь подтвердил завершение спринта (PR #72 merged).
 
 ## Dependencies and risks
 
@@ -103,6 +103,8 @@ Phase 7 gold и hybrid baseline (Sprint 18) уже есть. Rerank как яв�
 | 2026-08-27 | Pool unify | removed `top_n`; RRF→CE pool = `candidate_k` |
 | 2026-08-27 | Local smoke then default off | tried on locally; merge default `enabled`/`warm_load` false; `max_length: 728` |
 | 2026-08-27 | Status report | доклад; commit/push → PR by user |
+| 2026-08-27 | PR #72 | merged `0b8e230`; Issue #70 closed; CI SUCCESS |
+| 2026-08-27 | Closeout | этот документ + backlog; Milestone 12 остаётся open (#71) |
 
 ## Validation Evidence
 
@@ -115,9 +117,9 @@ uv run pytest tests/graph/test_workflow.py tests/retrieval/test_rerank.py tests/
 
 ### Test and Lint Results
 
-- Tests: focused suite exit 0 (последний прогон: 13 passed, graph/rerank/pipeline/runtime)
+- Tests: local `uv run pytest -q` — `240 passed, 1 skipped` (pre-commit)
 - Lint: ruff All checks passed (sprint-26 paths)
-- CI: pending push/PR
+- CI: PR [#72](https://github.com/DaniilJechev/obsidian-rag-lab/pull/72) `Lint and test` SUCCESS
 - Live HF download of m3: not asserted in unit tests (Identity / mocks)
 
 ### Metrics / limits
@@ -135,45 +137,62 @@ uv run pytest tests/graph/test_workflow.py tests/retrieval/test_rerank.py tests/
 
 ### Completed
 
-- Планирование Sprint 26 зафиксировано.
 - CE wiring: module, LangGraph `rerank`, `/search` hook, tests.
-- Config: nested `rerank:` in `retrieval.yaml`; single pool `candidate_k`.
+- Config: nested `rerank:` in `retrieval.yaml`; pool = `candidate_k`.
+- PR [#72](https://github.com/DaniilJechev/obsidian-rag-lab/pull/72) merged
+  (`0b8e230`); Issue [#70](https://github.com/DaniilJechev/obsidian-rag-lab/issues/70) closed.
+- Default `enabled: false` until Sprint 27 metrics.
 
-### Not Completed
+### Not Completed / carry-over
 
-- Commit / push / PR → Issue #70.
-- CI green on remote.
-- User sign-off на DoD / closeout.
-- Sprint 27 eval (nDCG/MRR) — отдельный спринт.
+- nDCG/MRR hybrid vs hybrid+CE → Sprint 27 / Issue [#71](https://github.com/DaniilJechev/obsidian-rag-lab/issues/71).
+- Pin `model_revision` before reproducible eval.
+- Wire CE into live eval + MLflow params (Sprint 27).
 
 ### Changed Decisions
 
 - Phase 12 = CE only; XGBoost classifier dropped from this phase.
-- Model = `BAAI/bge-reranker-v2-m3` with FP16; tqdm on every load.
-- Placement = LangGraph `rerank` node after `retrieve`; shared CE helper also used by `/search`.
-- No separate `rerank.yaml` / `top_n` — one retrieval config, pool = `candidate_k`.
+- Model = `BAAI/bge-reranker-v2-m3` with FP16; tqdm on load/score.
+- Placement = LangGraph `rerank` after `retrieve`; shared helper for `/search`.
+- No separate `rerank.yaml` / `top_n` — pool = top-level `candidate_k`.
 - Default CE **off** until Sprint 27 evidence.
 
 ### Technical Debt
 
-- `model_revision: null` — pin HF commit before reproducible Sprint 27 runs.
+- `model_revision: null` — pin HF commit before Sprint 27 runs.
+- Live eval session still hybrid-only (no CE path) until Sprint 27.
 
 ## Retrospective
 
-Заполняется при closeout.
+### What went well
+
+- Чёткое разделение wiring (26) vs eval (27).
+- Единый `candidate_k` убрал путаницу `top_n`.
+- Gate на hybrid `score` + отдельный `rerank_score` сохранил refuse-контракт.
+
+### Difficulties
+
+- Отдельный `rerank.yaml` быстро стал лишним конфиг-шумом — слили в
+  `retrieval.yaml`.
+- Warm-load / enabled легко перепутать; default off для merge правильный.
+
+### Changes for next sprint
+
+- Sprint 27: A/B nDCG/MRR на Phase 7 gold; MLflow params CE; решить default on/off.
+- Не тащить cache / RAGAS bake-off в тот же спринт, что retrieval A/B.
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён.
+- [x] Следующий sprint выбран или запланирован (Sprint 27 / Issue #71).
 
-**Итоговый статус:** `in-progress` (implementation complete locally; commit/PR pending)
+**Итоговый статус:** `done`
 
-**Дата завершения:** —
+**Дата завершения:** 2026-08-27
 
 ---
 
@@ -188,15 +207,9 @@ uv run pytest tests/graph/test_workflow.py tests/retrieval/test_rerank.py tests/
    CE пишет в `rerank_score`.
 3. Конфиг: блок `rerank:` в `configs/retrieval/retrieval.yaml`.
 4. Пул: dense/BM25 → RRF на `candidate_k` → CE → срез `top_k`.
-5. Тесты: on/off, path/trace, reverse-order fixture; ruff + focused pytest green.
+5. Тесты + CI; PR [#72](https://github.com/DaniilJechev/obsidian-rag-lab/pull/72) merged.
 
-**Не сделано (вне DoD wiring / следующий шаг)**
-- Git: commit → PR к #70 → CI.
-- Метрики nDCG/MRR (Sprint 27 / #71).
-- Pin `model_revision` под eval.
+**Carry-over:** Sprint 27 nDCG/MRR / MLflow / default flag (#71).
 
 **Дефолт в YAML:** `enabled: false`, `warm_load: false`, `max_length: 728`,
 `candidate_k: 20`, `top_k: 5`.
-
-**Риски:** RAM (e5 + CE) when on, первый старт с tqdm/~2.3 GB download,
-воспроизводимость без `model_revision`.
