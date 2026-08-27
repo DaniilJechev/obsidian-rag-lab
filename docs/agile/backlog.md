@@ -80,7 +80,7 @@ Backlog не является жёстким расписанием. Приор�
 | API-002 | P1 | done | 8 | HTTP `/ingest` и PostgreSQL `query_logs` | Sprint 20 completed: `POST /ingest` 202/409, `GET /ingest/{run_id}`, `GET /ingest/current`, `query_logs`; live ingest 205 230/230; PR [#54](https://github.com/DaniilJechev/obsidian-rag-lab/pull/54) merged (`c664243`), CI passed, Issue [#50](https://github.com/DaniilJechev/obsidian-rag-lab/issues/50) closed |
 | LLM-001 | P1 | done | 9 | Подключить OpenRouter LLM | Sprint 21 completed: `POST /generate`, `LLMProvider` + OpenRouter, structured JSON + citations + refuse; pin `openai/gpt-4o-mini`; live smoke 3640 ms / 1958+165 tokens; PR [#56](https://github.com/DaniilJechev/obsidian-rag-lab/pull/56) merged (`33bb50c`); bake-off — Phase 10; `docs/agile/sprint-21-openrouter-rag-generate.md` |
 | GRAPH-001 | P1 | done | 11 | Добавить LangGraph workflow | Phase 11 complete: Sprint 24 PR [#66](https://github.com/DaniilJechev/obsidian-rag-lab/pull/66) (`11555e2`) + Sprint 25 PR [#68](https://github.com/DaniilJechev/obsidian-rag-lab/pull/68) (`5bf5b67`); Issues [#64](https://github.com/DaniilJechev/obsidian-rag-lab/issues/64)/[#65](https://github.com/DaniilJechev/obsidian-rag-lab/issues/65) closed; Milestone [11](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/11) closed. |
-| ML-001 | P1 | planned | 12 | Добавить cross-encoder reranker и сравнить retrieval | Phase 12: Sprint 26 wire ([#70](https://github.com/DaniilJechev/obsidian-rag-lab/issues/70)), Sprint 27 nDCG/MRR ([#71](https://github.com/DaniilJechev/obsidian-rag-lab/issues/71)); Milestone [12](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/12). XGBoost classifier out of phase. |
+| ML-001 | P1 | in-progress | 12 | Добавить cross-encoder reranker и сравнить retrieval | Sprint 26 wire done: PR [#72](https://github.com/DaniilJechev/obsidian-rag-lab/pull/72) (`0b8e230`), Issue [#70](https://github.com/DaniilJechev/obsidian-rag-lab/issues/70) closed. Next: Sprint 27 nDCG/MRR ([#71](https://github.com/DaniilJechev/obsidian-rag-lab/issues/71)); Milestone [12](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/12) open. |
 | MLOPS-001 | P1 | done | 10 | RAGAS harness + gpt-4o-mini baseline + human template (Sprint 22) | Sprint 22 completed: `rag-cli ragas run`, JSON-judge 0–5, note-level P/R, live 15/15, MLflow `4663f6d7fc804f2eb128cfd5db412300`; human-шаблон 10 вопросов (`null`). PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60) merged (`25f924e`); Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58) closed. Заполненные scores — carry-over `MLOPS-002`. |
 | MLOPS-002 | P1 | done | 10 | Human scores + RAGAS runtime + bake-off 2 OpenRouter generate-моделей (Sprint 23) | Sprint 23 completed: human 10×0–5, `judge_backend: ragas` 0–1, bake-off mini `7278da5c…` (F/AR 0.779/0.898) vs Gemini `d0918cf6…` (0.870/0.887), ctx P/R 0.785/0.622. PR [#62](https://github.com/DaniilJechev/obsidian-rag-lab/pull/62) merged (`2c56d41`); Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) closed. |
 | CLOUD-001 | P2 | idea | 13 | Сравнить local и cloud storage | Latency, cost, reliability и operational effort измерены |
@@ -117,12 +117,14 @@ retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-ba
 Канон generate eval: `docs/agile/sprint-23-openrouter-model-bakeoff.md`
 (ragas 0–1 + JSON 0–5 рядом).
 
-Следующая работа: **Phase 12** / `ML-001` — cross-encoder only.
-Sprint 26 (wire): Issue [#70](https://github.com/DaniilJechev/obsidian-rag-lab/issues/70),
+Следующая работа: **Phase 12** / `ML-001` — Sprint 27 eval.
+Sprint 26 **закрыт**: PR [#72](https://github.com/DaniilJechev/obsidian-rag-lab/pull/72)
+(`0b8e230`), Issue [#70](https://github.com/DaniilJechev/obsidian-rag-lab/issues/70) closed,
 док `docs/agile/sprint-26-cross-encoder-rerank.md`.
-Sprint 27 (eval): Issue [#71](https://github.com/DaniilJechev/obsidian-rag-lab/issues/71),
+Sprint 27 (nDCG/MRR): Issue [#71](https://github.com/DaniilJechev/obsidian-rag-lab/issues/71),
 док `docs/agile/sprint-27-rerank-retrieval-eval.md`.
-Milestone [12](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/12) open.
+Milestone [12](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/12) open
+(`open_issues=1`).
 Phase 11 **закрыта**: Sprint 24–25, Issues [#64](https://github.com/DaniilJechev/obsidian-rag-lab/issues/64)/
 [#65](https://github.com/DaniilJechev/obsidian-rag-lab/issues/65),
 PR [#66](https://github.com/DaniilJechev/obsidian-rag-lab/pull/66) / [#68](https://github.com/DaniilJechev/obsidian-rag-lab/pull/68),
