@@ -6,6 +6,12 @@ from typing import Any
 
 import yaml
 
+from rag_based_on_obsidian.retrieval.rerank_settings import (
+    RerankConfig,
+    default_rerank_config,
+    parse_rerank_config,
+)
+
 
 @dataclass(frozen=True)
 class RetrievalConfig:
@@ -19,6 +25,7 @@ class RetrievalConfig:
     postgres_batch_size: int = 256
     show_scores: bool = True
     filters: dict[str, object] = field(default_factory=dict)
+    rerank: RerankConfig = field(default_factory=default_rerank_config)
 
     def __post_init__(self) -> None:
         """Reject settings that could make ranking ambiguous."""
@@ -37,9 +44,17 @@ class RetrievalConfig:
 
 
 def load_retrieval_config(path: Path) -> RetrievalConfig:
-    """Load one validated retrieval YAML configuration."""
+    """Load one validated retrieval YAML configuration (includes optional ``rerank``)."""
     with path.open(encoding="utf-8") as config_file:
         raw_config: Any = yaml.safe_load(config_file)
     if not isinstance(raw_config, dict):
         raise TypeError("retrieval YAML must contain a mapping")
-    return RetrievalConfig(**raw_config)
+    payload = dict(raw_config)
+    rerank_raw = payload.pop("rerank", None)
+    if rerank_raw is None:
+        rerank = default_rerank_config()
+    elif isinstance(rerank_raw, dict):
+        rerank = parse_rerank_config(rerank_raw)
+    else:
+        raise TypeError("retrieval YAML rerank must be a mapping when set")
+    return RetrievalConfig(**payload, rerank=rerank)

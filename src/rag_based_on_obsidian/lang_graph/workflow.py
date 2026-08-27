@@ -1,11 +1,12 @@
-"""LangGraph: classify → retrieve → gate → generate → self_check | refuse.
+"""LangGraph: classify → retrieve → rerank → gate → generate → self_check | refuse.
 
-Sprint 25 adds rule-based classify/rewrite/self-check with max one retry.
+Sprint 26 adds optional cross-encoder ``rerank`` (passthrough when disabled).
 Packing, parser, and OpenRouter stay in ``llm/``.
 """
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Literal
 
@@ -31,6 +32,8 @@ from rag_based_on_obsidian.llm.packing import (
 from rag_based_on_obsidian.llm.parser import parse_generation_json
 from rag_based_on_obsidian.llm.settings import LLMConfig
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod, RetrievedChunk
+from rag_based_on_obsidian.retrieval.rerank import IdentityReranker, Reranker
+from rag_based_on_obsidian.retrieval.rerank_settings import RerankConfig
 
 SearchFn = Callable[..., Awaitable[list[RetrievedChunk]]]
 RouteAfterClassify = Literal["retrieve", "refuse"]
@@ -42,8 +45,15 @@ def build_generate_graph(
     search: SearchFn,
     provider: LLMProvider,
     config: LLMConfig,
+    *,
+    reranker: Reranker | None = None,
+    rerank_config: RerankConfig | None = None,
+    candidate_k: int | None = None,
 ):
-    """Compile classify→retrieve→gate→generate→self_check|refuse graph."""
+    """Compile classify→retrieve→rerank→gate→generate→self_check|refuse."""
+    active_reranker: Reranker = reranker or IdentityReranker()
+    rerank_enabled = bool(rerank_config is not None and rerank_config.enabled)
+    pool_k = int(candidate_k) if candidate_k is not None and rerank_enabled else None
 
     async def classify(state: GenerateGraphState) -> dict[str, object]:
         label, reason = classify_query(state["query"])
@@ -64,15 +74,49 @@ def build_generate_graph(
         return "retrieve"
 
     async def retrieve(state: GenerateGraphState) -> dict[str, object]:
+        fetch_k = int(state["top_k"])
+        if pool_k is not None:
+            fetch_k = max(pool_k, fetch_k)
         chunks = await search(
             state["query"],
             method=state["method"],
-            top_k=state["top_k"],
+            top_k=fetch_k,
         )
         return {
             "chunks": chunks,
             "path": ["retrieve"],
-            "trace": [{"node": "retrieve", "reason": f"chunks={len(chunks)}"}],
+            "trace": [
+                {
+                    "node": "retrieve",
+                    "reason": f"chunks={len(chunks)} pool_k={fetch_k}",
+                }
+            ],
+        }
+
+    async def rerank(state: GenerateGraphState) -> dict[str, object]:
+        chunks = list(state.get("chunks") or [])
+        top_k = int(state["top_k"])
+        if rerank_enabled:
+            active_reranker.ensure_loaded()
+            ranked = await asyncio.to_thread(
+                active_reranker.rerank,
+                state["query"],
+                chunks,
+                top_k=top_k,
+            )
+            reason = f"CE enabled top_k={top_k} in={len(chunks)} out={len(ranked)}"
+        else:
+            ranked = await asyncio.to_thread(
+                active_reranker.rerank,
+                state["query"],
+                chunks,
+                top_k=top_k,
+            )
+            reason = f"passthrough top_k={top_k}"
+        return {
+            "chunks": ranked,
+            "path": ["rerank"],
+            "trace": [{"node": "rerank", "reason": reason}],
         }
 
     async def gate(state: GenerateGraphState) -> dict[str, object]:
@@ -214,6 +258,7 @@ def build_generate_graph(
     graph = StateGraph(GenerateGraphState)
     graph.add_node("classify", classify)
     graph.add_node("retrieve", retrieve)
+    graph.add_node("rerank", rerank)
     graph.add_node("gate", gate)
     graph.add_node("generate", generate)
     graph.add_node("self_check", self_check)
@@ -225,7 +270,8 @@ def build_generate_graph(
         route_after_classify,
         {"retrieve": "retrieve", "refuse": "refuse"},
     )
-    graph.add_edge("retrieve", "gate")
+    graph.add_edge("retrieve", "rerank")
+    graph.add_edge("rerank", "gate")
     graph.add_conditional_edges(
         "gate",
         route_after_gate,
@@ -250,9 +296,19 @@ async def run_generate_graph(
     *,
     method: RetrievalMethod,
     top_k: int,
+    candidate_k: int | None = None,
+    reranker: Reranker | None = None,
+    rerank_config: RerankConfig | None = None,
 ) -> dict[str, object]:
     """Invoke the compiled graph and return a JSON-ready generate payload."""
-    app = build_generate_graph(search, provider, config)
+    app = build_generate_graph(
+        search,
+        provider,
+        config,
+        reranker=reranker,
+        rerank_config=rerank_config,
+        candidate_k=candidate_k,
+    )
     final: GenerateGraphState = await app.ainvoke(
         {
             "query": query,

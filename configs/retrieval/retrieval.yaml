@@ -5,3 +5,12 @@ candidate_k: 20
 rrf_k: 60
 postgres_batch_size: 256
 show_scores: true
+rerank:
+  name: sprint26-bge-reranker-v2-m3
+  enabled: false
+  model_name: BAAI/bge-reranker-v2-m3
+  model_revision: null
+  use_fp16: true
+  max_length: 728
+  batch_size: 8
+  warm_load: false
