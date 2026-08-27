@@ -21,6 +21,7 @@ from rag_based_on_obsidian.config import (
     DEFAULT_QDRANT_CONFIG_PATH,
     DEFAULT_RETRIEVAL_CONFIG_PATH,
     ENV_FILE,
+    RERANK_EVAL_EXPERIMENT_NAME,
 )
 from rag_based_on_obsidian.db.connection import load_database_url
 from rag_based_on_obsidian.eval.contracts import scored_metrics_for_log
@@ -105,6 +106,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--log-mlflow",
         action=argparse.BooleanOptionalAction,
         default=True,
+    )
+    run_parser.add_argument(
+        "--enable-rerank",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Apply cross-encoder after hybrid for this run "
+            "(overrides YAML enabled; no Docker restart needed)."
+        ),
     )
     return parser
 
@@ -211,6 +221,13 @@ def _run_live(args: argparse.Namespace) -> int:
     if top_k <= 0:
         print("error: --top-k must be positive", file=sys.stderr)
         return 2
+    enable_rerank = bool(args.enable_rerank)
+    if enable_rerank and method is not RetrievalMethod.HYBRID:
+        print(
+            "error: --enable-rerank requires --method hybrid",
+            file=sys.stderr,
+        )
+        return 2
     gold_version, yaml_items = load_gold_yaml(args.gold)
     dataset_version = args.dataset_version or gold_version
     retrieval_config = load_retrieval_config(args.retrieval_config)
@@ -253,11 +270,13 @@ def _run_live(args: argparse.Namespace) -> int:
         top_k=top_k,
         candidate_k=candidate_k,
         rrf_k=rrf_k,
+        enable_rerank=enable_rerank,
     ) as session:
         results, artifacts = run_live_eval(items, session.search, k=top_k)
         info = session.info
     duration = perf_counter() - started
     summary = macro_average(results, k=top_k)
+    rerank_label = "enable_rerank" if enable_rerank else "disable_rerank"
     payload: dict[str, object] = {
         "dataset_version": dataset_version,
         "run_kind": "live",
@@ -268,6 +287,8 @@ def _run_live(args: argparse.Namespace) -> int:
         "top_k": info.top_k,
         "candidate_k": info.candidate_k,
         "rrf_k": info.rrf_k,
+        "enable_rerank": enable_rerank,
+        "rerank_label": rerank_label,
         "question_count": summary.question_count,
         "scored_count": summary.scored_count,
         "skipped_count": summary.skipped_count,
@@ -275,19 +296,32 @@ def _run_live(args: argparse.Namespace) -> int:
     }
     payload.update(scored_metrics_for_log(summary))
     if args.log_mlflow:
+        experiment_name = None
+        run_name = f"eval-live-{method.value}"
+        if method is RetrievalMethod.HYBRID:
+            experiment_name = RERANK_EVAL_EXPERIMENT_NAME
+            run_name = f"eval-live-hybrid-{rerank_label}"
         payload["mlflow_run_id"] = log_eval_harness_run(
             dataset_version=dataset_version,
             run_kind="live",
             metrics=summary,
             duration_seconds=duration,
-            extra_params=_live_params(info, gold_path=args.gold, k=top_k),
+            extra_params=_live_params(
+                info,
+                gold_path=args.gold,
+                k=top_k,
+                enable_rerank=enable_rerank,
+            ),
             extra_metrics={"rrf_k": float(info.rrf_k)},
             extra_tags={
                 "retrieval_method": method.value,
                 "collection_name": info.collection_name,
+                "rerank_label": rerank_label,
+                "enable_rerank": str(enable_rerank).lower(),
             },
             artifact={"items": artifacts},
-            run_name=f"eval-live-{method.value}",
+            run_name=run_name,
+            experiment_name=experiment_name,
         )
     print(json.dumps(payload, ensure_ascii=False))
     return 0
@@ -298,8 +332,9 @@ def _live_params(
     *,
     gold_path: Path,
     k: int,
+    enable_rerank: bool,
 ) -> dict[str, object]:
-    return {
+    params: dict[str, object] = {
         "k": k,
         "retrieval_method": info.method.value,
         "collection_name": info.collection_name,
@@ -315,7 +350,16 @@ def _live_params(
         "max_length": info.max_length,
         "batch_size": info.batch_size,
         "gold_path": str(gold_path),
+        "enable_rerank": enable_rerank,
+        "rerank_label": "enable_rerank" if enable_rerank else "disable_rerank",
     }
+    if info.rerank_model_name is not None:
+        params["rerank_model_name"] = info.rerank_model_name
+    if info.rerank_max_length is not None:
+        params["rerank_max_length"] = info.rerank_max_length
+    if info.rerank_batch_size is not None:
+        params["rerank_batch_size"] = info.rerank_batch_size
+    return params
 
 
 def _load_rankings(path: Path) -> dict[str, tuple[str, ...]]:

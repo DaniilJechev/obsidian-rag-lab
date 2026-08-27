@@ -9,6 +9,7 @@ from rag_based_on_obsidian.eval.contracts import (
     collapse_chunks_to_notes,
 )
 from rag_based_on_obsidian.eval.metrics import score_question
+from rag_based_on_obsidian.eval.progress import eval_tqdm
 from rag_based_on_obsidian.retrieval.contracts import RetrievedChunk
 
 RetrieveFn = Callable[[str], Sequence[RetrievedChunk]]
@@ -23,10 +24,15 @@ def run_live_eval(
     """Retrieve, collapse chunks to notes, and score each gold question at k."""
     results: list[QuestionMetrics] = []
     artifacts: list[dict[str, object]] = []
-    for item in items:
-        metrics, artifact = _score_live_item(item, retrieve, k=k)
-        results.append(metrics)
-        artifacts.append(artifact)
+    progress = eval_tqdm(total=len(items), desc="Live eval questions", unit="q")
+    try:
+        for item in items:
+            metrics, artifact = _score_live_item(item, retrieve, k=k)
+            results.append(metrics)
+            artifacts.append(artifact)
+            progress.update(1)
+    finally:
+        progress.close()
     return results, artifacts
 
 

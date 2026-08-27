@@ -1,6 +1,6 @@
 # Sprint 27 — Rerank retrieval eval
 
-> Статус: `planned`
+> Статус: `in-progress` (implementation + evidence; PR pending user merge)
 >
 > Ветка: `sprint/27-rerank-retrieval-eval`
 >
@@ -24,10 +24,10 @@
 
 ## Scope
 
-- [ ] Eval runs: hybrid vs hybrid+rerank на Phase 7 gold (same k).
-- [ ] MLflow / sprint-doc table with nDCG/MRR.
-- [ ] Decide default rerank flag from evidence.
-- [ ] Update this document; prepare `ML-001` → done at phase closeout.
+- [x] Eval runs: hybrid vs hybrid+rerank на Phase 7 gold (same k).
+- [x] MLflow / sprint-doc table with nDCG/MRR.
+- [x] Decide default rerank flag from evidence.
+- [x] Update this document; prepare `ML-001` → done at phase closeout.
 
 ## Out of Scope
 
@@ -43,29 +43,29 @@
 
 ## Acceptance Criteria
 
-- [ ] Before/after metrics recorded on the same gold freeze.
-- [ ] Default flag decision written here with rationale.
-- [ ] Ruff / pytest green if code touched; vault / secrets ok.
-- [ ] `ML-001` ready to mark done at Phase 12 closeout.
+- [x] Before/after metrics recorded on the same gold freeze.
+- [x] Default flag decision written here with rationale.
+- [x] Ruff / pytest green if code touched; vault / secrets ok.
+- [x] `ML-001` ready to mark done at Phase 12 closeout.
 
 ## Definition of Done
 
-- [ ] Все задачи из Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят (если код менялся).
-- [ ] Ruff/lint проходит (если код менялся).
+- [x] Все задачи из Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят (если код менялся).
+- [x] Ruff/lint проходит (если код менялся).
 - [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Документация и конфигурация обновлены, если это необходимо.
-- [ ] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Документация и конфигурация обновлены, если это необходимо.
+- [x] Результаты и ограничения записаны в этот sprint-документ.
+- [ ] Пользователь подтвердил завершение спринта (merge PR).
 
 ## Dependencies and risks
 
-- **Жёсткая зависимость:** Sprint 26 CE path merged (or available).
-- Gold freeze: Sprint 17/18 canon (`phase7_GT_note_level_v0` / sprint-18 doc).
-- Live Qdrant + embeddings needed for live eval.
+- Sprint 26 CE path on `main` (`0b8e230`).
+- Gold freeze: `phase7_GT_note_level_v0`.
+- Live Qdrant + embeddings; CE on CPU ~1.5h for 50 questions.
 
 ## Estimate
 
@@ -80,44 +80,91 @@
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-27 | Planning | Документ создан; Issue #71; Milestone 12 |
+| 2026-08-27 | Eval wiring | CLI `--enable-rerank`/`--no-enable-rerank`; MLflow `phase-12-rerank-retrieval-eval` |
+| 2026-08-27 | Live A/B | disable + enable runs on gold v0, k=5, candidate_k=20 |
+| 2026-08-27 | Default decision | keep `rerank.enabled: false` (CPU latency) |
 
 ## Validation Evidence
 
 ### Commands
 
 ```text
-(заполняется при execution)
+uv run rag-cli eval run --method hybrid --top-k 5 --candidate-k 20 --no-enable-rerank
+uv run rag-cli eval run --method hybrid --top-k 5 --candidate-k 20 --enable-rerank
+uv run ruff check … (sprint-27 paths)
+uv run pytest -q   # one full suite before commit
 ```
 
 ### Test and Lint Results
 
-- Tests: —
-- Lint: —
-- CI: —
+- Lint: `uv run ruff check` (sprint-27 paths) — All checks passed
+- Tests: `uv run pytest -q` — **242 passed**, 1 skipped, 18 deselected
+- CI: pending PR
 
-### Metrics
+### Setup (shared)
 
-| Metric | Value | Context |
-|---|---:|---|
-| — | — | заполняется при execution |
+| Field | Value |
+|---|---|
+| dataset_version | `phase7_GT_note_level_v0` |
+| method | hybrid |
+| k / top_k | 5 |
+| candidate_k | 20 |
+| rrf_k | 60 |
+| collection | `rag_chunks_dense_sparse__sprint9-policy-512-v2__intfloat-multilingual-e5-small__main__384` |
+| MLflow experiment | `phase-12-rerank-retrieval-eval` (id 9) |
+| questions | 50 scored / 0 skipped |
+
+### Metrics (disable vs enable)
+
+| Metric | disable_rerank | enable_rerank | Δ |
+|---|---:|---:|---:|
+| nDCG@5 | 0.616 | 0.645 | +0.029 |
+| MRR@5 | 0.797 | 0.882 | +0.084 |
+| Precision@5 | 0.368 | 0.368 | 0 |
+| Recall@5 | 0.613 | 0.613 | 0 |
+| F1@5 | 0.460 | 0.460 | 0 |
+| Hit@5 | 0.92 | 0.96 | +0.04 |
+| MAP@5 | 0.513 | 0.540 | +0.027 |
+| R-Precision | 0.533 | 0.533 | 0 |
+| duration_seconds | 38.0 | 5253.7 (~1.46 h) | CPU CE dominant |
+
+### MLflow run ids
+
+| Label | run_name | run_id |
+|---|---|---|
+| disable | `eval-live-hybrid-disable_rerank` | `390af038091c42ae8bdad388b4468f47` |
+| enable | `eval-live-hybrid-enable_rerank` | `8b7b3076ec034058b06ee99c62885aee` |
+
+UI: http://127.0.0.1:5000/#/experiments/9
+
+### Decision: default `enabled: false`
+
+**Оставить CE выключенным по умолчанию** в `configs/retrieval/retrieval.yaml`.
+
+- Ranking улучшился (nDCG/MRR/Hit/MAP), P/R/F1@5 без изменений.
+- На CPU enable ~**138×** дольше disable (~38s → ~1.5h на 50 q) — неприемлемо как prod default без GPU.
+- Opt-in: CLI `--enable-rerank` или YAML `enabled: true` когда есть GPU / допустима latency.
 
 ## Review
 
 ### Completed
 
-- Планирование Sprint 27 зафиксировано.
+- Live A/B + MLflow experiment + CLI flag.
+- Evidence table + default=false decision.
+- Sprint 26 CE wiring reused (no graph rewire).
 
-### Not Completed
+### Not Completed / carry-over
 
-- Evaluation (после Sprint 26).
+- Generate/RAGAS impact of CE — out of scope.
+- GPU / Colab latency re-measure — optional later.
 
 ### Changed Decisions
 
-- —
+- Default CE **off** despite quality gains (latency gate).
 
 ### Technical Debt
 
-- —
+- CPU CE too slow for interactive default; pin `model_revision` still null.
 
 ## Retrospective
 
@@ -132,6 +179,6 @@
 - [ ] Backlog обновлён.
 - [ ] Следующий sprint выбран или запланирован.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `in-progress` (awaiting PR merge)
 
 **Дата завершения:** —
