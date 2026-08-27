@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Self
 
 from rag_based_on_obsidian.api import runtime as runtime_module
+from rag_based_on_obsidian.retrieval.rerank_settings import RerankConfig
 
 
 class _FakeClient:
@@ -95,6 +96,9 @@ def test_build_runtime_uses_qdrant_url_env(monkeypatch) -> None:
         candidate_k: int = 20
         rrf_k: int = 60
         filters: dict[str, object] = field(default_factory=dict)
+        rerank: RerankConfig = field(
+            default_factory=lambda: RerankConfig(name="test-rerank", enabled=False)
+        )
 
     @dataclass(frozen=True)
     class FakeLlm:

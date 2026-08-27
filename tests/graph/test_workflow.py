@@ -110,6 +110,7 @@ def test_graph_answer_path_includes_classify_and_self_check() -> None:
     assert payload["graph_path"] == [
         "classify",
         "retrieve",
+        "rerank",
         "gate",
         "generate",
         "self_check",
@@ -143,6 +144,7 @@ def test_graph_refuse_path_skips_llm() -> None:
     assert payload["graph_path"] == [
         "classify",
         "retrieve",
+        "rerank",
         "gate",
         "refuse",
     ]
@@ -228,3 +230,72 @@ def test_graph_self_check_retry_cap() -> None:
     assert payload["graph_path"].count("generate") == 2
     assert payload["refused"] is False
     assert payload["confidence"] == 0.1
+
+
+def test_graph_rerank_node_reorders_when_enabled() -> None:
+    class _Reverse:
+        def ensure_loaded(self) -> None:
+            return None
+
+        def rerank(self, query: str, chunks: list[RetrievedChunk], *, top_k: int):
+            _ = query
+            ordered = list(reversed(chunks))[:top_k]
+            return [
+                RetrievedChunk(
+                    chunk_id=chunk.chunk_id,
+                    text=chunk.text,
+                    score=chunk.score,
+                    retrieval_method=chunk.retrieval_method,
+                    metadata=dict(chunk.metadata),
+                    chunking_version=chunk.chunking_version,
+                    rank=index,
+                    rerank_score=float(10 - index),
+                )
+                for index, chunk in enumerate(ordered, start=1)
+            ]
+
+    async def _search_two(
+        query: str,
+        *,
+        method: RetrievalMethod,
+        top_k: int,
+    ) -> list[RetrievedChunk]:
+        _ = query
+        return [
+            RetrievedChunk(
+                chunk_id=1,
+                text="first",
+                score=0.9,
+                retrieval_method=method,
+                metadata={"source_path": "a.md"},
+                chunking_version="t",
+                rank=1,
+            ),
+            RetrievedChunk(
+                chunk_id=2,
+                text="second",
+                score=0.8,
+                retrieval_method=method,
+                metadata={"source_path": "b.md"},
+                chunking_version="t",
+                rank=2,
+            ),
+        ][:top_k]
+
+    from rag_based_on_obsidian.retrieval.rerank_settings import RerankConfig
+
+    payload = asyncio.run(
+        run_generate_graph(
+            _search_two,
+            _FakeLLM(),
+            _CONFIG,
+            "What is RoPE?",
+            method=RetrievalMethod.HYBRID,
+            top_k=2,
+            reranker=_Reverse(),
+            rerank_config=RerankConfig(name="test", enabled=True),
+            candidate_k=2,
+        )
+    )
+    assert "rerank" in payload["graph_path"]
+    assert payload["contexts"][0]["chunk_id"] == 2

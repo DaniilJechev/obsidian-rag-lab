@@ -99,7 +99,14 @@ def _live_graph():
     )
     api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     provider: LLMProvider = OpenRouterLLMProvider(llm_config, api_key=api_key)
-    return build_generate_graph(runtime.search, provider, llm_config)
+    return build_generate_graph(
+        runtime.search_raw,
+        provider,
+        llm_config,
+        reranker=runtime.reranker,
+        rerank_config=runtime.rerank_config,
+        candidate_k=runtime.retrieval_config.candidate_k,
+    )
 
 
 def graph():

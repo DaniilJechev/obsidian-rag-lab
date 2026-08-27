@@ -91,6 +91,7 @@ def test_pipeline_returns_answer_and_rewrites_citation_path() -> None:
     assert payload["graph_path"] == [
         "classify",
         "retrieve",
+        "rerank",
         "gate",
         "generate",
         "self_check",
@@ -122,6 +123,7 @@ def test_pipeline_refuses_without_calling_llm() -> None:
     assert payload["graph_path"] == [
         "classify",
         "retrieve",
+        "rerank",
         "gate",
         "refuse",
     ]

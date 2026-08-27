@@ -44,6 +44,8 @@ from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod, Retrieved
 from rag_based_on_obsidian.retrieval.dense import QdrantDenseRetriever
 from rag_based_on_obsidian.retrieval.lexical import QdrantSparseRetriever
 from rag_based_on_obsidian.retrieval.pipeline import HybridRetriever
+from rag_based_on_obsidian.retrieval.rerank import Reranker, build_reranker
+from rag_based_on_obsidian.retrieval.rerank_settings import RerankConfig
 from rag_based_on_obsidian.retrieval.settings import (
     RetrievalConfig,
     load_retrieval_config,
@@ -76,6 +78,8 @@ class RetrieverRuntime:
         batch_config: BatchEmbeddingConfig,
         qdrant_config: QdrantConfig,
         llm_config: LLMConfig,
+        rerank_config: RerankConfig,
+        reranker: Reranker,
         model_loaded: bool = True,
     ) -> None:
         self._client = client
@@ -84,6 +88,8 @@ class RetrieverRuntime:
         self._lexical = lexical
         self._hybrid = hybrid
         self.retrieval_config = retrieval_config
+        self.rerank_config = rerank_config
+        self._reranker = reranker
         self.search_timeout_seconds = search_timeout_seconds
         self._batch_config = batch_config
         self._qdrant_config = qdrant_config
@@ -98,6 +104,11 @@ class RetrieverRuntime:
         self.evaluation_embedding_model = provider.metadata.model_name
         self._engine = None
         self._ingest: IngestService | None = None
+
+    @property
+    def reranker(self) -> Reranker:
+        """Shared cross-encoder (or identity when rerank is disabled)."""
+        return self._reranker
 
     def ping_qdrant(self) -> bool:
         """Return True when Qdrant answers a cheap metadata call."""
@@ -119,14 +130,14 @@ class RetrieverRuntime:
             return False
         return True
 
-    async def search(
+    async def search_raw(
         self,
         query: str,
         *,
         method: RetrievalMethod,
         top_k: int,
     ) -> list[RetrievedChunk]:
-        """Run one retrieval method without reloading e5."""
+        """Hybrid/dense/bm25 only — no cross-encoder (graph ``retrieve`` uses this)."""
         filters = dict(self.retrieval_config.filters)
         candidate_k = max(self.retrieval_config.candidate_k, top_k)
         rrf_k = self.retrieval_config.rrf_k
@@ -182,6 +193,28 @@ class RetrieverRuntime:
             filters=filters,
         )
 
+    async def search(
+        self,
+        query: str,
+        *,
+        method: RetrievalMethod,
+        top_k: int,
+    ) -> list[RetrievedChunk]:
+        """Run retrieval and optional CE rerank for ``POST /search``."""
+        fetch_k = top_k
+        if self.rerank_config.enabled:
+            fetch_k = max(self.retrieval_config.candidate_k, top_k)
+        chunks = await self.search_raw(query, method=method, top_k=fetch_k)
+        if not self.rerank_config.enabled:
+            return chunks
+        self._reranker.ensure_loaded()
+        return await asyncio.to_thread(
+            self._reranker.rerank,
+            query,
+            chunks,
+            top_k=top_k,
+        )
+
     async def generate(
         self,
         query: str,
@@ -197,12 +230,15 @@ class RetrieverRuntime:
             llm_config = replace(self._llm_config, model=model.strip())
         provider = OpenRouterLLMProvider(llm_config, api_key=api_key)
         return await run_rag_generate(
-            self.search,
+            self.search_raw,
             provider,
             llm_config,
             query,
             method=method,
             top_k=top_k,
+            candidate_k=self.retrieval_config.candidate_k,
+            reranker=self._reranker,
+            rerank_config=self.rerank_config,
         )
 
     def start_ingest(self) -> IngestAccepted:
@@ -333,6 +369,7 @@ def build_runtime() -> RetrieverRuntime:
     if qdrant_url:
         qdrant_config = replace(qdrant_config, url=qdrant_url)
     retrieval_config = load_retrieval_config(retrieval_config_path)
+    rerank_config = retrieval_config.rerank
     llm_config = load_llm_config(llm_config_path)
 
     client = QdrantClient(url=qdrant_config.url, timeout=qdrant_timeout)
@@ -358,6 +395,9 @@ def build_runtime() -> RetrieverRuntime:
             bm25_model=qdrant_config.bm25_model,
         )
         hybrid = HybridRetriever(dense=dense, lexical=lexical, provider=provider)
+        reranker = build_reranker(rerank_config)
+        if rerank_config.enabled and rerank_config.warm_load:
+            reranker.ensure_loaded()
         return RetrieverRuntime(
             client=client,
             provider=provider,
@@ -369,6 +409,8 @@ def build_runtime() -> RetrieverRuntime:
             batch_config=batch_config,
             qdrant_config=qdrant_config,
             llm_config=llm_config,
+            rerank_config=rerank_config,
+            reranker=reranker,
         )
     except Exception:
         client.close()
