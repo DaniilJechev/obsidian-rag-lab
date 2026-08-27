@@ -207,11 +207,57 @@ def test_eval_run_cli_logs_live_mlflow(monkeypatch, capsys) -> None:
     assert session["candidate_k"] == 10
     assert session["rrf_k"] == 60
     assert logged["run_kind"] == "live"
-    assert logged["run_name"] == "eval-live-hybrid"
+    assert logged["run_name"] == "eval-live-hybrid-disable_rerank"
+    assert logged["experiment_name"] == "phase-12-rerank-retrieval-eval"
     assert logged["extra_tags"]["retrieval_method"] == "hybrid"
+    assert logged["extra_tags"]["rerank_label"] == "disable_rerank"
+    assert logged["extra_params"]["enable_rerank"] is False
     assert logged["extra_params"]["rrf_k"] == 60
     assert logged["extra_metrics"]["rrf_k"] == 60.0
     assert '"mlflow_run_id": "live-run"' in capsys.readouterr().out
+
+
+def test_eval_run_cli_enable_rerank_logs_enable_label(monkeypatch) -> None:
+    logged, session = _stub_live_cli(monkeypatch, method=RetrievalMethod.HYBRID)
+
+    exit_code = cli.main(
+        [
+            "run",
+            "--method",
+            "hybrid",
+            "--top-k",
+            "5",
+            "--candidate-k",
+            "20",
+            "--enable-rerank",
+        ]
+    )
+
+    assert exit_code == 0
+    assert session["enable_rerank"] is True
+    assert logged["run_name"] == "eval-live-hybrid-enable_rerank"
+    assert logged["experiment_name"] == "phase-12-rerank-retrieval-eval"
+    assert logged["extra_tags"]["rerank_label"] == "enable_rerank"
+    assert logged["extra_params"]["enable_rerank"] is True
+
+
+def test_eval_run_cli_rejects_enable_rerank_for_dense(monkeypatch, capsys) -> None:
+    _stub_live_cli(monkeypatch, method=RetrievalMethod.DENSE)
+
+    exit_code = cli.main(
+        [
+            "run",
+            "--method",
+            "dense",
+            "--top-k",
+            "5",
+            "--enable-rerank",
+            "--no-log-mlflow",
+        ]
+    )
+
+    assert exit_code == 2
+    assert "--enable-rerank requires --method hybrid" in capsys.readouterr().err
 
 
 def test_eval_run_cli_keeps_explicit_candidate_k(monkeypatch) -> None:

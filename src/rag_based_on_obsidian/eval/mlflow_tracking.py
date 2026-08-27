@@ -15,6 +15,7 @@ from rag_based_on_obsidian.config import (
     DEFAULT_MLFLOW_TRACKING_URI,
     ENV_FILE,
     EVAL_EXPERIMENT_NAME,
+    RERANK_EVAL_EXPERIMENT_NAME,
 )
 from rag_based_on_obsidian.embeddings.mlflow_tracking import process_rss_mb
 from rag_based_on_obsidian.eval.contracts import (
@@ -27,6 +28,11 @@ EVAL_EXPERIMENT_DESCRIPTION = (
     "(nDCG, MRR, Precision, Recall, F1, Hit, MAP, R-Precision). "
     "run_kind=synthetic_harness is a fixture ranking smoke. "
     "run_kind=live is a corpus baseline against Qdrant (Sprint 18)."
+)
+RERANK_EVAL_EXPERIMENT_DESCRIPTION = (
+    "Phase 12 Sprint 27: hybrid vs hybrid+cross-encoder on Phase 7 gold. "
+    "Compare nDCG/MRR (and sibling IR metrics) with enable_rerank vs "
+    "disable_rerank in run names. CLI flag --enable-rerank / --no-enable-rerank."
 )
 ALLOWED_EVAL_RUN_KINDS = frozenset({"synthetic_harness", "live"})
 
@@ -42,6 +48,7 @@ def log_eval_harness_run(
     extra_metrics: Mapping[str, float] | None = None,
     artifact: Mapping[str, object] | None = None,
     run_name: str | None = None,
+    experiment_name: str | None = None,
 ) -> str | None:
     """Log one eval harness run: synthetic fixture ranking or live retrieval."""
     if run_kind not in ALLOWED_EVAL_RUN_KINDS:
@@ -53,7 +60,11 @@ def log_eval_harness_run(
         DEFAULT_MLFLOW_TRACKING_URI,
     )
     mlflow.set_tracking_uri(tracking_uri)
-    _configure_eval_experiment()
+    target_experiment = experiment_name or EVAL_EXPERIMENT_NAME
+    if target_experiment == RERANK_EVAL_EXPERIMENT_NAME:
+        _configure_rerank_eval_experiment()
+    else:
+        _configure_eval_experiment()
     with mlflow.start_run(run_name=run_name or f"eval-{run_kind}") as run:
         params: dict[str, object] = {
             "dataset_version": dataset_version,
@@ -70,12 +81,25 @@ def log_eval_harness_run(
         mlflow.log_params({key: str(value) for key, value in params.items()})
         tags: dict[str, str] = {
             "git_commit": _git_commit(),
-            "phase": "7",
-            "sprint": "18",
-            "task": "EVAL-002",
             "experiment_type": "eval",
             "run_kind": run_kind,
         }
+        if target_experiment == RERANK_EVAL_EXPERIMENT_NAME:
+            tags.update(
+                {
+                    "phase": "12",
+                    "sprint": "27",
+                    "task": "ML-001",
+                }
+            )
+        else:
+            tags.update(
+                {
+                    "phase": "7",
+                    "sprint": "18",
+                    "task": "EVAL-002",
+                }
+            )
         if extra_tags:
             tags.update({key: str(value) for key, value in extra_tags.items()})
         mlflow.set_tags(tags)
@@ -108,7 +132,7 @@ def _log_utf8_json(payload: Mapping[str, Any], artifact_path: str) -> None:
 
 
 def _configure_eval_experiment() -> None:
-    """Create the eval experiment and keep experiment-level tags current."""
+    """Create the Phase 7 eval experiment and keep experiment-level tags current."""
     experiment_tags = {
         "mlflow.note.content": EVAL_EXPERIMENT_DESCRIPTION,
         "phase": "7",
@@ -116,10 +140,26 @@ def _configure_eval_experiment() -> None:
         "task": "EVAL-002",
         "experiment_type": "eval",
     }
-    experiment = mlflow.get_experiment_by_name(EVAL_EXPERIMENT_NAME)
+    _ensure_experiment(EVAL_EXPERIMENT_NAME, experiment_tags)
+
+
+def _configure_rerank_eval_experiment() -> None:
+    """Create the Phase 12 hybrid±CE comparison experiment."""
+    experiment_tags = {
+        "mlflow.note.content": RERANK_EVAL_EXPERIMENT_DESCRIPTION,
+        "phase": "12",
+        "sprint": "27",
+        "task": "ML-001",
+        "experiment_type": "rerank_ab",
+    }
+    _ensure_experiment(RERANK_EVAL_EXPERIMENT_NAME, experiment_tags)
+
+
+def _ensure_experiment(name: str, experiment_tags: Mapping[str, str]) -> None:
+    experiment = mlflow.get_experiment_by_name(name)
     if experiment is None:
-        mlflow.create_experiment(EVAL_EXPERIMENT_NAME, tags=experiment_tags)
-    mlflow.set_experiment(EVAL_EXPERIMENT_NAME)
+        mlflow.create_experiment(name, tags=dict(experiment_tags))
+    mlflow.set_experiment(name)
     for key, value in experiment_tags.items():
         mlflow.set_experiment_tag(key, value)
 

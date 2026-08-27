@@ -56,6 +56,7 @@ def _load_eval_defaults() -> tuple[Path, str]:
 
 DEFAULT_EVAL_GOLD_PATH, DEFAULT_EVAL_DATASET_VERSION = _load_eval_defaults()
 EVAL_EXPERIMENT_NAME = "phase-7-retrieval-eval"
+RERANK_EVAL_EXPERIMENT_NAME = "phase-12-rerank-retrieval-eval"
 RAGAS_EXPERIMENT_NAME = "phase-10-ragas-generation"
 from rag_based_on_obsidian.chunking.policy import ChunkingPolicy
 

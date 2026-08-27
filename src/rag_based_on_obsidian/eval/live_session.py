@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import TracebackType
 from typing import Self
@@ -25,6 +25,8 @@ from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod, Retrieved
 from rag_based_on_obsidian.retrieval.dense import QdrantDenseRetriever
 from rag_based_on_obsidian.retrieval.lexical import QdrantSparseRetriever
 from rag_based_on_obsidian.retrieval.pipeline import HybridRetriever
+from rag_based_on_obsidian.retrieval.rerank import Reranker, build_reranker
+from rag_based_on_obsidian.retrieval.rerank_settings import RerankConfig
 from rag_based_on_obsidian.retrieval.settings import RetrievalConfig
 from rag_based_on_obsidian.vector_store.settings import load_qdrant_config
 
@@ -48,6 +50,10 @@ class LiveSessionInfo:
     normalized: bool
     max_length: int
     batch_size: int
+    rerank_enabled: bool = False
+    rerank_model_name: str | None = None
+    rerank_max_length: int | None = None
+    rerank_batch_size: int | None = None
 
 
 class LiveRetrievalSession:
@@ -94,14 +100,18 @@ def open_live_session(
     top_k: int,
     candidate_k: int,
     rrf_k: int,
+    enable_rerank: bool = False,
 ) -> LiveRetrievalSession:
     """Build retrievers for one method; load e5 only for dense and hybrid."""
+    if enable_rerank and method is not RetrievalMethod.HYBRID:
+        raise ValueError("enable_rerank requires --method hybrid")
     model_config = load_embedding_model_config(model_config_path)
     batch_config = load_batch_embedding_config(batch_config_path)
     qdrant_config = load_qdrant_config(qdrant_config_path)
     client = QdrantClient(url=qdrant_config.url)
     filters = dict(retrieval_config.filters)
     chunking_version = retrieval_config.chunking_version
+    rerank_config = _active_rerank_config(retrieval_config.rerank, enable_rerank)
     try:
         if method is RetrievalMethod.BM25:
             collection_name = _collection_name(
@@ -132,6 +142,7 @@ def open_live_session(
                     rrf_k=rrf_k,
                     model_config=model_config,
                     device="n/a",
+                    rerank_config=rerank_config,
                 ),
             )
 
@@ -166,6 +177,7 @@ def open_live_session(
             candidate_k=candidate_k,
             rrf_k=rrf_k,
             filters=filters,
+            rerank_config=rerank_config,
         )
         return LiveRetrievalSession(
             client=client,
@@ -184,11 +196,26 @@ def open_live_session(
                 normalized=provider.metadata.normalized,
                 max_length=model_config.max_length,
                 batch_size=model_config.batch_size,
+                rerank_enabled=rerank_config.enabled,
+                rerank_model_name=(
+                    rerank_config.model_name if rerank_config.enabled else None
+                ),
+                rerank_max_length=(
+                    rerank_config.max_length if rerank_config.enabled else None
+                ),
+                rerank_batch_size=(
+                    rerank_config.batch_size if rerank_config.enabled else None
+                ),
             ),
         )
     except Exception:
         client.close()
         raise
+
+
+def _active_rerank_config(base: RerankConfig, enable_rerank: bool) -> RerankConfig:
+    """CLI ``--enable-rerank`` overrides YAML ``enabled`` for this session only."""
+    return replace(base, enabled=enable_rerank)
 
 
 def _dense_or_hybrid_retrieve(
@@ -201,6 +228,7 @@ def _dense_or_hybrid_retrieve(
     candidate_k: int,
     rrf_k: int,
     filters: Mapping[str, object],
+    rerank_config: RerankConfig,
 ) -> RetrieveFn:
     if method is RetrievalMethod.DENSE:
 
@@ -212,19 +240,37 @@ def _dense_or_hybrid_retrieve(
     if lexical is None:
         raise ValueError("hybrid eval requires a lexical retriever")
     hybrid = HybridRetriever(dense=dense, lexical=lexical, provider=provider)
+    if not rerank_config.enabled:
 
-    def retrieve_hybrid(query: str) -> list[RetrievedChunk]:
-        return asyncio.run(
+        def retrieve_hybrid(query: str) -> list[RetrievedChunk]:
+            return asyncio.run(
+                hybrid.search(
+                    query,
+                    top_k=top_k,
+                    candidate_k=candidate_k,
+                    rrf_k=rrf_k,
+                    filters=filters,
+                )
+            )
+
+        return retrieve_hybrid
+
+    reranker: Reranker = build_reranker(rerank_config)
+    reranker.ensure_loaded()
+
+    def retrieve_hybrid_rerank(query: str) -> list[RetrievedChunk]:
+        pool = asyncio.run(
             hybrid.search(
                 query,
-                top_k=top_k,
+                top_k=candidate_k,
                 candidate_k=candidate_k,
                 rrf_k=rrf_k,
                 filters=filters,
             )
         )
+        return reranker.rerank(query, pool, top_k=top_k)
 
-    return retrieve_hybrid
+    return retrieve_hybrid_rerank
 
 
 def _collection_name(
@@ -253,6 +299,7 @@ def _info_from_config(
     rrf_k: int,
     model_config: EmbeddingModelConfig,
     device: str,
+    rerank_config: RerankConfig,
 ) -> LiveSessionInfo:
     if model_config.dimension is None:
         raise ValueError("model config must define dimension")
@@ -270,4 +317,14 @@ def _info_from_config(
         normalized=model_config.normalized,
         max_length=model_config.max_length,
         batch_size=model_config.batch_size,
+        rerank_enabled=rerank_config.enabled,
+        rerank_model_name=(
+            rerank_config.model_name if rerank_config.enabled else None
+        ),
+        rerank_max_length=(
+            rerank_config.max_length if rerank_config.enabled else None
+        ),
+        rerank_batch_size=(
+            rerank_config.batch_size if rerank_config.enabled else None
+        ),
     )

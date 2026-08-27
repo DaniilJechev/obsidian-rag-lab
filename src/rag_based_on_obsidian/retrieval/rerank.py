@@ -7,6 +7,7 @@ Weights live in the HF hub cache after the first download; loads show tqdm.
 from __future__ import annotations
 
 import logging
+import sys
 from dataclasses import replace
 from typing import Protocol
 
@@ -18,6 +19,18 @@ from rag_based_on_obsidian.retrieval.contracts import RetrievedChunk
 from rag_based_on_obsidian.retrieval.rerank_settings import RerankConfig
 
 logger = logging.getLogger(__name__)
+
+
+def _rerank_tqdm(*, total: int, desc: str, unit: str) -> tqdm:
+    """Progress on stderr; disabled when not a TTY (pytest/CI)."""
+    return tqdm(
+        total=total,
+        desc=desc,
+        unit=unit,
+        file=sys.stderr,
+        dynamic_ncols=True,
+        disable=not sys.stderr.isatty(),
+    )
 
 
 class Reranker(Protocol):
@@ -96,7 +109,7 @@ class CrossEncoderReranker:
             self._device,
             self._fp16_active,
         )
-        with tqdm(total=3, desc=f"Loading {model_id}", unit="step") as progress:
+        with _rerank_tqdm(total=3, desc=f"Loading {model_id}", unit="step") as progress:
             progress.set_postfix_str("tokenizer")
             self._tokenizer = AutoTokenizer.from_pretrained(model_id, **kwargs)
             progress.update(1)
@@ -154,30 +167,29 @@ class CrossEncoderReranker:
         assert self._tokenizer is not None and self._model is not None
         batch_size = self._config.batch_size
         all_scores: list[float] = []
-        batch_starts = range(0, len(passages), batch_size)
-        for start in tqdm(
-            batch_starts,
-            desc="CE scoring",
-            unit="batch",
-            total=(len(passages) + batch_size - 1) // batch_size,
-        ):
-            batch = passages[start : start + batch_size]
-            pairs = [[query, text] for text in batch]
-            encoded = self._tokenizer(
-                pairs,
-                padding=True,
-                truncation=True,
-                max_length=self._config.max_length,
-                return_tensors="pt",
-            )
-            encoded = {key: value.to(self._device) for key, value in encoded.items()}
-            with torch.no_grad():
-                logits = self._model(**encoded, return_dict=True).logits
-                if logits.ndim == 2 and logits.shape[-1] == 1:
+        n_batches = (len(passages) + batch_size - 1) // batch_size
+        progress = _rerank_tqdm(total=n_batches, desc="CE scoring", unit="batch")
+        try:
+            for start in range(0, len(passages), batch_size):
+                batch = passages[start : start + batch_size]
+                pairs = [[query, text] for text in batch]
+                encoded = self._tokenizer(
+                    pairs,
+                    padding=True,
+                    truncation=True,
+                    max_length=self._config.max_length,
+                    return_tensors="pt",
+                )
+                encoded = {
+                    key: value.to(self._device) for key, value in encoded.items()
+                }
+                with torch.no_grad():
+                    logits = self._model(**encoded, return_dict=True).logits
                     batch_scores = logits.view(-1)
-                else:
-                    batch_scores = logits.view(-1)
-                all_scores.extend(batch_scores.float().cpu().tolist())
+                    all_scores.extend(batch_scores.float().cpu().tolist())
+                progress.update(1)
+        finally:
+            progress.close()
         return all_scores
 
 
