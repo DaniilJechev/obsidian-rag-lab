@@ -1,0 +1,8 @@
+name: sprint28-semantic-cache
+enabled: false
+cache_type: semantic
+similarity_threshold: 0.92
+max_entries: 500
+ttl_seconds: 86400
+refresh_ttl_on_hit: true
+eviction_policy: lru_when_full

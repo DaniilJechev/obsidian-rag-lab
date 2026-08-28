@@ -108,12 +108,14 @@ def test_graph_answer_path_includes_classify_and_self_check() -> None:
     )
     assert payload["refused"] is False
     assert payload["graph_path"] == [
+        "semantic_cache_lookup",
         "classify",
         "retrieve",
         "rerank",
         "gate",
         "generate",
         "self_check",
+        "semantic_cache_write",
     ]
     assert payload["retry_count"] == 0
     assert payload["rewritten_query"] is None
@@ -142,6 +144,7 @@ def test_graph_refuse_path_skips_llm() -> None:
     assert payload["refused"] is True
     assert payload["refusal_reason"] == "no retrieved context"
     assert payload["graph_path"] == [
+        "semantic_cache_lookup",
         "classify",
         "retrieve",
         "rerank",
@@ -170,8 +173,12 @@ def test_graph_classify_early_refuse() -> None:
         )
     )
     assert payload["refused"] is True
-    assert payload["graph_path"] == ["classify", "refuse"]
-    assert payload["graph_trace"][0]["node"] == "classify"
+    assert payload["graph_path"] == [
+        "semantic_cache_lookup",
+        "classify",
+        "refuse",
+    ]
+    assert payload["graph_trace"][1]["node"] == "classify"
 
 
 def test_graph_self_check_retry_then_pass() -> None:

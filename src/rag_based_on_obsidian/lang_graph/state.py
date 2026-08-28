@@ -38,3 +38,6 @@ class GenerateGraphState(TypedDict, total=False):
     model: str | None
     latency_ms: int | None
     usage: dict[str, int] | None
+    cache_hit: bool
+    cache_similarity: float | None
+    cache_matched_query: str | None

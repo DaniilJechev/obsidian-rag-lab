@@ -32,6 +32,7 @@ class FakeRuntime:
     next_run_id: int = 1
     ingest_runs: dict[int, IngestStatus] = field(default_factory=dict)
     query_logs: list[dict[str, object]] = field(default_factory=list)
+    generate_calls: list[dict[str, object]] = field(default_factory=list)
     empty_hits: bool = False
     fail_llm: bool = False
     missing_llm_key: bool = False
@@ -75,7 +76,18 @@ class FakeRuntime:
         method: RetrievalMethod,
         top_k: int,
         model: str | None = None,
+        enable_cache: bool | None = None,
     ) -> dict[str, object]:
+        _ = model, enable_cache
+        self.generate_calls.append(
+            {
+                "query": query,
+                "method": method,
+                "top_k": top_k,
+                "model": model,
+                "enable_cache": enable_cache,
+            }
+        )
         if self.missing_llm_key:
             raise LLMUnavailableError("OPENROUTER_API_KEY is not configured")
         if self.fail_llm:
@@ -374,6 +386,17 @@ def test_generate_accepts_model_override() -> None:
         )
     assert response.status_code == 200
     assert response.json()["model"] == "google/gemini-3.7-flash"
+
+
+def test_generate_accepts_enable_cache_override() -> None:
+    runtime = FakeRuntime()
+    with _client(runtime) as client:
+        response = client.post(
+            "/generate",
+            json={"query": "What is RoPE?", "enable_cache": True},
+        )
+    assert response.status_code == 200
+    assert runtime.generate_calls[-1]["enable_cache"] is True
 
 
 def test_generate_rejects_blank_model() -> None:
