@@ -19,8 +19,14 @@ from rag_based_on_obsidian.api.ingest import (
 )
 from rag_based_on_obsidian.api.query_logs import write_query_log
 from rag_based_on_obsidian.api.schemas import IngestAccepted, IngestStatus
+from rag_based_on_obsidian.cache.semantic_store import (
+    SemanticCacheStore,
+    build_semantic_cache_store,
+)
+from rag_based_on_obsidian.cache.settings import CacheConfig, load_cache_config
 from rag_based_on_obsidian.config import (
     DEFAULT_BATCH_EMBEDDING_CONFIG_PATH,
+    DEFAULT_CACHE_CONFIG_PATH,
     DEFAULT_EMBEDDING_MODEL_CONFIG_PATH,
     DEFAULT_LLM_CONFIG_PATH,
     DEFAULT_QDRANT_CONFIG_PATH,
@@ -40,6 +46,7 @@ from rag_based_on_obsidian.embeddings.transformers_provider import (
 from rag_based_on_obsidian.llm.openrouter import OpenRouterLLMProvider
 from rag_based_on_obsidian.llm.pipeline import run_rag_generate
 from rag_based_on_obsidian.llm.settings import LLMConfig, load_llm_config
+from rag_based_on_obsidian.pipeline_versions import cache_pipeline_fingerprint
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod, RetrievedChunk
 from rag_based_on_obsidian.retrieval.dense import QdrantDenseRetriever
 from rag_based_on_obsidian.retrieval.lexical import QdrantSparseRetriever
@@ -80,6 +87,8 @@ class RetrieverRuntime:
         llm_config: LLMConfig,
         rerank_config: RerankConfig,
         reranker: Reranker,
+        cache_config: CacheConfig,
+        cache_store: SemanticCacheStore | None = None,
         model_loaded: bool = True,
     ) -> None:
         self._client = client
@@ -89,6 +98,8 @@ class RetrieverRuntime:
         self._hybrid = hybrid
         self.retrieval_config = retrieval_config
         self.rerank_config = rerank_config
+        self.cache_config = cache_config
+        self._cache_store = cache_store
         self._reranker = reranker
         self.search_timeout_seconds = search_timeout_seconds
         self._batch_config = batch_config
@@ -222,13 +233,24 @@ class RetrieverRuntime:
         method: RetrievalMethod,
         top_k: int,
         model: str | None = None,
+        enable_cache: bool | None = None,
     ) -> dict[str, object]:
         """Retrieve, then call OpenRouter or refuse. Search stays available."""
         api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
         llm_config = self._llm_config
         if model is not None and model.strip():
             llm_config = replace(self._llm_config, model=model.strip())
+        cache_config = self.cache_config
+        if enable_cache is not None:
+            cache_config = replace(self.cache_config, enabled=enable_cache)
         provider = OpenRouterLLMProvider(llm_config, api_key=api_key)
+        pipeline_version = cache_pipeline_fingerprint(
+            llm_model=llm_config.model,
+            method=method.value,
+            chunking_version=self.retrieval_config.chunking_version,
+            embedding_model=self._provider.metadata.model_name,
+            rerank_enabled=self.rerank_config.enabled,
+        )
         return await run_rag_generate(
             self.search_raw,
             provider,
@@ -239,6 +261,10 @@ class RetrieverRuntime:
             candidate_k=self.retrieval_config.candidate_k,
             reranker=self._reranker,
             rerank_config=self.rerank_config,
+            cache_config=cache_config,
+            cache_store=self._cache_store,
+            embed_query=self._provider.embed_query,
+            pipeline_version=pipeline_version,
         )
 
     def start_ingest(self) -> IngestAccepted:
@@ -349,6 +375,12 @@ def build_runtime() -> RetrieverRuntime:
             str(DEFAULT_LLM_CONFIG_PATH),
         )
     )
+    cache_config_path = Path(
+        os.environ.get(
+            "CACHE_CONFIG_PATH",
+            str(DEFAULT_CACHE_CONFIG_PATH),
+        )
+    )
     qdrant_timeout = float(
         os.environ.get(
             "QDRANT_TIMEOUT_SECONDS",
@@ -371,6 +403,13 @@ def build_runtime() -> RetrieverRuntime:
     retrieval_config = load_retrieval_config(retrieval_config_path)
     rerank_config = retrieval_config.rerank
     llm_config = load_llm_config(llm_config_path)
+    cache_config = load_cache_config(cache_config_path)
+    redis_url = os.environ.get("REDIS_URL", "").strip()
+    cache_store = build_semantic_cache_store(cache_config, redis_url=redis_url)
+    if cache_config.enabled and cache_store is None:
+        logger.warning(
+            "semantic cache enabled in YAML but store unavailable; lookups will miss"
+        )
 
     client = QdrantClient(url=qdrant_config.url, timeout=qdrant_timeout)
     try:
@@ -411,6 +450,8 @@ def build_runtime() -> RetrieverRuntime:
             llm_config=llm_config,
             rerank_config=rerank_config,
             reranker=reranker,
+            cache_config=cache_config,
+            cache_store=cache_store,
         )
     except Exception:
         client.close()

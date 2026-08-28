@@ -40,6 +40,9 @@ class GenerateCallResult:
     generated_tokens: int | None
     contexts: tuple[PackedContext, ...]
     citations: tuple[tuple[int, str], ...]
+    cache_hit: bool = False
+    cache_similarity: float | None = None
+    cache_matched_query: str | None = None
 
 
 async def call_generate(
@@ -50,6 +53,7 @@ async def call_generate(
     method: RetrievalMethod,
     top_k: int,
     model: str | None = None,
+    enable_cache: bool | None = None,
 ) -> GenerateCallResult:
     """POST one generate request. Raises ``GenerateApiError`` on HTTP failure."""
     url = f"{base_url.rstrip('/')}/generate"
@@ -60,6 +64,8 @@ async def call_generate(
     }
     if model is not None and model.strip():
         body["model"] = model.strip()
+    if enable_cache is not None:
+        body["enable_cache"] = enable_cache
     try:
         response = await client.post(url, json=body)
     except httpx.TimeoutException as exc:
@@ -126,6 +132,17 @@ def _parse_generate_body(body: dict[str, Any], *, query: str) -> GenerateCallRes
         generated_tokens=generated_tokens,
         contexts=contexts,
         citations=tuple(citations),
+        cache_hit=bool(body.get("cache_hit")),
+        cache_similarity=(
+            float(body["cache_similarity"])
+            if isinstance(body.get("cache_similarity"), (int, float))
+            else None
+        ),
+        cache_matched_query=(
+            body.get("cache_matched_query")
+            if isinstance(body.get("cache_matched_query"), str)
+            else None
+        ),
     )
 
 

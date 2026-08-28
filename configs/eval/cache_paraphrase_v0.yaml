@@ -1,0 +1,69 @@
+# Sprint 28 semantic cache eval: paraphrase groups (not Phase 7 retrieval gold).
+dataset_version: cache_paraphrase_v0
+label_granularity: note
+corpus_scope: DLS1+DLS2
+notes: >
+  Each group shares one intended answer cluster. Pass 1 runs canonical
+  questions to populate cache; pass 2 runs paraphrases to measure hit rate.
+
+groups:
+  - id: g001
+    canonical: "Как dropout во время обучения борется с переобучением и коадаптацией нейронов?"
+    paraphrases:
+      - "Зачем нужен dropout и как он снижает overfitting?"
+      - "Объясни идею dropout как регуляризации нейросети."
+  - id: g002
+    canonical: "Чем отличаются полный GD, SGD и mini-batch SGD?"
+    paraphrases:
+      - "В чём разница между batch GD, SGD и mini-batch?"
+      - "Когда использовать стохастический градиентный спуск вместо полного?"
+  - id: g003
+    canonical: "Почему при backprop градиент затухает в глубоких сетях?"
+    paraphrases:
+      - "Что такое vanishing gradient и откуда он берётся?"
+      - "Как chain rule приводит к затуханию градиента?"
+  - id: g004
+    canonical: "Почему линейная модель не решает XOR без нелинейных активаций?"
+    paraphrases:
+      - "Зачем нужны нелинейности между слоями для XOR?"
+      - "Почему глубокая сеть без activation схлопывается в линейную?"
+  - id: g005
+    canonical: "Зачем в U-Net skip connections между encoder и decoder?"
+    paraphrases:
+      - "Какую роль играют skip connections в U-Net?"
+      - "Почему U-Net соединяет encoder и decoder напрямую?"
+  - id: g006
+    canonical: "Как NMS оставляет одну рамку на объект в детекции?"
+    paraphrases:
+      - "Объясни non-maximum suppression простыми словами."
+      - "Зачем в object detection нужен NMS после предсказаний?"
+  - id: g007
+    canonical: "Что измеряет mAP в детекции объектов?"
+    paraphrases:
+      - "Как интерпретировать mean Average Precision?"
+      - "Зачем mAP в задачах detection?"
+  - id: g008
+    canonical: "Чем VAE отличается от классического autoencoder?"
+    paraphrases:
+      - "Какую роль играет KL в variational autoencoder?"
+      - "VAE vs обычный autoencoder — в чём суть?"
+  - id: g009
+    canonical: "В чём идея GAN и минимаксной игры generator vs discriminator?"
+    paraphrases:
+      - "Как работает adversarial training в GAN?"
+      - "Что оптимизирует генератор и дискриминатор в GAN?"
+  - id: g010
+    canonical: "Что такое RoPE и как rotary position embedding кодирует позицию?"
+    paraphrases:
+      - "Объясни Rotary Positional Embedding."
+      - "Как RoPE применяет поворот к query и key?"
+  - id: g011
+    canonical: "Чем encoder-only модели вроде BERT отличаются от decoder-only GPT?"
+    paraphrases:
+      - "BERT vs GPT — архитектурные отличия?"
+      - "Почему BERT bidirectional, а GPT autoregressive?"
+  - id: g012
+    canonical: "Зачем в transformer multi-head attention вместо одной головы?"
+    paraphrases:
+      - "Почему несколько attention heads полезнее одной?"
+      - "Идея multi-head self-attention простыми словами."

@@ -15,6 +15,7 @@ from sqlalchemy import create_engine
 
 from rag_based_on_obsidian.config import (
     DEFAULT_BATCH_EMBEDDING_CONFIG_PATH,
+    DEFAULT_CACHE_PARAPHRASE_PATH,
     DEFAULT_EMBEDDING_MODEL_CONFIG_PATH,
     DEFAULT_EVAL_DATASET_VERSION,
     DEFAULT_EVAL_GOLD_PATH,
@@ -24,6 +25,9 @@ from rag_based_on_obsidian.config import (
     RERANK_EVAL_EXPERIMENT_NAME,
 )
 from rag_based_on_obsidian.db.connection import load_database_url
+from rag_based_on_obsidian.eval.cache_mlflow import log_cache_eval_run
+from rag_based_on_obsidian.eval.cache_runner import run_cache_eval_sync
+from rag_based_on_obsidian.eval.cache_yaml import load_cache_paraphrase_yaml
 from rag_based_on_obsidian.eval.contracts import scored_metrics_for_log
 from rag_based_on_obsidian.eval.gold_yaml import load_gold_yaml
 from rag_based_on_obsidian.eval.live_runner import run_live_eval
@@ -116,6 +120,40 @@ def build_parser() -> argparse.ArgumentParser:
             "(overrides YAML enabled; no Docker restart needed)."
         ),
     )
+    cache_parser = subparsers.add_parser(
+        "cache",
+        help="Two-pass paraphrase eval for semantic cache hit rate and latency.",
+    )
+    cache_parser.add_argument(
+        "--paraphrase-set",
+        type=Path,
+        default=DEFAULT_CACHE_PARAPHRASE_PATH,
+    )
+    cache_parser.add_argument(
+        "--method",
+        default=RetrievalMethod.HYBRID.value,
+        choices=[method.value for method in RetrievalMethod],
+    )
+    cache_parser.add_argument("--top-k", type=int, default=5)
+    cache_parser.add_argument(
+        "--api-base-url",
+        default="http://127.0.0.1:8000",
+        help="Running API base URL (POST /generate).",
+    )
+    cache_parser.add_argument(
+        "--enable-cache",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Pass enable_cache=true/false on each POST /generate for this run "
+            "(overrides configs/cache/cache.yaml without restarting the API)."
+        ),
+    )
+    cache_parser.add_argument(
+        "--log-mlflow",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     return parser
 
 
@@ -133,7 +171,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     if args.operation == "run":
         return _run_live(args)
-    print("error: eval requires load-gold, score or run", file=sys.stderr)
+    if args.operation == "cache":
+        return _run_cache(args)
+    print("error: eval requires load-gold, score, run or cache", file=sys.stderr)
     return 2
 
 
@@ -322,6 +362,70 @@ def _run_live(args: argparse.Namespace) -> int:
             artifact={"items": artifacts},
             run_name=run_name,
             experiment_name=experiment_name,
+        )
+    print(json.dumps(payload, ensure_ascii=False))
+    return 0
+
+
+def _run_cache(args: argparse.Namespace) -> int:
+    load_dotenv(ENV_FILE)
+    top_k = args.top_k
+    if top_k <= 0:
+        print("error: --top-k must be positive", file=sys.stderr)
+        return 2
+    method = RetrievalMethod(args.method)
+    enable_cache = bool(args.enable_cache)
+    dataset_version, groups = load_cache_paraphrase_yaml(args.paraphrase_set)
+    started = perf_counter()
+    rows, summary = run_cache_eval_sync(
+        groups,
+        dataset_version=dataset_version,
+        base_url=args.api_base_url.rstrip("/"),
+        method=method,
+        top_k=top_k,
+        enable_cache=enable_cache,
+    )
+    duration = perf_counter() - started
+    label = "semantic-cache-on" if enable_cache else "semantic-cache-off"
+    payload: dict[str, object] = {
+        "dataset_version": dataset_version,
+        "run_kind": "cache_paraphrase",
+        "cache_label": label,
+        "cache_enabled": enable_cache,
+        "retrieval_method": method.value,
+        "top_k": top_k,
+        "group_count": summary.group_count,
+        "canonical_count": summary.canonical_count,
+        "paraphrase_count": summary.paraphrase_count,
+        "paraphrase_hits": summary.paraphrase_hits,
+        "hit_rate": summary.hit_rate,
+        "latency_p50_ms": summary.latency_p50_ms,
+        "latency_p95_ms": summary.latency_p95_ms,
+        "canonical_latency_p50_ms": summary.canonical_latency_p50_ms,
+        "pass1_tokens": summary.pass1_tokens,
+        "pass2_tokens": summary.pass2_tokens,
+        "tokens_saved": summary.tokens_saved,
+        "avg_latency_ms": summary.avg_latency_ms,
+        "canonical_avg_latency_ms": summary.canonical_avg_latency_ms,
+        "paraphrase_avg_latency_ms": summary.paraphrase_avg_latency_ms,
+        "paraphrase_hit_avg_latency_ms": summary.paraphrase_hit_avg_latency_ms,
+        "paraphrase_miss_avg_latency_ms": summary.paraphrase_miss_avg_latency_ms,
+        "duration_seconds": duration,
+    }
+    if args.log_mlflow:
+        payload["mlflow_run_id"] = log_cache_eval_run(
+            dataset_version=dataset_version,
+            summary=summary,
+            rows=rows,
+            duration_seconds=duration,
+            enable_cache=enable_cache,
+            extra_params={
+                "paraphrase_set": str(args.paraphrase_set),
+                "api_base_url": args.api_base_url.rstrip("/"),
+                "retrieval_method": method.value,
+                "top_k": top_k,
+            },
+            run_name=label,
         )
     print(json.dumps(payload, ensure_ascii=False))
     return 0

@@ -75,9 +75,13 @@ class GenerateRequest(SearchRequest):
 
     ``model`` overrides the process default from ``configs/llm/openrouter.yaml``
     for this request only (bake-off / rag-cli ``--generate-model``).
+
+    ``enable_cache`` overrides ``configs/cache/cache.yaml`` ``enabled`` for this
+    request only (cache eval A/B without restarting the API).
     """
 
     model: str | None = None
+    enable_cache: bool | None = None
 
     @field_validator("model")
     @classmethod
@@ -131,6 +135,9 @@ class GenerateResponse(BaseModel):
     graph_trace: list[dict[str, str]] | None = None
     retry_count: int | None = None
     rewritten_query: str | None = None
+    cache_hit: bool = False
+    cache_similarity: float | None = None
+    cache_matched_query: str | None = None
 
 
 class PinnedModels(BaseModel):

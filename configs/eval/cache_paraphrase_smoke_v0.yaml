@@ -1,0 +1,31 @@
+# Smoke eval for Sprint 28 semantic cache: 5 canonical + 5 paraphrases = 10 POST /generate.
+# Not Phase 7 gold (50 retrieval questions). Use before cache_paraphrase_v0 full run.
+dataset_version: cache_paraphrase_smoke_v0
+label_granularity: note
+corpus_scope: DLS1+DLS2
+notes: >
+  Quick cache A/B: pass 1 = 5 canonical (populate cache when enabled);
+  pass 2 = 5 paraphrases of the same topics (measure hit_rate).
+  Expected hit_rate up to 1.0 at threshold 0.92 if E5 aligns paraphrases.
+
+groups:
+  - id: s001
+    canonical: "Как dropout во время обучения борется с переобучением и коадаптацией нейронов?"
+    paraphrases:
+      - "Зачем нужен dropout и как он снижает overfitting?"
+  - id: s002
+    canonical: "Чем отличаются полный GD, SGD и mini-batch SGD?"
+    paraphrases:
+      - "В чём разница между batch GD, SGD и mini-batch?"
+  - id: s003
+    canonical: "Почему при backprop градиент затухает в глубоких сетях?"
+    paraphrases:
+      - "Что такое vanishing gradient и откуда он берётся?"
+  - id: s004
+    canonical: "Почему линейная модель не решает XOR без нелинейных активаций?"
+    paraphrases:
+      - "Зачем нужны нелинейности между слоями для XOR?"
+  - id: s005
+    canonical: "Что такое RoPE и как rotary position embedding кодирует позицию?"
+    paraphrases:
+      - "Объясни Rotary Positional Embedding простыми словами."
