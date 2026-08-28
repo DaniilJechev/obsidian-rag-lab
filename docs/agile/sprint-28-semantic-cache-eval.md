@@ -1,6 +1,6 @@
 # Sprint 28 — Semantic cache + eval
 
-> Статус: `in-progress`
+> Статус: `done`
 >
 > Ветка: `sprint/28-semantic-cache-eval`
 >
@@ -8,8 +8,8 @@
 >
 > Backlog: `CACHE-001`
 >
-> GitHub: [Issue #76](https://github.com/DaniilJechev/obsidian-rag-lab/issues/76),
-> [Milestone Phase 13](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/13)
+> GitHub: [Issue #76](https://github.com/DaniilJechev/obsidian-rag-lab/issues/76) (closed),
+> [Milestone Phase 13](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/13) (open — CACHE-002)
 
 ## Sprint Goal
 
@@ -63,16 +63,16 @@ Eval в том же спринте — без цифр semantic cache остаё
 
 ## Definition of Done
 
-- [ ] Все задачи из Scope выполнены или явно перенесены в backlog.
-- [ ] Acceptance Criteria проверены.
-- [ ] Тесты добавлены или обновлены и проходят.
-- [ ] Ruff/lint проходит.
-- [ ] CI проходит, если изменения отправлялись в remote.
-- [ ] Read-only vault не изменён.
-- [ ] Секреты не добавлены в Git.
-- [ ] Документация и конфигурация обновлены, если это необходимо.
-- [ ] Результаты и ограничения записаны в этот sprint-документ.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Все задачи из Scope выполнены или явно перенесены в backlog.
+- [x] Acceptance Criteria проверены.
+- [x] Тесты добавлены или обновлены и проходят.
+- [x] Ruff/lint проходит.
+- [x] CI проходит (PR [#78](https://github.com/DaniilJechev/obsidian-rag-lab/pull/78)).
+- [x] Read-only vault не изменён.
+- [x] Секреты не добавлены в Git.
+- [x] Документация и конфигурация обновлены.
+- [x] Результаты и ограничения записаны в этот sprint-документ.
+- [x] Пользователь подтвердил завершение спринта (merge PR #78).
 
 ## Dependencies and risks
 
@@ -95,6 +95,7 @@ Eval в том же спринте — без цифр semantic cache остаё
 | Дата | Действие / решение | Результат |
 |---|---|---|
 | 2026-08-28 | Planning + GitHub | Milestone [13](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/13); Issues [#76](https://github.com/DaniilJechev/obsidian-rag-lab/issues/76)/[#77](https://github.com/DaniilJechev/obsidian-rag-lab/issues/77); branch `sprint/28-semantic-cache-eval` |
+| 2026-08-28 | Implementation + eval | PR [#78](https://github.com/DaniilJechev/obsidian-rag-lab/pull/78) merged (`d59d9dd`); smoke hit_rate 0.4; default cache off |
 
 ## Validation Evidence
 
@@ -105,15 +106,15 @@ docker compose --env-file .env -f docker/compose.yml up -d postgres redis api qd
 uv run mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root .\artifacts\mlflow --host 127.0.0.1 --port 5000
 uv run rag-cli eval cache --log-mlflow --no-enable-cache
 uv run rag-cli eval cache --log-mlflow --enable-cache
-uv run pytest tests/test_cache_similarity.py tests/test_semantic_cache_store.py tests/test_lang_graph_semantic_cache.py -q
-uv run ruff check src/ tests/
+uv run pytest -q
+uv run ruff check .
 ```
 
 ### Test and Lint Results
 
 - Tests: `uv run pytest -q` — **258 passed, 1 skipped** (2026-08-28)
 - Lint: `uv run ruff check .` — **All checks passed** (2026-08-28)
-- CI: pending (after PR push)
+- CI: PR [#78](https://github.com/DaniilJechev/obsidian-rag-lab/pull/78) — **Lint and test pass** (run `33191652772`)
 
 ### Metrics
 
@@ -133,15 +134,21 @@ Threshold **0.92** — balance recall vs false hits; smoke evidence sufficient f
 
 ### Completed
 
-- {{TBD}}
+- Redis semantic cache module + LangGraph integration + API `enable_cache` override.
+- Paraphrase eval harness (`rag-cli eval cache`) + MLflow experiment.
+- PR [#78](https://github.com/DaniilJechev/obsidian-rag-lab/pull/78) merged (`d59d9dd`); Issue [#76](https://github.com/DaniilJechev/obsidian-rag-lab/issues/76) closed.
+- Default cache **off**; threshold **0.92** documented.
 
-### Not Completed
+### Not Completed / carry-over
 
-- {{TBD}}
+- Full `cache_paraphrase_v0.yaml` eval (36 calls) — deferred to optional follow-up.
+- Session memory — Sprint 29+ / out of CACHE-001 scope.
+- Token budget / dedup — **CACHE-002**, Sprint 29.
 
 ### Changed Decisions
 
-- Exact cache skipped; semantic-only (Phase 13 planning 2026-08-28)
+- Exact cache skipped; semantic-only (Phase 13 planning 2026-08-28).
+- `--enable-cache` CLI must wire to API (not only MLflow label) — fixed during sprint.
 
 ### Technical Debt
 
@@ -153,32 +160,37 @@ Threshold **0.92** — balance recall vs false hits; smoke evidence sufficient f
 
 ### What Went Well
 
-- {{TBD}}
+- Vertical slice: cache module → LangGraph → API → eval CLI → MLflow in one sprint.
+- In-memory store in tests avoids Redis dependency in CI.
+- Per-request `enable_cache` gives clean A/B without YAML edits.
 
 ### What Was Difficult
 
-- {{TBD}}
+- Initial eval showed 0% hits until CLI/API toggle was wired correctly.
+- Windows `.git/HEAD` lock intermittently blocks `git switch` during closeout.
+- Circular import `pipeline` ↔ `workflow` required `EmbedQueryFn` extraction.
 
 ### What We Will Change
 
-- {{TBD}}
+- Run smoke eval before declaring cache “working”; verify API flag end-to-end early.
+- Sprint 29 eval runs with cache **off** to isolate token-budget effects.
 
 ### Backlog Updates
 
 - Добавить:
-  - {{TBD}}
+  - Optional: full paraphrase v0 eval run; fix cache-hit latency metric.
 - Перенести:
-  - {{TBD}}
+  - `CACHE-002` token budget → Sprint 29 (Issue [#77](https://github.com/DaniilJechev/obsidian-rag-lab/issues/77)).
 
 ## Completion
 
-- [ ] Definition of Done проверен.
-- [ ] Review проведён.
-- [ ] Retrospective заполнена.
-- [ ] Commit/PR/merge выполнены по согласованному Git workflow.
-- [ ] Backlog обновлён.
-- [ ] Следующий sprint выбран или запланирован.
+- [x] Definition of Done проверен.
+- [x] Review проведён.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены по согласованному Git workflow.
+- [x] Backlog обновлён.
+- [x] Следующий sprint: **Sprint 29** / `CACHE-002` token budget + eval.
 
-**Итоговый статус:** `planned`
+**Итоговый статус:** `done`
 
-**Дата завершения:** `{{COMPLETION_DATE}}`
+**Дата завершения:** 2026-08-28

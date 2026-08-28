@@ -83,8 +83,8 @@ Backlog не является жёстким расписанием. Приор�
 | ML-001 | P1 | done | 12 | Добавить cross-encoder reranker и сравнить retrieval | Phase 12 complete: Sprint 26 wire PR [#72](https://github.com/DaniilJechev/obsidian-rag-lab/pull/72) (`0b8e230`) + Sprint 27 eval PR [#74](https://github.com/DaniilJechev/obsidian-rag-lab/pull/74) (`12102b6`); Issues [#70](https://github.com/DaniilJechev/obsidian-rag-lab/issues/70)/[#71](https://github.com/DaniilJechev/obsidian-rag-lab/issues/71) closed; default CE off (CPU latency); Milestone [12](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/12) closed. |
 | MLOPS-001 | P1 | done | 10 | RAGAS harness + gpt-4o-mini baseline + human template (Sprint 22) | Sprint 22 completed: `rag-cli ragas run`, JSON-judge 0–5, note-level P/R, live 15/15, MLflow `4663f6d7fc804f2eb128cfd5db412300`; human-шаблон 10 вопросов (`null`). PR [#60](https://github.com/DaniilJechev/obsidian-rag-lab/pull/60) merged (`25f924e`); Issue [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58) closed. Заполненные scores — carry-over `MLOPS-002`. |
 | MLOPS-002 | P1 | done | 10 | Human scores + RAGAS runtime + bake-off 2 OpenRouter generate-моделей (Sprint 23) | Sprint 23 completed: human 10×0–5, `judge_backend: ragas` 0–1, bake-off mini `7278da5c…` (F/AR 0.779/0.898) vs Gemini `d0918cf6…` (0.870/0.887), ctx P/R 0.785/0.622. PR [#62](https://github.com/DaniilJechev/obsidian-rag-lab/pull/62) merged (`2c56d41`); Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) closed. |
-| CACHE-001 | P1 | in-progress | 13 | Semantic cache (E5 cosine) + paraphrase eval | Sprint 28: Redis semantic cache in LangGraph, `rag-cli eval cache`, MLflow `phase-13-semantic-cache-eval`; default `cache.enabled: false` |
-| CACHE-002 | P1 | ready | 13 | Token budget / dedup + eval | Sprint 29: context packing limits, dedup policy, eval harness |
+| CACHE-001 | P1 | done | 13 | Semantic cache (E5 cosine) + paraphrase eval | Sprint 28 completed: Redis semantic cache in LangGraph, `rag-cli eval cache`, MLflow smoke hit_rate 0.4; default `cache.enabled: false`; PR [#78](https://github.com/DaniilJechev/obsidian-rag-lab/pull/78) merged (`d59d9dd`); Issue [#76](https://github.com/DaniilJechev/obsidian-rag-lab/issues/76) closed |
+| CACHE-002 | P1 | in-progress | 13 | Token budget / dedup + eval | Sprint 29: context packing limits, dedup policy, eval harness; Issue [#77](https://github.com/DaniilJechev/obsidian-rag-lab/issues/77) |
 | CLOUD-001 | P2 | idea | 14 | Сравнить local и cloud storage | Latency, cost, reliability и operational effort измерены |
 | SERVE-001 | P3 | idea | 16 | Запустить локальную LLM через vLLM | API и vLLM сравнены на одном eval-наборе |
 | DEPLOY-001 | P3 | idea | 17 | Подготовить Kubernetes proof of concept | API/Qdrant/worker manifests и health probes описаны |
@@ -119,7 +119,11 @@ retrieval default. Канон retrieval: `docs/agile/sprint-18-retrieval-eval-ba
 Канон generate eval: `docs/agile/sprint-23-openrouter-model-bakeoff.md`
 (ragas 0–1 + JSON 0–5 рядом).
 
-Следующая работа: **Phase 13+** по roadmap (после закрытой Phase 12).
+Следующая работа: **Phase 13** — Sprint 29 / `CACHE-002` token budget + dedup eval
+(Issue [#77](https://github.com/DaniilJechev/obsidian-rag-lab/issues/77)).
+Phase 13 / `CACHE-001` **закрыта**: Sprint 28 PR [#78](https://github.com/DaniilJechev/obsidian-rag-lab/pull/78)
+(`d59d9dd`); Issue [#76](https://github.com/DaniilJechev/obsidian-rag-lab/issues/76) closed;
+док `sprint-28-semantic-cache-eval.md`; default semantic cache off; Milestone [13](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/13) open until CACHE-002.
 Phase 12 / `ML-001` **закрыта**: Sprint 26 PR [#72](https://github.com/DaniilJechev/obsidian-rag-lab/pull/72)
 (`0b8e230`) + Sprint 27 PR [#74](https://github.com/DaniilJechev/obsidian-rag-lab/pull/74)
 (`12102b6`); Issues [#70](https://github.com/DaniilJechev/obsidian-rag-lab/issues/70)/
@@ -216,6 +220,13 @@ Phase 9 закрыта: Sprint 21 PR [#56](https://github.com/DaniilJechev/obsid
     merged (`25f924e`), CI passed, Issue
     [#58](https://github.com/DaniilJechev/obsidian-rag-lab/issues/58) closed.
     Human scores 0–5 → Sprint 23 / [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59).
+
+14. Sprint 28: Redis semantic cache + paraphrase eval
+    (`CACHE-001`; `docs/agile/sprint-28-semantic-cache-eval.md`;
+    GitHub [#76](https://github.com/DaniilJechev/obsidian-rag-lab/issues/76))
+    — completed; PR [#78](https://github.com/DaniilJechev/obsidian-rag-lab/pull/78)
+    merged (`d59d9dd`), CI passed, Issue
+    [#76](https://github.com/DaniilJechev/obsidian-rag-lab/issues/76) closed.
 
 Semantic evaluation и gold questions — Phase 7 (закрыта). OpenRouter generation —
 Phase 9 (закрыта). RAGAS — живая Phase 10 (спринты 22–23). FastAPI — Phase 8.
