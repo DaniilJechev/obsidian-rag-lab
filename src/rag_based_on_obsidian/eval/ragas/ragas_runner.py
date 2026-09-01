@@ -20,14 +20,17 @@ from rag_based_on_obsidian.eval.generation_client import (
     GenerateApiError,
     call_generate,
 )
+from rag_based_on_obsidian.eval.gold_slice import (
+    select_gold_slice as _select_gold_slice,
+)
 from rag_based_on_obsidian.eval.judge import GenerationJudge
 from rag_based_on_obsidian.eval.progress import EvalProgress, eval_tqdm
-from rag_based_on_obsidian.eval.ragas_contracts import (
+from rag_based_on_obsidian.eval.ragas.ragas_contracts import (
     SCORED_RAGAS_FIELDS,
     RagasDatasetMetrics,
     RagasItemMetrics,
 )
-from rag_based_on_obsidian.eval.ragas_settings import RagasRunConfig
+from rag_based_on_obsidian.eval.ragas.ragas_settings import RagasRunConfig
 from rag_based_on_obsidian.llm.contracts import LLMUnavailableError
 
 
@@ -36,15 +39,11 @@ def select_gold_slice(
     config: RagasRunConfig,
 ) -> tuple[GoldItem, ...]:
     """Take YAML order: subset_size items, or the full gold list."""
-    if not items:
-        raise ValueError("gold items must not be empty")
-    if config.full_set:
-        return tuple(items)
-    if config.subset_size > len(items):
-        raise ValueError(
-            f"subset_size {config.subset_size} exceeds gold size {len(items)}"
-        )
-    return tuple(items[: config.subset_size])
+    return _select_gold_slice(
+        items,
+        subset_size=config.subset_size,
+        full_set=config.full_set,
+    )
 
 
 async def run_ragas_eval(

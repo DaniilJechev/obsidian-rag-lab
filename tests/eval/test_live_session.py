@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from rag_based_on_obsidian.eval import live_session
+from rag_based_on_obsidian.eval.retrieval import live_session
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod
 from rag_based_on_obsidian.retrieval.settings import RetrievalConfig
 

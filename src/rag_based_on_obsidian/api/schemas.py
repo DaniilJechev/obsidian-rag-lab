@@ -78,10 +78,14 @@ class GenerateRequest(SearchRequest):
 
     ``enable_cache`` overrides ``configs/cache/cache.yaml`` ``enabled`` for this
     request only (cache eval A/B without restarting the API).
+
+    ``max_context_tokens`` overrides ``configs/llm/openrouter.yaml`` for this
+    request only (token budget ablation without restarting the API).
     """
 
     model: str | None = None
     enable_cache: bool | None = None
+    max_context_tokens: int | None = Field(default=None, gt=0)
 
     @field_validator("model")
     @classmethod

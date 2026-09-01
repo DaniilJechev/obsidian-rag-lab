@@ -8,7 +8,7 @@ from statistics import median
 
 import httpx
 
-from rag_based_on_obsidian.eval.cache_yaml import ParaphraseGroup
+from rag_based_on_obsidian.eval.cache.cache_yaml import ParaphraseGroup
 from rag_based_on_obsidian.eval.generation_client import (
     GenerateApiError,
     GenerateCallResult,

@@ -4,14 +4,14 @@ from pathlib import Path
 import httpx
 
 from rag_based_on_obsidian.eval.contracts import GoldItem
-from rag_based_on_obsidian.eval.ragas_contracts import RagasItemMetrics
-from rag_based_on_obsidian.eval.ragas_runner import (
+from rag_based_on_obsidian.eval.ragas.ragas_contracts import RagasItemMetrics
+from rag_based_on_obsidian.eval.ragas.ragas_runner import (
     _macro_average,
     _skip_reason_summary,
     run_ragas_eval,
     select_gold_slice,
 )
-from rag_based_on_obsidian.eval.ragas_settings import load_ragas_config
+from rag_based_on_obsidian.eval.ragas.ragas_settings import load_ragas_config
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod
 
 

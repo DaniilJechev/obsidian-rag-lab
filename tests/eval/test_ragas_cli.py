@@ -3,8 +3,8 @@ from pathlib import Path
 
 import yaml
 
-from rag_based_on_obsidian.eval import ragas_cli
-from rag_based_on_obsidian.eval.ragas_contracts import RagasDatasetMetrics
+from rag_based_on_obsidian.eval.ragas import ragas_cli
+from rag_based_on_obsidian.eval.ragas.ragas_contracts import RagasDatasetMetrics
 
 
 def test_ragas_cli_run_prints_summary(tmp_path: Path, monkeypatch, capsys) -> None:

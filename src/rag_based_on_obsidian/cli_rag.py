@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from rag_based_on_obsidian.chunking.chunking_cli import main as chunking_main
 from rag_based_on_obsidian.embeddings.cli.batch import main as embedding_main
 from rag_based_on_obsidian.eval.cli import main as eval_main
-from rag_based_on_obsidian.eval.ragas_cli import main as ragas_main
+from rag_based_on_obsidian.eval.ragas.ragas_cli import main as ragas_main
 from rag_based_on_obsidian.retrieval.cli import main as retrieval_main
 from rag_based_on_obsidian.vector_store.cli import main as vector_store_main
 

@@ -8,7 +8,7 @@ from rag_based_on_obsidian.eval.contracts import (
     LiveGoldItem,
     QuestionMetrics,
 )
-from rag_based_on_obsidian.eval.live_session import LiveSessionInfo
+from rag_based_on_obsidian.eval.retrieval.live_session import LiveSessionInfo
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod
 from rag_based_on_obsidian.retrieval.settings import RetrievalConfig
 

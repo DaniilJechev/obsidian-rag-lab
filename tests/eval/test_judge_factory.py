@@ -5,7 +5,7 @@ from rag_based_on_obsidian.eval.judge_factory import (
     build_generation_judge,
     judge_scale,
 )
-from rag_based_on_obsidian.eval.ragas_settings import load_ragas_config
+from rag_based_on_obsidian.eval.ragas.ragas_settings import load_ragas_config
 from rag_based_on_obsidian.llm.settings import LLMConfig
 
 

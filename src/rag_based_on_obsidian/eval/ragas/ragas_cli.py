@@ -34,12 +34,18 @@ from rag_based_on_obsidian.eval.progress import (
     configure_eval_logging,
     eval_tqdm,
 )
-from rag_based_on_obsidian.eval.ragas_mlflow import (
+from rag_based_on_obsidian.eval.ragas.ragas_mlflow import (
     log_ragas_run,
     mlflow_generate_run_name,
 )
-from rag_based_on_obsidian.eval.ragas_runner import run_ragas_eval, select_gold_slice
-from rag_based_on_obsidian.eval.ragas_settings import RagasRunConfig, load_ragas_config
+from rag_based_on_obsidian.eval.ragas.ragas_runner import (
+    run_ragas_eval,
+    select_gold_slice,
+)
+from rag_based_on_obsidian.eval.ragas.ragas_settings import (
+    RagasRunConfig,
+    load_ragas_config,
+)
 from rag_based_on_obsidian.llm.contracts import LLMUnavailableError
 from rag_based_on_obsidian.llm.packing import SYSTEM_PROMPT
 from rag_based_on_obsidian.llm.settings import LLMConfig, load_llm_config
@@ -260,7 +266,7 @@ def _run_prompts(judge_backend: str) -> dict[str, str]:
         return prompts
     # Lazy import: keep JSON-only paths from loading ragas at CLI import time
     # when factory already loads it — still isolate dump helper.
-    from rag_based_on_obsidian.eval.ragas_judge import dump_ragas_metric_prompts
+    from rag_based_on_obsidian.eval.ragas.ragas_judge import dump_ragas_metric_prompts
 
     prompts["evaluation_system"] = dump_ragas_metric_prompts()
     return prompts

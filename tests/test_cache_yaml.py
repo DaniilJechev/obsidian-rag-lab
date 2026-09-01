@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from rag_based_on_obsidian.eval.cache_yaml import load_cache_paraphrase_yaml
+from rag_based_on_obsidian.eval.cache.cache_yaml import load_cache_paraphrase_yaml
 
 
 def test_load_cache_paraphrase_v0_yaml() -> None:
@@ -10,6 +10,7 @@ def test_load_cache_paraphrase_v0_yaml() -> None:
         Path(__file__).resolve().parents[1]
         / "configs"
         / "eval"
+        / "cache"
         / "cache_paraphrase_v0.yaml"
     )
     dataset_version, groups = load_cache_paraphrase_yaml(path)
@@ -24,6 +25,7 @@ def test_load_cache_paraphrase_smoke_yaml() -> None:
         Path(__file__).resolve().parents[1]
         / "configs"
         / "eval"
+        / "cache"
         / "cache_paraphrase_smoke_v0.yaml"
     )
     dataset_version, groups = load_cache_paraphrase_yaml(path)

@@ -1,0 +1,17 @@
+name: sprint29-token-budget-eval
+gold_path: evals/gold/phase7_GT_note_level_v0.yaml
+dataset_version: phase7_GT_note_level_v0
+subset_size: 15
+full_set: false
+method: hybrid
+top_k: 5
+budgets: [800, 1200, 1800]
+api_base_url: http://127.0.0.1:8000
+enable_cache: false
+generate_timeout_seconds: 120
+concurrency: 2
+generate_model: google/gemini-3.7-flash
+judge_model: openai/gpt-4o-mini
+judge_backend: ragas
+ragas_enabled: true
+experiment_name: phase-13-token-budget-eval
