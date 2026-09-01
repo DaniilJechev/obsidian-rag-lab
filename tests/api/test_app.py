@@ -77,8 +77,9 @@ class FakeRuntime:
         top_k: int,
         model: str | None = None,
         enable_cache: bool | None = None,
+        max_context_tokens: int | None = None,
     ) -> dict[str, object]:
-        _ = model, enable_cache
+        _ = model
         self.generate_calls.append(
             {
                 "query": query,
@@ -86,6 +87,7 @@ class FakeRuntime:
                 "top_k": top_k,
                 "model": model,
                 "enable_cache": enable_cache,
+                "max_context_tokens": max_context_tokens,
             }
         )
         if self.missing_llm_key:
@@ -397,6 +399,27 @@ def test_generate_accepts_enable_cache_override() -> None:
         )
     assert response.status_code == 200
     assert runtime.generate_calls[-1]["enable_cache"] is True
+
+
+def test_generate_accepts_max_context_tokens_override() -> None:
+    runtime = FakeRuntime()
+    with _client(runtime) as client:
+        response = client.post(
+            "/generate",
+            json={"query": "What is RoPE?", "max_context_tokens": 800},
+        )
+    assert response.status_code == 200
+    assert runtime.generate_calls[-1]["max_context_tokens"] == 800
+
+
+def test_generate_rejects_non_positive_max_context_tokens() -> None:
+    runtime = FakeRuntime()
+    with _client(runtime) as client:
+        response = client.post(
+            "/generate",
+            json={"query": "What is RoPE?", "max_context_tokens": 0},
+        )
+    assert response.status_code == 422
 
 
 def test_generate_rejects_blank_model() -> None:

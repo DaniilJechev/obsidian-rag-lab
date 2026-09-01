@@ -17,7 +17,10 @@ from rag_based_on_obsidian.config import (
     ENV_FILE,
 )
 from rag_based_on_obsidian.embeddings.mlflow_tracking import process_rss_mb
-from rag_based_on_obsidian.eval.cache_runner import CacheEvalSummary, CacheQueryResult
+from rag_based_on_obsidian.eval.cache.cache_runner import (
+    CacheEvalSummary,
+    CacheQueryResult,
+)
 
 CACHE_EVAL_EXPERIMENT_DESCRIPTION = (
     "Phase 13 Sprint 28: semantic cache on vs off on paraphrase eval set. "

@@ -1,4 +1,4 @@
-# Sprint 28 semantic cache eval: paraphrase groups (not Phase 7 retrieval gold).
+я# Sprint 28 semantic cache eval: paraphrase groups (not Phase 7 retrieval gold).
 dataset_version: cache_paraphrase_v0
 label_granularity: note
 corpus_scope: DLS1+DLS2

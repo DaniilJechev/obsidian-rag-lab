@@ -19,19 +19,21 @@ from rag_based_on_obsidian.config import (
     DEFAULT_EMBEDDING_MODEL_CONFIG_PATH,
     DEFAULT_EVAL_DATASET_VERSION,
     DEFAULT_EVAL_GOLD_PATH,
+    DEFAULT_LLM_CONFIG_PATH,
     DEFAULT_QDRANT_CONFIG_PATH,
     DEFAULT_RETRIEVAL_CONFIG_PATH,
+    DEFAULT_TOKEN_BUDGET_CONFIG_PATH,
     ENV_FILE,
     RERANK_EVAL_EXPERIMENT_NAME,
 )
 from rag_based_on_obsidian.db.connection import load_database_url
-from rag_based_on_obsidian.eval.cache_mlflow import log_cache_eval_run
-from rag_based_on_obsidian.eval.cache_runner import run_cache_eval_sync
-from rag_based_on_obsidian.eval.cache_yaml import load_cache_paraphrase_yaml
+from rag_based_on_obsidian.eval.cache.cache_mlflow import log_cache_eval_run
+from rag_based_on_obsidian.eval.cache.cache_runner import run_cache_eval_sync
+from rag_based_on_obsidian.eval.cache.cache_yaml import load_cache_paraphrase_yaml
 from rag_based_on_obsidian.eval.contracts import scored_metrics_for_log
+from rag_based_on_obsidian.eval.gold_slice import select_gold_slice
 from rag_based_on_obsidian.eval.gold_yaml import load_gold_yaml
-from rag_based_on_obsidian.eval.live_runner import run_live_eval
-from rag_based_on_obsidian.eval.live_session import LiveSessionInfo, open_live_session
+from rag_based_on_obsidian.eval.judge_factory import build_generation_judge
 from rag_based_on_obsidian.eval.metrics import macro_average
 from rag_based_on_obsidian.eval.mlflow_tracking import log_eval_harness_run
 from rag_based_on_obsidian.eval.postgres_loader import (
@@ -43,7 +45,16 @@ from rag_based_on_obsidian.eval.postgres_loader import (
     upsert_eval_items,
 )
 from rag_based_on_obsidian.eval.progress import EvalProgress, configure_eval_logging
-from rag_based_on_obsidian.eval.scoring import score_path_rankings
+from rag_based_on_obsidian.eval.retrieval.live_runner import run_live_eval
+from rag_based_on_obsidian.eval.retrieval.live_session import (
+    LiveSessionInfo,
+    open_live_session,
+)
+from rag_based_on_obsidian.eval.retrieval.scoring import score_path_rankings
+from rag_based_on_obsidian.eval.token_budget.budget_mlflow import log_budget_eval_run
+from rag_based_on_obsidian.eval.token_budget.budget_runner import run_budget_eval_sync
+from rag_based_on_obsidian.eval.token_budget.budget_yaml import load_budget_config
+from rag_based_on_obsidian.llm.settings import load_llm_config
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod
 from rag_based_on_obsidian.retrieval.settings import load_retrieval_config
 
@@ -154,6 +165,30 @@ def build_parser() -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=True,
     )
+    budget_parser = subparsers.add_parser(
+        "budget",
+        help="Token budget ablation on gold subset (800/1200/1800 by default).",
+    )
+    budget_parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_TOKEN_BUDGET_CONFIG_PATH,
+    )
+    budget_parser.add_argument(
+        "--budgets",
+        default=None,
+        help="Comma-separated override for YAML budgets, e.g. 800,1200,1800.",
+    )
+    budget_parser.add_argument(
+        "--log-mlflow",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    budget_parser.add_argument(
+        "--no-ragas",
+        action="store_true",
+        help="Skip RAGAS judge; record tokens and latency only.",
+    )
     return parser
 
 
@@ -173,7 +208,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _run_live(args)
     if args.operation == "cache":
         return _run_cache(args)
-    print("error: eval requires load-gold, score, run or cache", file=sys.stderr)
+    if args.operation == "budget":
+        return _run_budget(args)
+    print("error: eval requires load-gold, score, run, cache or budget", file=sys.stderr)
     return 2
 
 
@@ -429,6 +466,138 @@ def _run_cache(args: argparse.Namespace) -> int:
         )
     print(json.dumps(payload, ensure_ascii=False))
     return 0
+
+
+def _run_budget(args: argparse.Namespace) -> int:
+    import os
+
+    from rag_based_on_obsidian.llm.contracts import LLMUnavailableError
+
+    load_dotenv(ENV_FILE)
+    config = load_budget_config(args.config)
+    budgets_override = _parse_budgets_arg(args.budgets)
+    budgets = budgets_override or config.budgets
+    ragas_enabled = config.ragas_enabled and not args.no_ragas
+    gold_version, all_items = load_gold_yaml(config.gold_path)
+    dataset_version = config.dataset_version or gold_version
+    items = select_gold_slice(
+        all_items,
+        subset_size=config.subset_size,
+        full_set=config.full_set,
+    )
+    llm_config = load_llm_config(DEFAULT_LLM_CONFIG_PATH)
+    llm_config = replace(llm_config, model=config.generate_model)
+    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    judge = None
+    if ragas_enabled:
+        if not api_key:
+            print("error: OPENROUTER_API_KEY is required for RAGAS judge", file=sys.stderr)
+            return 2
+        judge = build_generation_judge(config, llm_config, api_key)
+    started = perf_counter()
+    try:
+        results = run_budget_eval_sync(
+            items,
+            config,
+            budgets=budgets,
+            judge=judge,
+            ragas_enabled=ragas_enabled,
+        )
+    except LLMUnavailableError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    duration = perf_counter() - started
+    comparison: list[dict[str, object]] = []
+    mlflow_runs: dict[int, str | None] = {}
+    for budget in budgets:
+        rows, summary = results[budget]
+        comparison.append(
+            {
+                "budget": budget,
+                "mean_prompt_tokens": summary.mean_prompt_tokens,
+                "mean_faithfulness": summary.mean_faithfulness,
+                "mean_answer_relevancy": summary.mean_answer_relevancy,
+                "mean_latency_ms": summary.mean_latency_ms,
+                "refusal_rate": summary.refusal_rate,
+            }
+        )
+        if args.log_mlflow:
+            mlflow_runs[budget] = log_budget_eval_run(
+                dataset_version=dataset_version,
+                summary=summary,
+                rows=rows,
+                duration_seconds=duration / len(budgets),
+                experiment_name=config.experiment_name,
+                extra_params={
+                    "config_path": str(args.config),
+                    "api_base_url": config.api_base_url,
+                    "retrieval_method": config.method.value,
+                    "top_k": config.top_k,
+                    "subset_size": config.subset_size,
+                    "ragas_enabled": ragas_enabled,
+                    "generate_model": config.generate_model,
+                    "judge_model": config.judge_model,
+                    "judge_backend": config.judge_backend,
+                },
+                run_name=f"budget-{budget}",
+            )
+    payload: dict[str, object] = {
+        "dataset_version": dataset_version,
+        "run_kind": "token_budget",
+        "budgets": list(budgets),
+        "question_count": len(items),
+        "ragas_enabled": ragas_enabled,
+        "duration_seconds": duration,
+        "comparison": comparison,
+    }
+    if args.log_mlflow:
+        payload["mlflow_run_ids"] = mlflow_runs
+    print(json.dumps(payload, ensure_ascii=False))
+    _print_budget_table(comparison)
+    return 0
+
+
+def _parse_budgets_arg(raw: str | None) -> tuple[int, ...] | None:
+    if raw is None or not raw.strip():
+        return None
+    values: list[int] = []
+    for part in raw.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        value = int(part)
+        if value <= 0:
+            raise ValueError("each budget must be positive")
+        values.append(value)
+    if not values:
+        return None
+    return tuple(values)
+
+
+def _print_budget_table(rows: list[dict[str, object]]) -> None:
+    header = (
+        f"{'budget':>8}  {'prompt_tok':>10}  {'faithful':>9}  "
+        f"{'relevancy':>9}  {'latency_ms':>10}  {'refusal':>8}"
+    )
+    print(header, file=sys.stderr)
+    for row in rows:
+        print(
+            f"{row['budget']:>8}  "
+            f"{_fmt(row.get('mean_prompt_tokens')):>10}  "
+            f"{_fmt(row.get('mean_faithfulness')):>9}  "
+            f"{_fmt(row.get('mean_answer_relevancy')):>9}  "
+            f"{_fmt(row.get('mean_latency_ms')):>10}  "
+            f"{_fmt(row.get('refusal_rate')):>8}",
+            file=sys.stderr,
+        )
+
+
+def _fmt(value: object) -> str:
+    if value is None:
+        return "-"
+    if isinstance(value, float):
+        return f"{value:.2f}"
+    return str(value)
 
 
 def _live_params(

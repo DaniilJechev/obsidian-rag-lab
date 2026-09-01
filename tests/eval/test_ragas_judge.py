@@ -3,8 +3,8 @@ import time
 
 import pytest
 
-from rag_based_on_obsidian.eval.ragas_contracts import PackedContext
-from rag_based_on_obsidian.eval.ragas_judge import RagasFrameworkJudge
+from rag_based_on_obsidian.eval.ragas.ragas_contracts import PackedContext
+from rag_based_on_obsidian.eval.ragas.ragas_judge import RagasFrameworkJudge
 from rag_based_on_obsidian.llm.contracts import LLMUnavailableError
 
 

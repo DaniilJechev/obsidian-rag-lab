@@ -39,10 +39,13 @@ DEFAULT_EVAL_CONFIG_PATH = PROJECT_ROOT / "configs" / "eval" / "eval.yaml"
 DEFAULT_RAGAS_CONFIG_PATH = PROJECT_ROOT / "configs" / "eval" / "ragas.yaml"
 DEFAULT_CACHE_CONFIG_PATH = PROJECT_ROOT / "configs" / "cache" / "cache.yaml"
 DEFAULT_CACHE_PARAPHRASE_PATH = (
-    PROJECT_ROOT / "configs" / "eval" / "cache_paraphrase_v0.yaml"
+    PROJECT_ROOT / "configs" / "eval" / "cache" / "cache_paraphrase_v0.yaml"
 )
 DEFAULT_CACHE_PARAPHRASE_SMOKE_PATH = (
-    PROJECT_ROOT / "configs" / "eval" / "cache_paraphrase_smoke_v0.yaml"
+    PROJECT_ROOT / "configs" / "eval" / "cache" / "cache_paraphrase_smoke_v0.yaml"
+)
+DEFAULT_TOKEN_BUDGET_CONFIG_PATH = (
+    PROJECT_ROOT / "configs" / "eval" / "token_budget" / "budget.yaml"
 )
 
 
@@ -66,6 +69,7 @@ EVAL_EXPERIMENT_NAME = "phase-7-retrieval-eval"
 RERANK_EVAL_EXPERIMENT_NAME = "phase-12-rerank-retrieval-eval"
 RAGAS_EXPERIMENT_NAME = "phase-10-ragas-generation"
 CACHE_EVAL_EXPERIMENT_NAME = "phase-13-semantic-cache-eval"
+TOKEN_BUDGET_EVAL_EXPERIMENT_NAME = "phase-13-token-budget-eval"
 from rag_based_on_obsidian.chunking.policy import ChunkingPolicy
 
 

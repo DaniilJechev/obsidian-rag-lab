@@ -234,12 +234,15 @@ class RetrieverRuntime:
         top_k: int,
         model: str | None = None,
         enable_cache: bool | None = None,
+        max_context_tokens: int | None = None,
     ) -> dict[str, object]:
         """Retrieve, then call OpenRouter or refuse. Search stays available."""
         api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
         llm_config = self._llm_config
         if model is not None and model.strip():
             llm_config = replace(self._llm_config, model=model.strip())
+        if max_context_tokens is not None:
+            llm_config = replace(llm_config, max_context_tokens=max_context_tokens)
         cache_config = self.cache_config
         if enable_cache is not None:
             cache_config = replace(self.cache_config, enabled=enable_cache)

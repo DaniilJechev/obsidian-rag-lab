@@ -1,4 +1,4 @@
-from rag_based_on_obsidian.eval.ragas_import import (
+from rag_based_on_obsidian.eval.ragas.ragas_import import (
     import_ragas,
     install_vertexai_import_stubs,
 )

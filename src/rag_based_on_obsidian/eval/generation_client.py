@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from rag_based_on_obsidian.eval.ragas_contracts import PackedContext
+from rag_based_on_obsidian.eval.ragas.ragas_contracts import PackedContext
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod
 
 
@@ -43,6 +43,7 @@ class GenerateCallResult:
     cache_hit: bool = False
     cache_similarity: float | None = None
     cache_matched_query: str | None = None
+    graph_trace: tuple[dict[str, str], ...] | None = None
 
 
 async def call_generate(
@@ -54,6 +55,7 @@ async def call_generate(
     top_k: int,
     model: str | None = None,
     enable_cache: bool | None = None,
+    max_context_tokens: int | None = None,
 ) -> GenerateCallResult:
     """POST one generate request. Raises ``GenerateApiError`` on HTTP failure."""
     url = f"{base_url.rstrip('/')}/generate"
@@ -66,6 +68,8 @@ async def call_generate(
         body["model"] = model.strip()
     if enable_cache is not None:
         body["enable_cache"] = enable_cache
+    if max_context_tokens is not None:
+        body["max_context_tokens"] = max_context_tokens
     try:
         response = await client.post(url, json=body)
     except httpx.TimeoutException as exc:
@@ -143,7 +147,22 @@ def _parse_generate_body(body: dict[str, Any], *, query: str) -> GenerateCallRes
             if isinstance(body.get("cache_matched_query"), str)
             else None
         ),
+        graph_trace=_parse_graph_trace(body.get("graph_trace")),
     )
+
+
+def _parse_graph_trace(raw: object) -> tuple[dict[str, str], ...] | None:
+    if not isinstance(raw, list):
+        return None
+    trace: list[dict[str, str]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        node = item.get("node")
+        reason = item.get("reason")
+        if isinstance(node, str) and isinstance(reason, str):
+            trace.append({"node": node, "reason": reason})
+    return tuple(trace) if trace else None
 
 
 def _parse_contexts(raw: object) -> list[PackedContext]:

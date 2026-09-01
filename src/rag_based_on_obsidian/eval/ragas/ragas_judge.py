@@ -7,7 +7,7 @@ import math
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from rag_based_on_obsidian.eval.ragas_import import import_ragas
+from rag_based_on_obsidian.eval.ragas.ragas_import import import_ragas
 
 # ragas 0.4.3 hard-imports removed Vertex modules; stub before `import ragas`.
 import_ragas()
@@ -19,7 +19,7 @@ from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import LangchainLLMWrapper
 from ragas.metrics import answer_relevancy, faithfulness
 
-from rag_based_on_obsidian.eval.ragas_contracts import PackedContext
+from rag_based_on_obsidian.eval.ragas.ragas_contracts import PackedContext
 from rag_based_on_obsidian.llm.contracts import LLMUnavailableError
 from rag_based_on_obsidian.llm.settings import LLMConfig
 

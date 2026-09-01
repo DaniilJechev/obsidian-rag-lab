@@ -27,6 +27,7 @@ from rag_based_on_obsidian.llm.contracts import (
 )
 from rag_based_on_obsidian.llm.packing import (
     build_messages,
+    estimate_tokens,
     pack_chunks,
     should_refuse,
 )
@@ -265,7 +266,15 @@ def build_generate_graph(
                 "refuse_reason": reason,
                 "packed": [],
                 "path": ["gate"],
-                "trace": [{"node": "gate", "reason": reason}],
+                "trace": [
+                    {
+                        "node": "gate",
+                        "reason": (
+                            f"refused=true budget={config.max_context_tokens} "
+                            f"detail={reason}"
+                        ),
+                    }
+                ],
             }
         packed = pack_chunks(chunks, max_context_tokens=config.max_context_tokens)
         if not packed:
@@ -274,13 +283,30 @@ def build_generate_graph(
                 "refuse_reason": reason,
                 "packed": [],
                 "path": ["gate"],
-                "trace": [{"node": "gate", "reason": reason}],
+                "trace": [
+                    {
+                        "node": "gate",
+                        "reason": (
+                            f"refused=true budget={config.max_context_tokens} "
+                            f"detail={reason}"
+                        ),
+                    }
+                ],
             }
+        est_tokens = sum(estimate_tokens(item.text) for item in packed)
         return {
             "refuse_reason": None,
             "packed": packed,
             "path": ["gate"],
-            "trace": [{"node": "gate", "reason": f"packed={len(packed)}"}],
+            "trace": [
+                {
+                    "node": "gate",
+                    "reason": (
+                        f"packed={len(packed)} budget={config.max_context_tokens} "
+                        f"est_tokens={est_tokens} refused=false"
+                    ),
+                }
+            ],
         }
 
     def route_after_gate(state: GenerateGraphState) -> RouteAfterGate:

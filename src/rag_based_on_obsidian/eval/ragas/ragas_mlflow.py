@@ -19,7 +19,7 @@ from rag_based_on_obsidian.config import (
     RAGAS_EXPERIMENT_NAME,
 )
 from rag_based_on_obsidian.embeddings.mlflow_tracking import process_rss_mb
-from rag_based_on_obsidian.eval.ragas_contracts import (
+from rag_based_on_obsidian.eval.ragas.ragas_contracts import (
     SCORED_RAGAS_FIELDS,
     RagasDatasetMetrics,
 )

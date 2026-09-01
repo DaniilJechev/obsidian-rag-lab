@@ -9,8 +9,9 @@ from rag_based_on_obsidian.embeddings.transformers_provider import (
 )
 from rag_based_on_obsidian.eval.e5_langchain_embeddings import E5LangchainEmbeddings
 from rag_based_on_obsidian.eval.judge import GenerationJudge, OpenRouterJsonJudge
-from rag_based_on_obsidian.eval.ragas_judge import RagasFrameworkJudge
-from rag_based_on_obsidian.eval.ragas_settings import RagasRunConfig
+from rag_based_on_obsidian.eval.ragas.ragas_judge import RagasFrameworkJudge
+from rag_based_on_obsidian.eval.ragas.ragas_settings import RagasRunConfig
+from rag_based_on_obsidian.eval.token_budget.budget_yaml import BudgetRunConfig
 from rag_based_on_obsidian.llm.openrouter import OpenRouterLLMProvider
 from rag_based_on_obsidian.llm.settings import LLMConfig
 
@@ -21,7 +22,7 @@ def judge_scale(backend: str) -> str:
 
 
 def build_generation_judge(
-    config: RagasRunConfig,
+    config: RagasRunConfig | BudgetRunConfig,
     llm_config: LLMConfig,
     api_key: str,
 ) -> GenerationJudge:

@@ -1,10 +1,10 @@
 from rag_based_on_obsidian.eval.contracts import GoldItem, LiveGoldItem
-from rag_based_on_obsidian.eval.live_runner import run_live_eval
 from rag_based_on_obsidian.eval.postgres_loader import (
     UnresolvedEvalNoteIdsError,
     bind_live_gold_items,
     stored_eval_item_from_mapping,
 )
+from rag_based_on_obsidian.eval.retrieval.live_runner import run_live_eval
 from rag_based_on_obsidian.retrieval.contracts import RetrievalMethod, RetrievedChunk
 
 

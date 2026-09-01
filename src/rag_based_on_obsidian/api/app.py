@@ -227,6 +227,7 @@ def _build_router() -> APIRouter:
                 top_k=top_k,
                 model=body.model,
                 enable_cache=body.enable_cache,
+                max_context_tokens=body.max_context_tokens,
             )
         except RetrieverUnavailableError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc

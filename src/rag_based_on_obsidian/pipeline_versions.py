@@ -7,7 +7,7 @@ EMBEDDING_VERSION = None
 EMBEDDING_PARAMETERS: dict[str, object] = {}
 
 # Bump when system prompt / packing policy changes (invalidates semantic cache).
-PROMPT_VERSION = "generate-v1"
+PROMPT_VERSION = "generate-v2"
 CACHE_SCHEMA_VERSION = "semantic-v1"
 
 

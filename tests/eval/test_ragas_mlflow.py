@@ -1,7 +1,7 @@
 import json
 
-from rag_based_on_obsidian.eval import ragas_mlflow
-from rag_based_on_obsidian.eval.ragas_contracts import RagasDatasetMetrics
+from rag_based_on_obsidian.eval.ragas import ragas_mlflow
+from rag_based_on_obsidian.eval.ragas.ragas_contracts import RagasDatasetMetrics
 
 
 class _FakeRun:

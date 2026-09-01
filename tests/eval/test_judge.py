@@ -4,7 +4,7 @@ import json
 import pytest
 
 from rag_based_on_obsidian.eval.judge import OpenRouterJsonJudge, _parse_judge_json
-from rag_based_on_obsidian.eval.ragas_contracts import PackedContext
+from rag_based_on_obsidian.eval.ragas.ragas_contracts import PackedContext
 from rag_based_on_obsidian.llm.contracts import (
     LLMMessage,
     LLMMetadata,
