@@ -1,15 +1,15 @@
 # Sprint 29 — Token budget eval
 
-> Статус: `in_progress`
+> Статус: `done`
 >
-> Ветка: `sprint/29-token-budget-eval`
+> Ветка: `sprint/29-token-budget-eval` (merged, deleted)
 >
 > Связанная фаза roadmap: `Фаза 13`
 >
 > Backlog: `CACHE-002`
 >
-> GitHub: [Issue #77](https://github.com/DaniilJechev/obsidian-rag-lab/issues/77),
-> [Milestone Phase 13](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/13)
+> GitHub: [Issue #77](https://github.com/DaniilJechev/obsidian-rag-lab/issues/77) (closed),
+> [Milestone Phase 13](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/13) (closed)
 
 ## Sprint Goal
 
@@ -63,12 +63,12 @@ Eval в этом спринте — cache **выключен**, чтобы из�
 - [x] Все задачи из Scope выполнены или явно перенесены в backlog.
 - [x] Acceptance Criteria проверены (live eval 2026-08-28).
 - [x] Тесты добавлены или обновлены.
-- [x] Ruff/lint проходит (`uv run ruff check src tests` — All checks passed!)
-- [ ] CI проходит (после push implementation commit)
+- [x] Ruff/lint проходит.
+- [x] CI проходит (PR [#80](https://github.com/DaniilJechev/obsidian-rag-lab/pull/80) — Lint and test pass).
 - [x] Read-only vault не изменён.
 - [x] Секреты не добавлены в Git.
-- [x] Результаты live eval записаны в этот sprint-дocument.
-- [ ] Пользователь подтвердил завершение спринта.
+- [x] Результаты live eval записаны в этот sprint-документ.
+- [x] Пользователь подтвердил завершение спринта (merge PR #80).
 
 ## Dependencies and risks
 
@@ -93,19 +93,24 @@ Eval в этом спринте — cache **выключен**, чтобы из�
 | 2026-08-28 | Dedup removed from scope | Atomic notes; budget ablation only |
 | 2026-08-28 | Gold reuse | `phase7_GT_note_level_v0.yaml`, `subset_size: 15` |
 | 2026-08-28 | Live budget eval | 15q × 3 budgets, ~41 min; MLflow exp `11`, runs `budget-800/1200/1800` |
+| 2026-08-28 | Implementation merged | PR [#80](https://github.com/DaniilJechev/obsidian-rag-lab/pull/80) → `9b53ff4`; CI pass |
 
 ## Live eval results (2026-08-28)
 
 Command: `uv run rag-cli eval budget --config configs/eval/token_budget/budget.yaml --log-mlflow`
 
-| budget | mean_prompt_tokens | faithfulness | answer_relevancy | mean_latency_ms | refusal_rate |
-|---:|---:|---:|---:|---:|---:|
-| 800 | 1196.31 | 0.885 | 0.766 | 7956 | 0.0 |
-| 1200 | 1736.47 | 0.843 | **0.917** | 8997 | 0.0 |
-| 1800 | 1984.80 | 0.784 | 0.826 | 14765 | 0.0 |
+| budget | mean_prompt_tokens | faithfulness | answer_relevancy | mean_latency_ms | refusal_rate | scored |
+|---:|---:|---:|---:|---:|---:|---:|
+| 800 | 1196.31 | 0.885 | 0.766 | 7956 | 0.0 | 13/15 |
+| 1200 | 1736.47 | 0.843 | **0.917** | 8997 | 0.0 | 15/15 |
+| 1800 | 1984.80 | 0.784 | 0.826 | 14765 | 0.0 | 10/15 |
 
 MLflow run IDs: `800` → `e6cde26f…`, `1200` → `8e75cf0f…`, `1800` → `78dc7b5a…`  
 Experiment: http://127.0.0.1:5000/#/experiments/11
+
+**Note:** `mean_latency_ms` логируется в MLflow (прокрутить Compare / открыть run Metrics).  
+`duration_seconds` в MLflow — wall-clock всего CLI / 3, не latency запроса.  
+RAGAS skips (`scored_count` < 15) — generate OK, judge вернул score вне [0, 1].
 
 ### Recommended default: **1200** (`max_context_tokens`)
 
@@ -137,30 +142,43 @@ uv run mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-
 uv run langgraph dev --allow-blocking --no-reload
 
 uv run rag-cli eval budget --config configs/eval/token_budget/budget.yaml --log-mlflow
-uv run rag-cli eval budget --config configs/eval/token_budget/budget.yaml --no-ragas
 ```
 
 ### Test and Lint Results
 
-- Tests: `264 passed, 1 skipped` (`uv run pytest -q`, 2026-08-28 post-implementation)
-- Lint: `All checks passed!` (`uv run ruff check src tests`, 2026-08-28)
-- Live eval: 15q × 3 budgets, monotonic tokens confirmed (see table above)
-- CI: `{{TBD after push}}`
+- Tests: `264 passed, 1 skipped` (`uv run pytest -q`)
+- Lint: `All checks passed!` (`uv run ruff check src tests`)
+- Live eval: 15q × 3 budgets, monotonic tokens confirmed
+- CI: [PR #80](https://github.com/DaniilJechev/obsidian-rag-lab/pull/80) — **Lint and test pass** (59s)
 
 ## Review
 
 ### Completed
 
 - Eval folder reorg (`cache/`, `ragas/`, `retrieval/`, `token_budget/`)
-- `max_context_tokens` per-request override
-- Gate trace enrichment
-- `PROMPT_VERSION = generate-v2`
-- `rag-cli eval budget` + MLflow experiment wiring
+- `max_context_tokens` per-request override (API + eval client)
+- Gate trace enrichment; `PROMPT_VERSION = generate-v2`
+- `rag-cli eval budget` + MLflow experiment `phase-13-token-budget-eval`
 - Live eval: monotonic tokens; recommend default **1200** (YAML change deferred)
+- PR [#80](https://github.com/DaniilJechev/obsidian-rag-lab/pull/80) merged (`9b53ff4`); Issue [#77](https://github.com/DaniilJechev/obsidian-rag-lab/issues/77) closed
 
-### Not Completed
+### Not Completed / carry-over
 
-- Change `openrouter.yaml` default from 1800 → 1200 (documented recommendation only; optional follow-up)
+- Change `openrouter.yaml` default 1800 → **1200** (follow-up)
+- Dedup in packing (explicitly out of scope)
+- MLflow `duration_seconds` per budget (currently total/3 — misleading)
+- RAGAS judge flaky skips on some questions
+
+### Changed Decisions
+
+- Dedup removed from scope (atomic notes vault)
+- Default YAML budget left at 1800 despite live evidence for 1200
+
+### Technical Debt
+
+- Budget eval: RAGAS NaN/out-of-range → skipped rows; faithfulness aggregates on subset
+- MLflow Compare: latency metrics require scroll; `duration_seconds` naming
+- Docker build DNS flakiness on PyPI wheels
 
 ## Retrospective
 
@@ -169,16 +187,37 @@ uv run rag-cli eval budget --config configs/eval/token_budget/budget.yaml --no-r
 - Live ablation подтвердил монотонность prompt_tokens
 - Budget 1200 — sweet spot по answer_relevancy без latency 1800
 - Per-request override работает без rebuild Docker
+- Eval reorg упростил добавление третьего типа experiment (budget)
 
 ### What Was Difficult
 
 - Docker build: transient DNS на `zstandard` wheel (~25 min download)
 - Live eval ~41 min (45 generate + RAGAS judge)
+- RAGAS judge intermittent skips (`ragas score must be in [0, 1]`)
+
+### What We Will Change
+
+- Смотреть `mean_latency_ms` в MLflow artifacts, не `duration_seconds`
+- При смене default budget — один commit в `openrouter.yaml` + smoke generate
+- Optional: retry RAGAS judge once on skip
+
+### Backlog Updates
+
+- **Done:** `CACHE-002` (Sprint 29)
+- **Carry-over / ideas:**
+  - Apply default `max_context_tokens: 1200` in `openrouter.yaml`
+  - Fix budget MLflow `duration_seconds` to per-budget wall clock
+  - RAGAS judge resilience (NaN → skip without dropping generate metrics from aggregates)
 
 ## Completion
 
-- [ ] Definition of Done проверен.
+- [x] Definition of Done проверен.
+- [x] Review проведён.
+- [x] Retrospective заполнена.
+- [x] Commit/PR/merge выполнены (PR [#80](https://github.com/DaniilJechev/obsidian-rag-lab/pull/80)).
+- [x] Backlog обновлён.
+- [x] Phase 13 Milestone closed (CACHE-001 + CACHE-002 complete).
 
-**Итоговый статус:** `in_progress`
+**Итоговый статус:** `done`
 
-**Дата завершения:** `{{TBD}}`
+**Дата завершения:** 2026-08-28
