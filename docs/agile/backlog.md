@@ -85,7 +85,7 @@ Backlog не является жёстким расписанием. Приор�
 | MLOPS-002 | P1 | done | 10 | Human scores + RAGAS runtime + bake-off 2 OpenRouter generate-моделей (Sprint 23) | Sprint 23 completed: human 10×0–5, `judge_backend: ragas` 0–1, bake-off mini `7278da5c…` (F/AR 0.779/0.898) vs Gemini `d0918cf6…` (0.870/0.887), ctx P/R 0.785/0.622. PR [#62](https://github.com/DaniilJechev/obsidian-rag-lab/pull/62) merged (`2c56d41`); Issue [#59](https://github.com/DaniilJechev/obsidian-rag-lab/issues/59) closed. |
 | CACHE-001 | P1 | done | 13 | Semantic cache (E5 cosine) + paraphrase eval | Sprint 28 completed: Redis semantic cache in LangGraph, `rag-cli eval cache`, MLflow smoke hit_rate 0.4; default `cache.enabled: false`; PR [#78](https://github.com/DaniilJechev/obsidian-rag-lab/pull/78) merged (`d59d9dd`); Issue [#76](https://github.com/DaniilJechev/obsidian-rag-lab/issues/76) closed |
 | CACHE-002 | P1 | done | 13 | Token budget + eval | Sprint 29 completed: `rag-cli eval budget`, per-request `max_context_tokens`, MLflow ablation 800/1200/1800; recommend default 1200 (YAML deferred); PR [#80](https://github.com/DaniilJechev/obsidian-rag-lab/pull/80) merged (`9b53ff4`); Issue [#77](https://github.com/DaniilJechev/obsidian-rag-lab/issues/77) closed |
-| CLOUD-001 | P2 | idea | 14 | Сравнить local и cloud storage | Latency, cost, reliability и operational effort измерены |
+| CLOUD-001 | P2 | planned | 14 | Сравнить local и cloud storage | Sprint 30 planned: Neon + Qdrant Cloud; MLflow mandatory; cache ON, rerank OFF, warm E5; Issue [#82](https://github.com/DaniilJechev/obsidian-rag-lab/issues/82) |
 | SERVE-001 | P3 | idea | 16 | Запустить локальную LLM через vLLM | API и vLLM сравнены на одном eval-наборе |
 | DEPLOY-001 | P3 | idea | 17 | Подготовить Kubernetes proof of concept | API/Qdrant/worker manifests и health probes описаны |
 | OPT-001 | P2 | idea | 19 | Провести общий bottleneck analysis | Latency/resource breakdown и before/after оптимизации записаны |
@@ -127,7 +127,11 @@ Phase 13 **закрыта**: Sprint 28 PR [#78](https://github.com/DaniilJechev/
 default semantic cache off; default context budget 1800 (live evidence → 1200 recommended);
 Milestone [13](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/13) closed.
 
-Следующая работа: **Phase 14+** — см. backlog (`CLOUD-001`, session memory, default budget YAML, eval hardening).
+Следующая работа: **Phase 14 / Sprint 30** — `CLOUD-001` local vs Neon + Qdrant Cloud;
+Issue [#82](https://github.com/DaniilJechev/obsidian-rag-lab/issues/82);
+Milestone [14](https://github.com/DaniilJechev/obsidian-rag-lab/milestone/14);
+doc `docs/agile/sprint-30-cloud-storage-comparison.md`.
+Benchmark: MLflow mandatory, semantic cache ON, rerank OFF, warm E5.
 Phase 12 / `ML-001` **закрыта**: Sprint 26 PR [#72](https://github.com/DaniilJechev/obsidian-rag-lab/pull/72)
 (`0b8e230`) + Sprint 27 PR [#74](https://github.com/DaniilJechev/obsidian-rag-lab/pull/74)
 (`12102b6`); Issues [#70](https://github.com/DaniilJechev/obsidian-rag-lab/issues/70)/
