@@ -1,137 +1,191 @@
 # RAG Based on Obsidian
 
-Production-like RAG-пайплайн поверх учебных заметок Obsidian.
+RAG API over an Obsidian vault (allowlisted `DLS1` / `DLS2` notes). Local stack:
+PostgreSQL, Qdrant, Redis, FastAPI (`api` with a warm E5 embedder). Generation
+uses OpenRouter.
 
-## Цель проекта
+## Requirements
 
-Совместно построить измеряемую RAG-систему, которая умеет находить релевантный контекст в заметках, генерировать ответы через LLM и возвращать citations на исходные заметки.
+- Python **3.12**
+- [uv](https://docs.astral.sh/uv/)
+- Docker Desktop (Compose)
+- Obsidian vault path with direct children `DLS1` and `DLS2`
+- OpenRouter API key (only for `/generate`)
 
-Проект одновременно служит учебным полигоном для технологий из `ML main skills.md`: RAG, embeddings, vector search, PostgreSQL, Qdrant, LangChain, LangGraph, FastAPI, evaluation, MLOps и deployment.
+## Setup
 
-## Корпус
-
-Первая версия работает только с:
-
-- `obsidianNotes/ML_NLP/DLS1/`
-- `obsidianNotes/ML_NLP/DLS2/`
-
-`OBSIDIAN_VAULT_ROOT` указывает на `obsidianNotes/ML_NLP`, потому что
-discovery принимает только прямые дочерние каталоги `DLS1` и `DLS2`.
-Каталог `obsidianNotes/ML_NLP/NLP/` в allowlist не входит.
-
-Каталог `obsidianNotes` является read-only. Приложение не должно изменять, перемещать или удалять исходные заметки.
-
-## Roadmap
-
-- [Подробный roadmap проекта](docs/RAG_obsidian_plan_snapshot.md)
-- [Рабочий план Cursor](C:\Users\gigachaDick\.cursor\plans\rag_pipeline_roadmap_7c0acd14.plan.md)
-
-Snapshot roadmap хранится в `docs/` как проектная копия. Исходный файл в `obsidianNotes` остаётся источником учебного материала и не редактируется.
-
-## Начальная архитектура
-
-```text
-Markdown-файлы DLS1/DLS2
-          |
-          v
-Parser + chunking
-          |
-          +--> PostgreSQL
-          |    metadata, ingestion state, eval, logs, cache
-          |
-          +--> Local embedding model
-                    |
-                    v
-                 Qdrant
-              vector retrieval
-
-User question
-          |
-          v
-FastAPI + LangGraph
-          |
-          +--> hybrid retrieval: Qdrant + BM25
-          |
-          +--> LLM через OpenRouter
-          |
-          v
-Ответ с citations
+```bash
+cp .env.example .env
 ```
 
-## Выбранный порядок технологий
+Edit `.env` (required):
 
-1. Локальные PostgreSQL и Qdrant через Docker Compose.
-2. Бесплатная локальная multilingual embedding-модель на CPU.
-3. OpenRouter как первый LLM API.
-4. Hybrid retrieval: dense search + BM25 + RRF.
-5. FastAPI и LangChain.
-6. LangGraph, reranking, cache и classic ML.
-7. Сравнение Qdrant с `pgvector`.
-8. Сравнение local storage с cloud storage.
-9. Сравнение бесплатных local embeddings с платными embeddings через OpenRouter.
-10. Эксперименты с vLLM на Colab или cloud GPU.
-11. Kubernetes как поздняя необязательная deployment-фаза.
+| Variable | Purpose |
+|----------|---------|
+| `OBSIDIAN_VAULT_ROOT` | Host path to `…/ML_NLP` (use forward slashes, e.g. `C:/Users/…/ML_NLP`) |
+| `ALLOWED_CORPUS_DIRECTORIES` | Default `DLS1,DLS2` |
+| `POSTGRES_PASSWORD` | Non-empty password for local Postgres |
+| `OPENROUTER_API_KEY` | Required for `POST /generate` |
 
-## Структура проекта
+Install the package and apply migrations:
 
-```text
-src/        исходный Python-код
-tests/      автоматические тесты
-notebooks/  EDA и эксперименты
-evals/      eval-вопросы, gold labels и результаты
-configs/    конфигурации
-docker/     Docker-файлы и Compose-конфигурация
-artifacts/  локальные результаты запусков
-docs/       проектная документация и roadmap snapshot
+```bash
+uv sync
+uv run alembic upgrade head
 ```
 
-## Принцип совместной реализации
+Compose interpolates `${OBSIDIAN_VAULT_ROOT}` from `--env-file .env`. Always pass
+that flag.
 
-Проект реализуется в учебном режиме:
+## Start the stack
 
-1. Сначала объясняется технология и проблема, которую она решает.
-2. Затем определяется небольшой проверяемый шаг.
-3. Пользователь выполняет посильную часть работы.
-4. AI-ассистент помогает skeleton-кодом, подсказками, review и debugging.
-5. Результат проверяется тестом, измерением или практической проверкой понимания.
-6. Перед переходом к следующей фазе проверяется Definition of Done текущей фазы.
+```bash
+docker compose --env-file .env -f docker/compose.yml up -d --build
+docker compose --env-file .env -f docker/compose.yml ps
+```
 
-AI-ассистент не должен молча писать весь проект вместо пользователя.
+Services:
 
-## Метрики
+| Service | Port | Role |
+|---------|------|------|
+| `postgres` | `5432` | Metadata, chunks, ingest state, query logs |
+| `qdrant` | `6333` | Dense + sparse vectors |
+| `redis` | `6379` | Semantic cache store |
+| `api` | `8000` | FastAPI (E5 loads on startup; first boot can take a few minutes) |
 
-Ключевые метрики будут добавляться после появления baseline:
+Health:
 
-- retrieval: `nDCG@k`, `MRR@k`;
-- generation: Faithfulness, Answer Relevancy, Context Precision/Recall;
-- performance: latency p50/p95, throughput;
-- efficiency: tokens/query, cost/query;
-- reliability: ingestion success rate и error rate.
+```bash
+curl http://127.0.0.1:8000/health
+```
 
-Числа в README добавляются только по результатам воспроизводимых запусков. До появления экспериментов метрики не выдумываются.
+Expect `"status":"ok"` and `"model_loaded":true` when the embedder is ready.
 
-## Текущий статус
+Stop:
 
-Фаза 0 — каркас проекта:
+```bash
+docker compose --env-file .env -f docker/compose.yml down
+```
 
-- [x] Создана базовая структура каталогов.
-- [x] Roadmap скопирован в `docs/RAG_obsidian_plan_snapshot.md`.
-- [x] Создан README.
-- [x] Настроены Python environment (`uv`, Python 3.12.12) и конфигурация.
-- [x] Инициализирован Git, добавлен `.gitignore` и настроен удалённый GitHub-репозиторий.
-- [x] Добавлены базовые тесты, Ruff и GitHub Actions CI.
-- [x] Созданы Docker Compose и производный Qdrant image с healthcheck.
-- [x] PostgreSQL 16 и Qdrant v1.19.0 запущены локально через Docker Compose.
-- [x] Настроены persistent volumes для PostgreSQL и Qdrant.
-- [x] PostgreSQL и Qdrant проходят healthcheck.
-- [x] Согласован шаблон Agile-спринта и правила sprint workflow.
-- [x] Создан и проверен проектный набор skills для sprint planning и Git workflow.
-- [x] Проведена финальная проверка Definition of Done Фазы 0:
-  - локальные Ruff и pytest проходят;
-  - PostgreSQL и Qdrant проходят Docker healthcheck;
-  - последний GitHub Actions CI завершился успешно;
-  - `.env` не отслеживается Git;
-  - roadmap snapshot совпадает с read-only источником.
+## Index the corpus
 
-Фаза 0 формально завершена. Следующий этап — планирование Sprint 1 для Фазы 1
-(Safe Corpus Discovery).
+With Postgres + Qdrant healthy and `.env` configured, either:
+
+**HTTP (from a running `api`):**
+
+```bash
+curl -X POST http://127.0.0.1:8000/ingest
+curl http://127.0.0.1:8000/ingest/current
+```
+
+`POST /ingest` returns a `run_id` and continues in the background. A second
+ingest while one is running returns `409`.
+
+**CLI (host):**
+
+```bash
+uv run rag-cli chunk --help
+uv run rag-cli upsert-dense-sparse --help
+```
+
+Vault files are mounted read-only into `api` at `/vault`. Do not modify vault
+contents from the application.
+
+## HTTP API
+
+Base URL: `http://127.0.0.1:8000`
+
+### `GET /health`
+
+Process liveness, embedder loaded, Qdrant/Postgres reachability, pinned models.
+
+### `POST /search`
+
+Hybrid (default), dense, or BM25 retrieval.
+
+```bash
+curl -X POST http://127.0.0.1:8000/search ^
+  -H "Content-Type: application/json" ^
+  -d "{\"query\":\"What is RoPE?\",\"method\":\"hybrid\",\"top_k\":5}"
+```
+
+Body fields: `query` (required), `method` (`hybrid` \| `dense` \| `bm25`),
+`top_k` (optional). Each `/search` is written to Postgres `query_logs`.
+
+### `POST /generate`
+
+Retrieve → pack context → OpenRouter LLM → answer with citations (LangGraph).
+
+```bash
+curl -X POST http://127.0.0.1:8000/generate ^
+  -H "Content-Type: application/json" ^
+  -d "{\"query\":\"What is RoPE?\",\"method\":\"hybrid\",\"top_k\":5}"
+```
+
+Optional overrides (no container rebuild):
+
+- `model` — OpenRouter model id
+- `enable_cache` — override Redis semantic cache for this request
+- `max_context_tokens` — override packing budget (default **1200** in
+  `configs/llm/openrouter.yaml`)
+
+Response includes `answer`, `citations`, `contexts`, `refused`, usage/latency,
+and optional cache/graph fields. Missing/invalid OpenRouter key → `503` on
+generate; `/search` and `/ingest` remain available.
+
+### Ingest
+
+| Method | Path | Notes |
+|--------|------|-------|
+| `POST` | `/ingest` | Start background reindex; returns `run_id` |
+| `GET` | `/ingest/current` | Latest ingest run |
+| `GET` | `/ingest/{run_id}` | Status for one run |
+
+## CLI (`rag-cli`)
+
+```bash
+uv run rag-cli --help
+uv run rag-cli search hybrid --query "What is RoPE?"
+uv run rag-cli eval --help
+uv run rag-cli ragas --help
+```
+
+| Command | Purpose |
+|---------|---------|
+| `chunk` | Chunk materialization into PostgreSQL |
+| `upsert-dense-sparse` | Embed and upsert dense + BM25 into Qdrant |
+| `vector-store` | Create / verify Qdrant collections |
+| `search` | Dense / BM25 / hybrid search from the host |
+| `eval` | Retrieval / cache / token-budget eval runners |
+| `ragas` | Score `/generate` answers |
+
+Host CLI uses `.env` and talks to services on localhost. Prefer HTTP `/search`
+on a warm `api` process so E5 is not reloaded on every call.
+
+## Defaults (current)
+
+| Setting | Default | Config |
+|---------|---------|--------|
+| Retrieval | hybrid | `configs/retrieval/retrieval.yaml` |
+| Rerank (cross-encoder) | off | `configs/retrieval/retrieval.yaml` → `rerank.enabled` |
+| Semantic cache | off | `configs/cache/cache.yaml` → `enabled` |
+| Generate model | `openai/gpt-4o-mini` | `configs/llm/openrouter.yaml` |
+| Context budget | `1200` tokens | `configs/llm/openrouter.yaml` → `max_context_tokens` |
+
+## Layout
+
+```text
+src/        application code
+tests/      pytest suite
+configs/    YAML configs
+docker/     Compose + Dockerfiles
+alembic/    DB migrations
+docs/       architecture and sprint notes
+```
+
+## Tests
+
+```bash
+uv run ruff check .
+uv run pytest -q
+```
